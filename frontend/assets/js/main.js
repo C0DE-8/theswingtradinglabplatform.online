@@ -247,6 +247,35 @@ $('.roadMap-active').slick({
 	]
 });
 
+/*=============================================
+	=    		Trade News Active		      =
+=============================================*/
+$('.trade-news-active').slick({
+	dots: false,
+	infinite: true,
+	speed: 900,
+	autoplay: true,
+	arrows: false,
+	slidesToShow: 2,
+	slidesToScroll: 1,
+	responsive: [
+		{
+			breakpoint: 992,
+			settings: {
+				slidesToShow: 2,
+				slidesToScroll: 1
+			}
+		},
+		{
+			breakpoint: 767,
+			settings: {
+				slidesToShow: 1,
+				slidesToScroll: 1
+			}
+		}
+	]
+});
+
 
 /*=============================================
 	=    		Team Active		      =

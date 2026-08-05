@@ -10,6 +10,10 @@
 .roadmap-content {
     padding: 75px 40px 65px;
 }
+.trade-news-card {
+    min-height: 390px;
+    padding: 40px 28px 30px;
+}
 
 }
 
@@ -141,6 +145,12 @@
 }
 .roadmap-content {
     padding: 75px 30px 40px;
+}
+.trade-news-card {
+    min-height: auto;
+}
+.live-news-panel {
+    min-height: auto;
 }
 .roadmap-title {
     margin-left: 0;
@@ -496,6 +506,9 @@
 }
 .team-area {
     padding: 100px 0;
+}
+.brick-card-slider {
+    padding: 0 15px;
 }
 .faq-inner-wrap {
     padding: 100px 0;

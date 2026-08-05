@@ -5,10 +5,10 @@
   const USER_BASE = `${API_ROOT}/users`;
   const ADMIN_BASE = `${API_ROOT}/admin`;
 
-  const USER_TOKEN_KEY = "upcoinmeta_token";
-  const ADMIN_TOKEN_KEY = "upcoinmeta_admin_token";
-  const USER_KEY = "upcoinmeta_user";
-  const ADMIN_KEY = "upcoinmeta_admin";
+  const USER_TOKEN_KEY = "swing_trading_lab_platform_token";
+  const ADMIN_TOKEN_KEY = "swing_trading_lab_platform_admin_token";
+  const USER_KEY = "swing_trading_lab_platform_user";
+  const ADMIN_KEY = "swing_trading_lab_platform_admin";
 
   function token(key) {
     return window.localStorage.getItem(key) || "";

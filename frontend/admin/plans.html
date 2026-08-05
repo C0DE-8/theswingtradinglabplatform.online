@@ -1,10 +1,10 @@
-<!-- /admin/plans.html ✅ Upcoinmeta Admin — Plans Management (CRUD, Responsive, Modal, CSV Export) -->
+<!-- /admin/plans.html ✅ The Swing Trading Lab Platform Admin — Plans Management (CRUD, Responsive, Modal, CSV Export) -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Upcoinmeta — Plans Management</title>
+  <title>The Swing Trading Lab Platform — Plans Management</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
@@ -181,7 +181,7 @@
         <div class="flex gap-4 sm:items-center sm:justify-between stack">
           <div class="flex items-center gap-3">
             <a href="./dashboard.html" class="w-11 h-11 rounded-2xl chip grid place-items-center shrink-0 hover:opacity-90" title="Back to dashboard">
-              <span class="text-lg font-black">U</span>
+              <span class="text-lg font-black">S</span>
             </a>
             <div>
               <div class="text-xl font-extrabold leading-tight">Plans Management</div>
@@ -304,7 +304,7 @@
 
         <!-- Footer -->
         <div class="mt-7 text-center text-xs text-white/45">
-          © <span id="yr"></span> Upcoinmeta • Admin Console
+          © <span id="yr"></span> The Swing Trading Lab Platform • Admin Console
         </div>
       </div>
     </div>
@@ -418,8 +418,8 @@
 
   <script>
     const ADMIN_BASE = window.SwayApi.adminBase;
-    const TOKEN_KEY = "upcoinmeta_admin_token";
-    const ADMIN_KEY = "upcoinmeta_admin";
+    const TOKEN_KEY = "swing_trading_lab_platform_admin_token";
+    const ADMIN_KEY = "swing_trading_lab_platform_admin";
 
     const alertBox = document.getElementById("alert");
     const tbody = document.getElementById("tbody");
@@ -945,7 +945,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `upcoinmeta_plans_${new Date().toISOString().slice(0,10)}.csv`;
+      a.download = `swing_trading_lab_platform_plans_${new Date().toISOString().slice(0,10)}.csv`;
       document.body.appendChild(a);
       a.click();
       a.remove();

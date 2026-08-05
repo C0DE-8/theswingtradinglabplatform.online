@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>My Sway Market — Dashboard</title>
+  <title>The Swing Trading Lab Platform — Dashboard</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
@@ -473,7 +473,7 @@
           </a>
           </div>
           <div class="min-w-0">
-            <div class="txt-h1 leading-[1.05] truncate">My Sway Market</div>
+            <div class="txt-h1 leading-[1.05] truncate">The Swing Trading Lab Platform</div>
             <div class="txt-sm t-dim truncate">Investment dashboard</div>
           </div>
         </div>
@@ -717,7 +717,7 @@
       </section>
 
       <footer class="mt-8 text-center text-xs t-dim pb-10">
-        2018 © <span id="yr"></span> My Sway Market • Investment Services
+        2018 © <span id="yr"></span> The Swing Trading Lab Platform • Investment Services
       </footer>
 
     </main>
@@ -727,8 +727,8 @@
 
   <script>
     const API_BASE = window.SwayApi.userBase;
-    const TOKEN_KEY = "upcoinmeta_token";
-    const USER_KEY  = "upcoinmeta_user";
+    const TOKEN_KEY = "swing_trading_lab_platform_token";
+    const USER_KEY  = "swing_trading_lab_platform_user";
     document.getElementById("yr").textContent = new Date().getFullYear();
 
     const preloader = document.getElementById("preloader");
@@ -969,7 +969,7 @@
     }
 
     function renderUserHeader(user) {
-      const name = user?.username || user?.full_name || "Upcoinmeta";
+      const name = user?.username || user?.full_name || "The Swing Trading Lab Platform";
       hdrName.classList.remove("skeleton");
       hdrName.innerHTML = `
         <span class="verified">

@@ -1,26 +1,13 @@
-﻿<?xml version="1.0" encoding="UTF-16"?>
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<!-- Creator: CorelDRAW 2021 (64-Bit) -->
-<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="0.550299in" height="0.550299in" version="1.1" style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd"
-viewBox="0 0 85.92 85.92"
- xmlns:xlink="http://www.w3.org/1999/xlink"
- xmlns:xodm="http://www.corel.com/coreldraw/odm/2003">
- <defs>
-  <style type="text/css">
-   <![CDATA[
-    .fil1 {fill:#FEFEFE}
-    .fil0 {fill:#2E6B5F}
-   ]]>
-  </style>
- </defs>
- <g id="Layer_x0020_1">
-  <metadata id="CorelCorpID_0Corel-Layer"/>
-  <polygon class="fil0" points="80.5,80.67 44.86,85.92 5.26,80.5 -0,44.86 5.42,5.26 41.06,0 80.67,5.42 85.92,41.06 "/>
-  <g id="_1438246347472">
-   <polygon class="fil1" points="7,22.56 24.31,12.3 37.62,19.99 7.48,37.95 "/>
-   <polygon class="fil1" points="29.12,9.73 42.59,2.04 77.7,22.08 77.7,62.47 64.07,70.65 64.07,30.41 "/>
-   <polygon class="fil1" points="59.58,57.02 29.28,74.82 42.27,82.51 59.58,72.89 "/>
-   <polygon class="fil1" points="59.26,40.67 59.26,32.17 52.85,28.65 7.32,54.46 7.32,62.31 14.06,66.48 "/>
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title">
+  <title id="title">The Swing Trading Lab Platform icon</title>
+  <rect width="128" height="128" rx="24" fill="#071722"/>
+  <path d="M50 18h30M59 18v31L33 88c-6 9 0 21 11 21h42c11 0 17-12 11-21L71 49V18" stroke="#F7FAFC" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M43 85c14 7 31 7 45 0" stroke="#0B8F87" stroke-width="11" stroke-linecap="round"/>
+  <path d="M39 75c22 1 44-9 59-31" stroke="#C99A22" stroke-width="6" stroke-linecap="round"/>
+  <path d="M98 44l-2 18-14-10 16-8z" fill="#C99A22"/>
+  <g fill="#0B8F87">
+    <rect x="49" y="57" width="7" height="16" rx="1.5"/>
+    <rect x="63" y="50" width="7" height="20" rx="1.5"/>
+    <rect x="77" y="42" width="7" height="22" rx="1.5"/>
   </g>
- </g>
 </svg>

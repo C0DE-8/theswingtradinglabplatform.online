@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Sway Market — Deposit</title>
+  <title>The Swing Trading Lab Platform — Deposit</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
@@ -533,7 +533,7 @@
           <div id="hdrName" class="txt-h2 skeleton rounded-xl px-3 py-2">
             &nbsp;&nbsp;&nbsp;
           </div>
-          <div class="avatar" id="hdrInitial">U</div>
+          <div class="avatar" id="hdrInitial">S</div>
         </div>
       </header>
 
@@ -677,7 +677,7 @@
       </section>
 
       <footer class="mt-8 text-center text-xs t-dim pb-10">
-        © <span id="yr"></span> Sway Market • Investment Services
+        © <span id="yr"></span> The Swing Trading Lab Platform • Investment Services
       </footer>
 
     </main>
@@ -716,8 +716,8 @@
   <script>
     // ✅ CONFIG (same pattern as dashboard)
     const API_BASE = window.SwayApi.userBase;
-    const TOKEN_KEY = "upcoinmeta_token";
-    const USER_KEY  = "upcoinmeta_user";
+    const TOKEN_KEY = "swing_trading_lab_platform_token";
+    const USER_KEY  = "swing_trading_lab_platform_user";
 
     // allowed crypto assets
     const ALLOWED_ASSETS = ["BTC","ETH","USDT","BNB","LTC","DOGE","XRP","SHIB","SOL"];
@@ -798,10 +798,10 @@
     const hdrInitial = document.getElementById("hdrInitial");
 
     function renderUserHeader(user) {
-      const name = user?.username || user?.full_name || "Upcoinmeta";
+      const name = user?.username || user?.full_name || "The Swing Trading Lab Platform";
       hdrName.classList.remove("skeleton");
       hdrName.textContent = name;
-      hdrInitial.textContent = (String(name).trim().slice(0,1).toUpperCase() || "U");
+      hdrInitial.textContent = (String(name).trim().slice(0,1).toUpperCase() || "S");
     }
 
     async function fetchMe() {

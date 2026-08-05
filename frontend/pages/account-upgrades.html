@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Upcoinmeta — Account Upgrades</title>
+  <title>The Swing Trading Lab Platform — Account Upgrades</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
@@ -502,7 +502,7 @@
         <div class="brand min-w-0">
           <img src="assets/icon/favicon.svg" alt="">
           <div class="min-w-0">
-            <div class="name truncate">Upcoinmeta</div>
+            <div class="name truncate">The Swing Trading Lab Platform</div>
             <div class="sub truncate" id="sideUserEmail">—</div>
           </div>
         </div>
@@ -523,7 +523,7 @@
       <div class="brand">
         <img src="assets/icon/favicon.svg" alt="">
         <div class="min-w-0">
-          <div class="name truncate">Upcoinmeta</div>
+          <div class="name truncate">The Swing Trading Lab Platform</div>
           <div class="sub truncate" id="sideUserEmailDesktop">—</div>
         </div>
       </div>
@@ -544,7 +544,7 @@
           <button id="btnMenu" class="btn" type="button">☰ Menu</button>
           <div class="flex items-center gap-3">
             <div id="hdrNameMini" class="txt-h2 skeleton rounded-xl px-3 py-2">&nbsp;&nbsp;&nbsp;</div>
-            <div class="avatar" id="hdrInitialMini">U</div>
+            <div class="avatar" id="hdrInitialMini">S</div>
           </div>
         </div>
 
@@ -559,7 +559,7 @@
           </div>
           <div class="flex items-center gap-3 shrink-0">
             <div id="hdrName" class="txt-h2 skeleton rounded-xl px-3 py-2">&nbsp;&nbsp;&nbsp;</div>
-            <div class="avatar" id="hdrInitial">U</div>
+            <div class="avatar" id="hdrInitial">S</div>
           </div>
         </header>
 
@@ -633,7 +633,7 @@
         </section>
 
         <footer class="mt-8 text-center text-xs t-dim pb-10">
-          © <span id="yr"></span> Upcoinmeta • Investment Services
+          © <span id="yr"></span> The Swing Trading Lab Platform • Investment Services
         </footer>
 
       </div>
@@ -642,8 +642,8 @@
 
   <script>
     const API_BASE = window.SwayApi.userBase;
-    const TOKEN_KEY = "upcoinmeta_token";
-    const USER_KEY  = "upcoinmeta_user";
+    const TOKEN_KEY = "swing_trading_lab_platform_token";
+    const USER_KEY  = "swing_trading_lab_platform_user";
     document.getElementById("yr").textContent = new Date().getFullYear();
 
     // ✅ Preloader
@@ -905,10 +905,10 @@
     }
 
     function renderHeader(user){
-      const name = user?.username || user?.full_name || "Upcoinmeta";
+      const name = user?.username || user?.full_name || "The Swing Trading Lab Platform";
       hdrName.classList.remove("skeleton");
       hdrName.textContent = name;
-      hdrInitial.textContent = (String(name).trim().slice(0,1).toUpperCase() || "U");
+      hdrInitial.textContent = (String(name).trim().slice(0,1).toUpperCase() || "S");
 
       hdrNameMini.classList.remove("skeleton");
       hdrNameMini.textContent = String(name).split(" ")[0] || "User";

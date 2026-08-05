@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Upcoinmeta — Change Password</title>
+  <title>The Swing Trading Lab Platform — Change Password</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
@@ -346,7 +346,7 @@
       <!-- ✅ HEADER -->
       <header class="glass rounded-[26px] px-4 py-4 flex items-center justify-between gap-4">
         <div class="flex items-center gap-3 min-w-0">
-          <div class="avatar" id="hdrInitial">U</div>
+          <div class="avatar" id="hdrInitial">S</div>
           <div class="min-w-0">
             <div class="txt-h1 leading-[1.05] truncate">Change Password</div>
             <div class="txt-sm t-dim truncate" id="hdrSub">Update your account password</div>
@@ -413,7 +413,7 @@
       </section>
 
       <footer class="mt-8 text-center text-xs t-dim pb-10">
-        © <span id="yr"></span> Upcoinmeta • Security Center
+        © <span id="yr"></span> The Swing Trading Lab Platform • Security Center
       </footer>
 
     </main>
@@ -424,8 +424,8 @@
   <script>
     // ✅ MATCH YOUR DASHBOARD STORAGE + BASE
     const API_BASE = window.SwayApi.userBase;
-    const TOKEN_KEY = "upcoinmeta_token";
-    const USER_KEY  = "upcoinmeta_user";
+    const TOKEN_KEY = "swing_trading_lab_platform_token";
+    const USER_KEY  = "swing_trading_lab_platform_user";
 
     document.getElementById("yr").textContent = new Date().getFullYear();
 
@@ -514,7 +514,7 @@
       try {
         const user = JSON.parse(localStorage.getItem(USER_KEY) || sessionStorage.getItem(USER_KEY) || "{}");
         const name = (user?.username || user?.full_name || "U").toString().trim();
-        document.getElementById("hdrInitial").textContent = name.slice(0,1).toUpperCase() || "U";
+        document.getElementById("hdrInitial").textContent = name.slice(0,1).toUpperCase() || "S";
         document.getElementById("hdrSub").textContent = user?.email ? `Signed in as ${user.email}` : "Update your account password";
       } catch {}
     })();

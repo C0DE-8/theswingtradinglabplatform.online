@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sway Market — Deposit</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="../assets/js/api.js"></script>
+
+  <style>
+    :root{
+      --safe-top: env(safe-area-inset-top);
+      --safe-bottom: env(safe-area-inset-bottom);
+      --nav-h: 82px;
+
+      --bg: #07080c83;
+      --card: rgba(18, 18, 22, .62);
+      --card2: rgba(18, 18, 22, .46);
+      --line: rgba(255,255,255,.10);
+      --line2: rgba(255,255,255,.07);
+      --text-dim: rgba(255,255,255,.60);
+
+      --active: rgba(56,189,248,.18);
+      --activeLine: rgba(56,189,248,.25);
+
+      --glow: rgba(56,189,248,.22);
+      --glow2: rgba(168,85,247,.12);
+    }
+
+    html,body{
+      height:100%;
+      width:100%;
+      margin:0;
+      padding:0;
+      overflow:hidden;
+      background: var(--bg);
+      color:#fff;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{ -webkit-tap-highlight-color: transparent; }
+
+    /* ✅ BACKGROUND STACK (NO BUBBLES) */
+    .bg-stack{
+      position: fixed;
+      inset: 0;
+      z-index: -10;
+      pointer-events: none;
+      overflow: hidden;
+      background: var(--bg);
+    }
+    .bg-map{
+      position:absolute;
+      inset:0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      opacity: 1;
+      filter: contrast(1.12) brightness(1.05);
+      user-select:none;
+    }
+    .bg-film{
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(900px 520px at 20% 0%, rgba(255,255,255,0.06), transparent 60%),
+        radial-gradient(900px 520px at 80% 10%, rgba(255,255,255,0.05), transparent 60%),
+        linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.52));
+    }
+
+    /* ✅ SCROLL SHELL */
+    .scroll-shell{
+      height:100vh;
+      height:100dvh;
+      overflow-y:auto;
+      overflow-x:hidden;
+      -webkit-overflow-scrolling:touch;
+      padding-top: calc(12px + var(--safe-top));
+      padding-bottom: calc(18px + var(--safe-bottom));
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ✅ PREMIUM CARD GLOW */
+    .glass{
+      background: var(--card);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid var(--line2);
+      box-shadow:
+        0 18px 70px rgba(0,0,0,.55),
+        0 0 0 1px rgba(255,255,255,.04),
+        0 0 46px rgba(56,189,248,.06);
+      position: relative;
+      overflow: hidden;
+      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    }
+    .glass::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      border-radius: inherit;
+      background:
+        radial-gradient(700px 260px at 15% 0%, rgba(56,189,248,.14), transparent 58%),
+        radial-gradient(720px 260px at 85% 12%, rgba(168,85,247,.10), transparent 60%);
+      opacity: .65;
+      pointer-events:none;
+      mix-blend-mode: screen;
+    }
+    .glass:hover{
+      transform: translateY(-1px);
+      border-color: rgba(255,255,255,.12);
+      box-shadow:
+        0 20px 80px rgba(0,0,0,.60),
+        0 0 0 1px rgba(255,255,255,.05),
+        0 0 62px rgba(56,189,248,.10);
+    }
+
+    .glass-soft{
+      background: var(--card2);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--line2);
+      box-shadow:
+        0 14px 44px rgba(0,0,0,.35),
+        0 0 34px rgba(56,189,248,.05);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .pill{
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--line);
+    }
+    .t-dim{ color: var(--text-dim); }
+    .txt-h1{ font-size: clamp(18px, 4.8vw, 22px); font-weight: 900; }
+    .txt-h2{ font-size: clamp(16px, 4.2vw, 18px); font-weight: 900; }
+    .txt-sm{ font-size: 13px; }
+
+    .skeleton{
+      background: rgba(255,255,255,.08);
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes pulse{
+      0%,100%{opacity:.55}
+      50%{opacity:.85}
+    }
+
+    .avatar{
+      width: 42px; height: 42px;
+      border-radius: 999px;
+      display:grid;
+      place-items:center;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.18);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
+      font-weight: 900;
+      font-size: 15px;
+    }
+
+    /* ✅ Inputs */
+    .field{
+      width:100%;
+      border-radius: 18px;
+      padding: 12px 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+      color: #fff;
+      outline: none;
+      transition: .18s ease;
+    }
+    .field:focus{
+      border-color: rgba(56,189,248,.35);
+      box-shadow: 0 0 0 4px rgba(56,189,248,.12);
+    }
+    .field::placeholder{ color: rgba(255,255,255,.45); }
+
+    .btn{
+      border-radius: 18px;
+      padding: 12px 14px;
+      font-weight: 900;
+      font-size: 13px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      transition: .18s ease;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      user-select:none;
+    }
+    .btn:hover{ transform: translateY(-1px); background: rgba(255,255,255,.08); }
+    .btn:active{ transform: translateY(0px) scale(.99); }
+    .btn.primary{
+      border-color: rgba(56,189,248,.26);
+      background: rgba(56,189,248,.14);
+    }
+    .btn.danger{
+      border-color: rgba(248,113,113,.22);
+      background: rgba(248,113,113,.12);
+    }
+    .btn:disabled{
+      opacity: .6;
+      pointer-events:none;
+    }
+
+    /* ✅ asset chips */
+    .chipRow{ display:flex; flex-wrap:wrap; gap:10px; }
+    .chip{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding: 10px 12px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      font-weight: 900;
+      font-size: 12px;
+      cursor: pointer;
+      transition: .18s ease;
+      user-select:none;
+    }
+    .chip img{ width: 18px; height: 18px; opacity:.95; }
+    .chip.active{
+      background: rgba(56,189,248,.14);
+      border-color: rgba(56,189,248,.26);
+      box-shadow: 0 0 0 1px rgba(56,189,248,.06), 0 16px 60px rgba(56,189,248,.06);
+      color:#fff;
+    }
+
+    /* ✅ QR */
+    .qrBox{
+      width: 108px;
+      height: 108px;
+      border-radius: 22px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      display:grid;
+      place-items:center;
+      overflow:hidden;
+      flex-shrink:0;
+      position: relative;
+      padding: 0;
+    }
+    .qrBox img{
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: .96;
+      display:block;
+    }
+    .qrClickable{
+      cursor: pointer;
+      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    }
+    .qrClickable:hover{
+      transform: translateY(-1px);
+      border-color: rgba(56,189,248,.28);
+      box-shadow: 0 18px 60px rgba(0,0,0,.38), 0 0 44px rgba(56,189,248,.10);
+    }
+    .qrHint{
+      position:absolute;
+      left: 8px;
+      right: 8px;
+      bottom: 8px;
+      display:flex;
+      justify-content:center;
+      pointer-events:none;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: .18s ease;
+    }
+    .qrHint span{
+      font-size: 11px;
+      font-weight: 900;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(0,0,0,.55);
+      border: 1px solid rgba(255,255,255,.14);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color: rgba(255,255,255,.90);
+    }
+    .qrClickable:hover .qrHint{
+      opacity: 1;
+      transform: translateY(0px);
+    }
+
+    /* ✅ Preloader */
+    .preloader{
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(1200px 600px at 20% 0%, rgba(56,189,248,.10), transparent 55%),
+        radial-gradient(1100px 650px at 80% 15%, rgba(168,85,247,.08), transparent 60%),
+        rgba(0,0,0,.55);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      transition: opacity .35s ease, transform .35s ease;
+    }
+    .preloader.hidden{
+      opacity: 0;
+      transform: scale(1.01);
+      pointer-events: none;
+    }
+    .loader-card{
+      width: min(420px, calc(100vw - 32px));
+      border-radius: 26px;
+      padding: 22px 18px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(18,18,22,.62);
+      box-shadow: 0 20px 80px rgba(0,0,0,.65);
+      text-align:center;
+    }
+    .loader-logo{
+      width: 62px;
+      height: 62px;
+      border-radius: 999px;
+      display:grid;
+      place-items:center;
+      margin: 0 auto 12px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 0 60px rgba(56,189,248,.14);
+    }
+    .loader-logo img{
+      width: 34px;
+      height: 34px;
+      opacity: .95;
+      animation: spinSoft 2.6s linear infinite;
+      transform-origin: center;
+    }
+    @keyframes spinSoft{
+      0%{ transform: rotate(0deg); }
+      100%{ transform: rotate(360deg); }
+    }
+    .loader-title{ font-weight: 900; font-size: 18px; }
+    .loader-sub{ margin-top: 6px; font-size: 13px; color: rgba(255,255,255,.65); }
+    .loader-bars{
+      margin-top: 14px;
+      display:flex;
+      gap:8px;
+      justify-content:center;
+    }
+    .loader-bars span{
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: rgba(56,189,248,.75);
+      animation: bounce 1.1s ease-in-out infinite;
+    }
+    .loader-bars span:nth-child(2){ animation-delay: .12s; opacity:.8; }
+    .loader-bars span:nth-child(3){ animation-delay: .24s; opacity:.7; }
+    @keyframes bounce{
+      0%,100%{ transform: translateY(0); }
+      50%{ transform: translateY(-7px); }
+    }
+
+    /* ✅ Bottom navbar */
+
+    /* ✅ QR MODAL */
+    .modal{
+      position: fixed;
+      inset: 0;
+      z-index: 9998;
+      display: none;
+      place-items: center;
+      padding: 18px;
+      background:
+        radial-gradient(1200px 640px at 20% 0%, rgba(56,189,248,.10), transparent 55%),
+        radial-gradient(1100px 680px at 80% 15%, rgba(168,85,247,.08), transparent 60%),
+        rgba(0,0,0,.62);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+    .modal.show{ display: grid; }
+    .modal-card{
+      width: min(520px, calc(100vw - 32px));
+      border-radius: 28px;
+      padding: 16px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(18,18,22,.70);
+      box-shadow: 0 24px 90px rgba(0,0,0,.70);
+      position: relative;
+      overflow: hidden;
+    }
+    .modal-card::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      border-radius: inherit;
+      background:
+        radial-gradient(700px 260px at 15% 0%, rgba(56,189,248,.12), transparent 60%),
+        radial-gradient(720px 260px at 85% 12%, rgba(168,85,247,.10), transparent 62%);
+      opacity: .7;
+      pointer-events:none;
+      mix-blend-mode: screen;
+    }
+    .modal-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      position: relative;
+      z-index: 1;
+      padding: 6px 6px 10px 6px;
+    }
+    .modal-title{
+      font-weight: 900;
+      font-size: 16px;
+    }
+    .modal-sub{
+      margin-top: 2px;
+      font-size: 12px;
+      color: rgba(255,255,255,.62);
+    }
+    .icon-btn{
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      display:grid;
+      place-items:center;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      transition: .18s ease;
+      user-select:none;
+    }
+    .icon-btn:hover{ transform: translateY(-1px); background: rgba(255,255,255,.08); }
+    .icon-btn:active{ transform: translateY(0px) scale(.99); }
+
+    .modal-body{
+      position: relative;
+      z-index: 1;
+      padding: 6px;
+    }
+    .qrBigWrap{
+      display:grid;
+      place-items:center;
+      padding: 14px;
+      border-radius: 24px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
+    }
+    .qrBig{
+      width: min(340px, 78vw);
+      height: min(340px, 78vw);
+      border-radius: 22px;
+      overflow:hidden;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.18);
+      display:grid;
+      place-items:center;
+    }
+    .qrBig img{
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display:block;
+    }
+    .addrRow{
+      margin-top: 12px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+      padding: 12px;
+      font-size: 12px;
+      line-height: 1.35;
+      word-break: break-all;
+      color: rgba(255,255,255,.92);
+    }
+    .modal-actions{
+      margin-top: 12px;
+      display:flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: space-between;
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      .loader-logo img{ animation: none !important; }
+      .loader-bars span{ animation: none !important; }
+      .glass:hover{ transform:none !important; }
+      .btn:hover{ transform:none !important; }
+      .icon-btn:hover{ transform:none !important; }
+      .qrClickable:hover{ transform:none !important; }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ✅ PRELOADER -->
+  <div id="preloader" class="preloader" aria-label="Loading">
+    <div class="loader-card">
+      <div class="loader-logo">
+        <img src="assets/icon/favicon.svg" alt="" />
+      </div>
+      <div class="loader-title">Deposit</div>
+      <div class="loader-sub" id="preloaderText">Loading wallets & history…</div>
+      <div class="loader-bars" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✅ BACKGROUND -->
+  <div class="bg-stack" aria-hidden="true">
+    <img src="assets/icon/mask_group.svg" alt="" class="bg-map" />
+    <div class="bg-film"></div>
+  </div>
+
+  <div class="scroll-shell">
+    <main class="mx-auto max-w-[560px] px-4">
+
+      <!-- ✅ HEADER -->
+      <header class="glass rounded-[26px] px-4 py-4 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3 min-w-0">
+          <button id="btnBack" class="avatar" title="Back" aria-label="Back">←</button>
+          <div class="min-w-0">
+            <div class="txt-h1 leading-[1.05] truncate">Deposit</div>
+            <div class="txt-sm t-dim truncate">Upload proof • Pending approval</div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3 shrink-0">
+          <div id="hdrName" class="txt-h2 skeleton rounded-xl px-3 py-2">
+            &nbsp;&nbsp;&nbsp;
+          </div>
+          <div class="avatar" id="hdrInitial">U</div>
+        </div>
+      </header>
+
+      <!-- ALERT -->
+      <div id="alert" class="hidden mt-4 glass-soft rounded-2xl px-4 py-3 text-sm"></div>
+
+      <!-- ✅ SELECT ASSET -->
+      <section class="mt-5 glass rounded-[26px] p-5">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <div class="txt-h1">Choose Deposit Asset</div>
+            <div class="txt-sm t-dim">Select a coin to view the receiving address</div>
+          </div>
+          <div class="pill rounded-2xl px-3 py-2 text-[12px] font-black">
+            Selected: <span id="selAsset">—</span>
+          </div>
+        </div>
+
+        <!-- skeleton row -->
+        <div id="chipsSkeleton" class="mt-4 chipRow">
+          <div class="chip skeleton" style="width:92px;height:42px;border-radius:18px;"></div>
+          <div class="chip skeleton" style="width:92px;height:42px;border-radius:18px;"></div>
+          <div class="chip skeleton" style="width:92px;height:42px;border-radius:18px;"></div>
+          <div class="chip skeleton" style="width:92px;height:42px;border-radius:18px;"></div>
+        </div>
+
+        <div id="assetChips" class="mt-4 chipRow hidden"></div>
+
+        <!-- ✅ ADDRESS CARD -->
+        <div class="mt-4 glass-soft rounded-[22px] p-4">
+          <div class="flex items-start gap-4">
+            <!-- ✅ FIXED: QR is a BUTTON and always clickable -->
+            <button
+              id="qrBox"
+              type="button"
+              class="qrBox qrClickable"
+              aria-label="Open QR code"
+              title="Tap to enlarge"
+            >
+              <div class="skeleton" style="width:100%;height:100%;"></div>
+              <div class="qrHint"><span>Tap to enlarge</span></div>
+            </button>
+
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center justify-between gap-3">
+                <div class="font-black text-[16px]">Receiving Address</div>
+                <button id="btnCopy" class="btn" type="button">Copy</button>
+              </div>
+
+              <div class="mt-2 text-[12px] t-dim">Send only <span class="font-black text-white" id="addrAsset">—</span> to this address</div>
+
+              <div class="mt-3 field" style="padding:12px 12px; font-size:12px; line-height:1.3; word-break:break-all;">
+                <span id="walletAddrText" class="skeleton inline-block" style="height:14px;width:92%;border-radius:10px;"></span>
+              </div>
+
+              <div class="mt-3 text-[12px] t-dim" id="walletNote">
+                Loading wallet address…
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ✅ SUBMIT DEPOSIT -->
+      <section class="mt-5 glass rounded-[26px] p-5">
+        <div class="txt-h1">Submit Proof</div>
+        <div class="txt-sm t-dim mt-1">Enter USD amount, upload proof, and submit for approval.</div>
+
+        <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="glass-soft rounded-[22px] p-4">
+            <div class="txt-sm t-dim font-black">Amount (USD)</div>
+            <input id="amountInput" class="field mt-2" type="number" inputmode="decimal" min="0" step="0.01" placeholder="e.g. 250" />
+            <div class="txt-sm t-dim mt-2">Minimum: <span class="font-black text-white">> 0</span></div>
+          </div>
+
+          <div class="glass-soft rounded-[22px] p-4">
+            <div class="txt-sm t-dim font-black">Proof Upload</div>
+            <input id="proofInput" class="field mt-2" type="file" accept="image/*,.pdf" />
+            <div class="txt-sm t-dim mt-2" id="proofHint">Accepted: image or PDF</div>
+          </div>
+        </div>
+
+        <div class="mt-4 flex flex-wrap gap-3">
+          <button id="btnSubmit" class="btn primary" type="button">
+            <span>Submit Deposit</span>
+            <span id="submitSpin" class="hidden" aria-hidden="true">⏳</span>
+          </button>
+          <button id="btnClear" class="btn" type="button">Clear</button>
+          <a href="../pages/dashboard.html" class="btn" style="text-decoration:none;">Back to Dashboard</a>
+        </div>
+
+        <!-- ✅ result card -->
+        <div id="resultCard" class="hidden mt-4 glass-soft rounded-[22px] p-4">
+          <div class="font-black text-[14px]" id="resultTitle">Deposit Submitted</div>
+          <div class="txt-sm t-dim mt-1" id="resultMsg"></div>
+
+          <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="glass-soft rounded-[18px] p-3">
+              <div class="txt-sm t-dim font-black">Deposit ID</div>
+              <div class="font-black mt-1" id="resultId">—</div>
+            </div>
+            <div class="glass-soft rounded-[18px] p-3">
+              <div class="txt-sm t-dim font-black">Status</div>
+              <div class="font-black mt-1" id="resultStatus">—</div>
+            </div>
+          </div>
+
+          <div class="mt-3 txt-sm t-dim">
+            Proof URL:
+            <a id="resultProofUrl" href="#" target="_blank" class="font-black text-white underline decoration-white/30">Open</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- ✅ HISTORY -->
+      <section class="mt-5 glass rounded-[26px] p-5">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <div class="txt-h1">Deposit History</div>
+            <div class="txt-sm t-dim">Your most recent deposits</div>
+          </div>
+          <button id="btnRefreshHistory" class="btn" type="button">Refresh</button>
+        </div>
+
+        <div id="historySkeleton" class="mt-4 space-y-3">
+          <div class="glass-soft rounded-[22px] p-4">
+            <div class="skeleton rounded-xl" style="height:16px;width:60%;"></div>
+            <div class="skeleton rounded-xl mt-3" style="height:14px;width:92%;"></div>
+          </div>
+          <div class="glass-soft rounded-[22px] p-4">
+            <div class="skeleton rounded-xl" style="height:16px;width:50%;"></div>
+            <div class="skeleton rounded-xl mt-3" style="height:14px;width:86%;"></div>
+          </div>
+        </div>
+
+        <div id="historyList" class="mt-4 space-y-3 hidden"></div>
+
+        <div class="mt-4 flex flex-wrap gap-3">
+          <a href="../pages/transactions.html" class="btn" style="text-decoration:none;">Open Transactions</a>
+        </div>
+      </section>
+
+      <footer class="mt-8 text-center text-xs t-dim pb-10">
+        © <span id="yr"></span> Sway Market • Investment Services
+      </footer>
+
+    </main>
+  </div>
+
+  <!-- ✅ Bottom Navbar -->
+
+  <!-- ✅ QR MODAL -->
+  <div id="qrModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true" aria-label="QR code modal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div class="min-w-0">
+          <div class="modal-title" id="qrModalTitle">QR Code</div>
+          <div class="modal-sub" id="qrModalSub">Scan to deposit</div>
+        </div>
+        <button id="qrModalClose" class="icon-btn" type="button" aria-label="Close">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="qrBigWrap">
+          <div class="qrBig" id="qrModalBox">
+            <div class="t-dim text-xs">No QR available</div>
+          </div>
+        </div>
+
+        <div class="addrRow" id="qrModalAddr">—</div>
+
+        <div class="modal-actions">
+          <button id="qrModalCopy" class="btn primary" type="button">Copy Address</button>
+          <a id="qrModalOpenImg" class="btn" href="#" target="_blank" rel="noopener">Open Image</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ✅ CONFIG (same pattern as dashboard)
+    const API_BASE = window.SwayApi.userBase;
+    const TOKEN_KEY = "upcoinmeta_token";
+    const USER_KEY  = "upcoinmeta_user";
+
+    // allowed crypto assets
+    const ALLOWED_ASSETS = ["BTC","ETH","USDT","BNB","LTC","DOGE","XRP","SHIB","SOL"];
+
+    document.getElementById("yr").textContent = new Date().getFullYear();
+
+    const preloader = document.getElementById("preloader");
+    const preloaderText = document.getElementById("preloaderText");
+    const alertBox = document.getElementById("alert");
+
+    function hidePreloader(){
+      if (!preloader) return;
+      preloader.classList.add("hidden");
+      setTimeout(() => { preloader.style.display = "none"; }, 420);
+    }
+    function showPreloader(msg="Loading…"){
+      preloader.style.display = "grid";
+      preloader.classList.remove("hidden");
+      if (preloaderText) preloaderText.textContent = msg;
+    }
+
+    function getToken() {
+      return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY) || "";
+    }
+    function authHeaders() {
+      const token = getToken();
+      return { Authorization: `Bearer ${token}` };
+    }
+
+    function showAlert(type, msg) {
+      alertBox.classList.remove("hidden");
+      alertBox.textContent = msg;
+
+      alertBox.classList.remove("bg-red-500/10","border-red-400/20","text-red-200");
+      alertBox.classList.remove("bg-emerald-500/10","border-emerald-400/20","text-emerald-200");
+      alertBox.classList.remove("bg-amber-500/10","border-amber-400/20","text-amber-200");
+
+      if (type === "success") alertBox.classList.add("bg-emerald-500/10","border","border-emerald-400/20","text-emerald-200");
+      else if (type === "warn") alertBox.classList.add("bg-amber-500/10","border","border-amber-400/20","text-amber-200");
+      else alertBox.classList.add("bg-red-500/10","border","border-red-400/20","text-red-200");
+    }
+
+    function safeStr(v, fallback="—") {
+      const s = String(v ?? "").trim();
+      return s ? s : fallback;
+    }
+
+    function fmtMoney(n){
+      const num = Number(n || 0);
+      return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function fmtDate(d){
+      if (!d) return "—";
+      const dt = new Date(d);
+      if (Number.isNaN(dt.getTime())) return String(d);
+      return dt.toLocaleString();
+    }
+
+    function coinIcon(asset){
+      const a = String(asset || "").toUpperCase();
+      const map = {
+        BTC: "assets/images/btc.svg",
+        ETH: "assets/images/eth.svg",
+        USDT:"assets/images/usdt.svg",
+        BNB: "assets/images/bnb.svg",
+        LTC: "assets/images/ltc.svg",
+        DOGE:"assets/images/doge.svg",
+        XRP: "assets/images/xrp.svg",
+        SHIB:"assets/images/shib.svg",
+        SOL: "assets/images/sol.svg"
+      };
+      return map[a] || "assets/images/bal.svg";
+    }
+
+    // ✅ header user
+    const hdrName = document.getElementById("hdrName");
+    const hdrInitial = document.getElementById("hdrInitial");
+
+    function renderUserHeader(user) {
+      const name = user?.username || user?.full_name || "Upcoinmeta";
+      hdrName.classList.remove("skeleton");
+      hdrName.textContent = name;
+      hdrInitial.textContent = (String(name).trim().slice(0,1).toUpperCase() || "U");
+    }
+
+    async function fetchMe() {
+      const token = getToken();
+      if (!token) {
+        showAlert("warn", "Session expired. Please login again.");
+        setTimeout(() => window.location.href = "../auth/login.html", 900);
+        throw new Error("No token");
+      }
+      const res = await axios.get(`${API_BASE}/me`, { headers: authHeaders(), timeout: 20000 });
+      return res.data?.user;
+    }
+
+    // ✅ API calls
+    async function fetchWalletAddresses(){
+      const r = await axios.get(`${API_BASE}/wallet-addresses`, { headers: authHeaders(), timeout: 20000 });
+      return r.data?.wallets || [];
+    }
+
+    async function fetchWalletById(id){
+      const r = await axios.get(`${API_BASE}/wallet-addresses/${id}`, { headers: authHeaders(), timeout: 20000 });
+      return r.data?.wallet || null;
+    }
+
+    async function fetchDepositHistory(){
+      const r = await axios.get(`${API_BASE}/deposits`, { headers: authHeaders(), timeout: 20000 });
+      return r.data?.deposits || [];
+    }
+
+    async function createDeposit({ asset, amount, proofFile }){
+      const fd = new FormData();
+      fd.append("asset", asset);
+      fd.append("amount", String(amount));
+      fd.append("proof", proofFile);
+
+      const r = await axios.post(`${API_BASE}/deposits`, fd, {
+        headers: { ...authHeaders() }, // let browser set multipart boundary
+        timeout: 30000
+      });
+
+      return r.data;
+    }
+
+    // ✅ UI refs
+    const selAssetEl = document.getElementById("selAsset");
+    const chipsSkeleton = document.getElementById("chipsSkeleton");
+    const chipsWrap = document.getElementById("assetChips");
+
+    const qrBox = document.getElementById("qrBox");
+    const walletAddrText = document.getElementById("walletAddrText");
+    const walletNote = document.getElementById("walletNote");
+    const addrAsset = document.getElementById("addrAsset");
+
+    const btnCopy = document.getElementById("btnCopy");
+
+    const amountInput = document.getElementById("amountInput");
+    const proofInput = document.getElementById("proofInput");
+    const proofHint = document.getElementById("proofHint");
+
+    const btnSubmit = document.getElementById("btnSubmit");
+    const submitSpin = document.getElementById("submitSpin");
+    const btnClear = document.getElementById("btnClear");
+
+    const resultCard = document.getElementById("resultCard");
+    const resultTitle = document.getElementById("resultTitle");
+    const resultMsg = document.getElementById("resultMsg");
+    const resultId = document.getElementById("resultId");
+    const resultStatus = document.getElementById("resultStatus");
+    const resultProofUrl = document.getElementById("resultProofUrl");
+
+    const historySkeleton = document.getElementById("historySkeleton");
+    const historyList = document.getElementById("historyList");
+    const btnRefreshHistory = document.getElementById("btnRefreshHistory");
+
+    // ✅ QR MODAL refs
+    const qrModal = document.getElementById("qrModal");
+    const qrModalClose = document.getElementById("qrModalClose");
+    const qrModalTitle = document.getElementById("qrModalTitle");
+    const qrModalSub = document.getElementById("qrModalSub");
+    const qrModalBox = document.getElementById("qrModalBox");
+    const qrModalAddr = document.getElementById("qrModalAddr");
+    const qrModalCopy = document.getElementById("qrModalCopy");
+    const qrModalOpenImg = document.getElementById("qrModalOpenImg");
+
+    // ✅ state
+    let wallets = [];
+    let selectedWallet = null; // wallet row {id, asset, address, qr_url}
+    let selectedAsset = "";
+
+    // ✅ FIX: modal open/close are stable + always work
+    function openQrModal(){
+      const asset = String(selectedWallet?.asset || selectedAsset || "").toUpperCase() || "—";
+      const addr  = selectedWallet?.address || "";
+      const qrUrl = selectedWallet?.qr_url || "";
+
+      if (!addr && !qrUrl){
+        showAlert("warn", "Select an asset with an available wallet address first.");
+        return;
+      }
+
+      qrModalTitle.textContent = `${asset} QR Code`;
+      qrModalSub.textContent = "Scan this QR to deposit to your receiving address.";
+
+      qrModalAddr.textContent = addr ? addr : "Address unavailable.";
+
+      if (qrUrl){
+        qrModalBox.innerHTML = `<img src="${qrUrl}" alt="${asset} QR" onerror="this.outerHTML='<div class=\\'t-dim text-xs\\'>QR image failed to load</div>'">`;
+        qrModalOpenImg.href = qrUrl;
+        qrModalOpenImg.style.pointerEvents = "auto";
+        qrModalOpenImg.style.opacity = "1";
+      } else {
+        qrModalBox.innerHTML = `<div class="t-dim text-xs">No QR available</div>`;
+        qrModalOpenImg.href = "#";
+        qrModalOpenImg.style.pointerEvents = "none";
+        qrModalOpenImg.style.opacity = ".6";
+      }
+
+      qrModal.setAttribute("aria-hidden", "false");
+      qrModal.classList.add("show");
+    }
+
+    function closeQrModal(){
+      qrModal.setAttribute("aria-hidden", "true");
+      qrModal.classList.remove("show");
+    }
+
+    // ✅ FIX: use ONE event listener on the qrBox button (no inline handlers)
+    qrBox.addEventListener("click", () => {
+      // If qr exists -> open modal
+      if (!selectedWallet?.address && !selectedWallet?.qr_url){
+        showAlert("warn", "Select an asset with an available wallet address first.");
+        return;
+      }
+      openQrModal();
+    });
+
+    qrModalClose.addEventListener("click", closeQrModal);
+    qrModal.addEventListener("click", (e) => {
+      if (e.target === qrModal) closeQrModal();
+    });
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && qrModal.classList.contains("show")) closeQrModal();
+    });
+
+    qrModalCopy.addEventListener("click", async () => {
+      const addr = selectedWallet?.address || "";
+      if (!addr) return showAlert("warn", "No address to copy yet.");
+      try{
+        await navigator.clipboard.writeText(addr);
+        showAlert("success", "Address copied to clipboard.");
+      }catch{
+        const ta = document.createElement("textarea");
+        ta.value = addr;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        showAlert("success", "Address copied.");
+      }
+    });
+
+    function setAddressLoading(){
+      // ✅ FIX: keep the button itself, only replace innerHTML
+      qrBox.innerHTML = `
+        <div class="skeleton" style="width:100%;height:100%;"></div>
+        <div class="qrHint"><span>Tap to enlarge</span></div>
+      `;
+      walletAddrText.className = "skeleton inline-block";
+      walletAddrText.style.height = "14px";
+      walletAddrText.style.width = "92%";
+      walletAddrText.style.borderRadius = "10px";
+      walletAddrText.textContent = "";
+      walletNote.textContent = "Loading wallet address…";
+      addrAsset.textContent = "—";
+      selAssetEl.textContent = "—";
+      selectedWallet = null;
+      selectedAsset = "";
+      closeQrModal();
+    }
+
+    function renderWalletCard(wallet){
+      selectedWallet = wallet;
+      selectedAsset = String(wallet?.asset || "").toUpperCase();
+      selAssetEl.textContent = selectedAsset || "—";
+      addrAsset.textContent = selectedAsset || "—";
+
+      // ✅ FIX: render qr image inside the same qrBox button
+      if (wallet?.qr_url) {
+        qrBox.innerHTML = `
+          <img src="${wallet.qr_url}" alt="${selectedAsset} QR" onerror="this.outerHTML='<div class=\\'t-dim text-xs\\'>No QR</div>'">
+          <div class="qrHint"><span>Tap to enlarge</span></div>
+        `;
+      } else {
+        qrBox.innerHTML = `
+          <div class="t-dim text-xs">No QR</div>
+          <div class="qrHint"><span>Tap to enlarge</span></div>
+        `;
+      }
+
+      // Address
+      walletAddrText.className = "";
+      walletAddrText.removeAttribute("style");
+      walletAddrText.textContent = wallet?.address || "—";
+
+      walletNote.textContent = wallet?.address
+        ? "Make sure the network matches the asset."
+        : "Wallet address unavailable.";
+    }
+
+    function renderAssetChips(walletList){
+      chipsWrap.innerHTML = "";
+
+      // show chips for allowed assets; if wallet not in DB, chip disabled
+      const assetToWallet = {};
+      (walletList || []).forEach(w => { assetToWallet[String(w.asset||"").toUpperCase()] = w; });
+
+      ALLOWED_ASSETS.forEach(asset => {
+        const w = assetToWallet[asset] || null;
+
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "chip";
+        chip.setAttribute("data-asset", asset);
+
+        chip.innerHTML = `
+          <img src="${coinIcon(asset)}" alt="${asset}" onerror="this.style.display='none'">
+          <span>${asset}</span>
+        `;
+
+        if (!w) {
+          chip.style.opacity = ".55";
+          chip.style.cursor = "not-allowed";
+          chip.title = "Wallet address not available for this asset";
+          chip.addEventListener("click", () => {
+            showAlert("warn", `Wallet address for ${asset} is not available yet.`);
+          });
+        } else {
+          chip.addEventListener("click", async () => {
+            try{
+              document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+              chip.classList.add("active");
+
+              setAddressLoading();
+              selAssetEl.textContent = asset;
+
+              // If you want to fetch full details by id (supported), do it:
+              const full = await fetchWalletById(w.id);
+              renderWalletCard(full || w);
+            }catch(e){
+              showAlert("error", e?.response?.data?.message || e?.message || "Failed to load wallet");
+            }
+          });
+        }
+
+        chipsWrap.appendChild(chip);
+      });
+
+      // auto pick first available
+      const first = ALLOWED_ASSETS.find(a => assetToWallet[a]);
+      if (first) {
+        const firstBtn = chipsWrap.querySelector(`[data-asset="${first}"]`);
+        if (firstBtn) firstBtn.click();
+      } else {
+        showAlert("warn", "No wallet addresses found. Please contact support.");
+      }
+    }
+
+    btnCopy.addEventListener("click", async () => {
+      const addr = selectedWallet?.address || "";
+      if (!addr) return showAlert("warn", "No address to copy yet.");
+      try{
+        await navigator.clipboard.writeText(addr);
+        showAlert("success", "Address copied to clipboard.");
+      }catch{
+        // fallback
+        const ta = document.createElement("textarea");
+        ta.value = addr;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        showAlert("success", "Address copied.");
+      }
+    });
+
+    proofInput.addEventListener("change", () => {
+      const f = proofInput.files && proofInput.files[0];
+      if (!f) {
+        proofHint.textContent = "Accepted: image or PDF";
+        return;
+      }
+      const mb = (f.size / (1024*1024)).toFixed(2);
+      proofHint.textContent = `Selected: ${f.name} (${mb} MB)`;
+    });
+
+    function clearForm(){
+      amountInput.value = "";
+      proofInput.value = "";
+      proofHint.textContent = "Accepted: image or PDF";
+      resultCard.classList.add("hidden");
+    }
+    btnClear.addEventListener("click", clearForm);
+
+    function setSubmitting(v){
+      btnSubmit.disabled = v;
+      submitSpin.classList.toggle("hidden", !v);
+      btnSubmit.style.opacity = v ? ".7" : "1";
+    }
+
+    btnSubmit.addEventListener("click", async () => {
+      alertBox.classList.add("hidden");
+      resultCard.classList.add("hidden");
+
+      const asset = String(selectedAsset || "").toUpperCase().trim();
+      const amount = Number(amountInput.value);
+      const proofFile = proofInput.files && proofInput.files[0];
+
+      if (!asset || !ALLOWED_ASSETS.includes(asset)) {
+        return showAlert("warn", "Please select a valid deposit asset.");
+      }
+      if (!amountInput.value || Number.isNaN(amount) || amount <= 0) {
+        return showAlert("warn", "Enter a valid deposit amount (USD).");
+      }
+      if (!proofFile) {
+        return showAlert("warn", "Proof of payment is required. Please upload a file.");
+      }
+
+      try{
+        setSubmitting(true);
+        showAlert("success", "Submitting deposit… please wait.");
+
+        const data = await createDeposit({ asset, amount, proofFile });
+
+        resultCard.classList.remove("hidden");
+        resultTitle.textContent = "Deposit Submitted";
+        resultMsg.textContent = data?.message || "Deposit submitted and pending approval.";
+        resultId.textContent = safeStr(data?.deposit?.id);
+        resultStatus.textContent = safeStr(data?.deposit?.status, "pending").toUpperCase();
+
+        const proofUrl = data?.deposit?.proof_url || "#";
+        resultProofUrl.href = proofUrl;
+        resultProofUrl.style.pointerEvents = proofUrl === "#" ? "none" : "auto";
+        resultProofUrl.style.opacity = proofUrl === "#" ? ".6" : "1";
+
+        // refresh history after submit
+        await loadHistory();
+        clearForm();
+        showAlert("success", "Deposit submitted successfully. Await admin approval.");
+
+      }catch(err){
+        const msg = err?.response?.data?.message || err?.message || "Failed to submit deposit.";
+        showAlert("error", msg);
+
+        const status = err?.response?.status;
+        if (status === 401 || status === 403) {
+          setTimeout(() => window.location.href = "../auth/login.html", 900);
+        }
+      }finally{
+        setSubmitting(false);
+      }
+    });
+
+    function statusBadge(s){
+      const st = String(s||"").toLowerCase();
+      if (st === "approved") return `<span class="pill rounded-2xl px-3 py-1 text-[11px] font-black text-emerald-300">APPROVED</span>`;
+      if (st === "declined" || st === "rejected") return `<span class="pill rounded-2xl px-3 py-1 text-[11px] font-black text-red-300">DECLINED</span>`;
+      return `<span class="pill rounded-2xl px-3 py-1 text-[11px] font-black text-amber-300">PENDING</span>`;
+    }
+
+    async function loadHistory(){
+      historySkeleton.classList.remove("hidden");
+      historyList.classList.add("hidden");
+      historyList.innerHTML = "";
+
+      const items = await fetchDepositHistory();
+
+      historySkeleton.classList.add("hidden");
+      historyList.classList.remove("hidden");
+
+      if (!items.length){
+        historyList.innerHTML = `
+          <div class="glass-soft rounded-[22px] p-4">
+            <div class="font-black text-[14px]">No deposits yet</div>
+            <div class="txt-sm t-dim mt-1">Submit your first deposit to see it here.</div>
+          </div>
+        `;
+        return;
+      }
+
+      // show latest 8
+      items.slice(0, 8).forEach(d => {
+        const card = document.createElement("div");
+        card.className = "glass-soft rounded-[22px] p-4";
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <div class="font-black text-[14px]">
+                ${safeStr(d.asset)} • $${fmtMoney(d.amount)}
+              </div>
+              <div class="txt-sm t-dim mt-1">
+                ID: <span class="font-black text-white">${safeStr(d.id)}</span> • ${fmtDate(d.created_at)}
+              </div>
+              ${d.admin_note ? `<div class="txt-sm t-dim mt-2">Note: <span class="text-white/85">${String(d.admin_note)}</span></div>` : ""}
+              ${d.proof_url ? `<div class="txt-sm t-dim mt-2">Proof: <a class="font-black text-white underline decoration-white/30" href="${d.proof_url}" target="_blank">Open</a></div>` : ""}
+            </div>
+            <div class="shrink-0">${statusBadge(d.status)}</div>
+          </div>
+        `;
+        historyList.appendChild(card);
+      });
+    }
+
+    btnRefreshHistory.addEventListener("click", async () => {
+      try{
+        showAlert("success", "Refreshing history…");
+        await loadHistory();
+      }catch(e){
+        showAlert("error", e?.response?.data?.message || e?.message || "Failed to refresh history.");
+      }
+    });
+
+    // Back button
+    document.getElementById("btnBack").addEventListener("click", () => {
+      // go back if possible, else dashboard
+      if (history.length > 1) history.back();
+      else window.location.href = "../pages/dashboard.html";
+    });
+
+    // Profile jump
+    hdrInitial.addEventListener("click", () => {
+      window.location.href = "../pages/profile.html";
+    });
+
+    // ✅ Initial load
+    async function init(){
+      showPreloader("Loading wallets & history…");
+
+      try{
+        const me = await fetchMe();
+        renderUserHeader(me);
+
+        setAddressLoading();
+
+        wallets = await fetchWalletAddresses();
+
+        chipsSkeleton.classList.add("hidden");
+        chipsWrap.classList.remove("hidden");
+        renderAssetChips(wallets);
+
+        await loadHistory();
+
+        // persist user
+        try{
+          const storage = localStorage.getItem(TOKEN_KEY) ? localStorage : sessionStorage;
+          storage.setItem(USER_KEY, JSON.stringify(me || {}));
+        }catch{}
+
+        hidePreloader();
+      }catch(err){
+        hidePreloader();
+
+        const msg = err?.response?.data?.message || err?.message || "Failed to load deposit page.";
+        showAlert("error", msg);
+
+        const status = err?.response?.status;
+        if (status === 401 || status === 403) {
+          setTimeout(() => window.location.href = "../auth/login.html", 900);
+        }
+
+        // keep skeletons visible if load fails (fallback look)
+        chipsSkeleton.classList.remove("hidden");
+        chipsWrap.classList.add("hidden");
+        historySkeleton.classList.remove("hidden");
+        historyList.classList.add("hidden");
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Upcoinmeta — Notifications</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="../assets/js/api.js"></script>
+
+  <style>
+    :root{
+      --safe-top: env(safe-area-inset-top);
+      --safe-bottom: env(safe-area-inset-bottom);
+      --nav-h: 82px;
+
+      --bg: #07080c83;
+      --card: rgba(18, 18, 22, .62);
+      --card2: rgba(18, 18, 22, .46);
+      --line: rgba(255,255,255,.10);
+      --line2: rgba(255,255,255,.07);
+      --text-dim: rgba(255,255,255,.60);
+
+      --active: rgba(56,189,248,.18);
+      --activeLine: rgba(56,189,248,.25);
+    }
+
+    html,body{
+      height:100%;
+      width:100%;
+      margin:0;
+      padding:0;
+      overflow:hidden;
+      background: var(--bg);
+      color:#fff;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{ -webkit-tap-highlight-color: transparent; }
+
+    /* ✅ BACKGROUND */
+    .bg-stack{
+      position: fixed;
+      inset: 0;
+      z-index: -10;
+      pointer-events: none;
+      overflow: hidden;
+      background: var(--bg);
+    }
+    .bg-map{
+      position:absolute;
+      inset:0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      opacity: 1;
+      filter: contrast(1.12) brightness(1.05);
+      user-select:none;
+    }
+    .bg-film{
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(900px 520px at 20% 0%, rgba(255,255,255,0.06), transparent 60%),
+        radial-gradient(900px 520px at 80% 10%, rgba(255,255,255,0.05), transparent 60%),
+        linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.54));
+    }
+
+    /* ✅ Layout */
+    .shell{
+      height:100vh;
+      height:100dvh;
+      display:flex;
+      overflow:hidden;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ✅ Desktop Sidebar */
+    .sidebar{
+      width: 300px;
+      flex: 0 0 300px;
+      padding: calc(14px + var(--safe-top)) 14px 14px;
+      border-right: 1px solid rgba(255,255,255,.08);
+      background: rgba(10,10,14,.78);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 18px 80px rgba(0,0,0,.55);
+      display:flex;
+      flex-direction:column;
+      gap: 12px;
+      overflow:auto;
+    }
+
+    .content{
+      flex: 1;
+      overflow-y:auto;
+      overflow-x:hidden;
+      -webkit-overflow-scrolling:touch;
+      padding: calc(12px + var(--safe-top)) 16px calc(22px + var(--safe-bottom));
+    }
+
+    .wrap{
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    /* ✅ PREMIUM CARD GLOW */
+    .glass{
+      background: var(--card);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid var(--line2);
+      box-shadow:
+        0 18px 70px rgba(0,0,0,.55),
+        0 0 0 1px rgba(255,255,255,.04),
+        0 0 46px rgba(56,189,248,.06);
+      position: relative;
+      overflow: hidden;
+      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    }
+    .glass::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      border-radius: inherit;
+      background:
+        radial-gradient(700px 260px at 15% 0%, rgba(56,189,248,.14), transparent 58%),
+        radial-gradient(720px 260px at 85% 12%, rgba(168,85,247,.10), transparent 60%);
+      opacity: .65;
+      pointer-events:none;
+      mix-blend-mode: screen;
+    }
+
+    .glass-soft{
+      background: var(--card2);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--line2);
+      box-shadow:
+        0 14px 44px rgba(0,0,0,.35),
+        0 0 34px rgba(56,189,248,.05);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .pill{
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--line);
+    }
+
+    .t-dim{ color: var(--text-dim); }
+    .txt-h1{ font-size: clamp(18px, 4.8vw, 22px); font-weight: 900; }
+    .txt-h2{ font-size: clamp(16px, 4.2vw, 18px); font-weight: 900; }
+    .txt-sm{ font-size: 13px; }
+
+    .skeleton{
+      background: rgba(255,255,255,.08);
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes pulse{ 0%,100%{opacity:.55} 50%{opacity:.85} }
+
+    .btn{
+      border-radius: 18px;
+      padding: 12px 14px;
+      font-weight: 900;
+      font-size: 13px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      transition: .18s ease;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      user-select:none;
+      cursor:pointer;
+      color: #fff;
+      text-decoration:none;
+    }
+    .btn.primary{
+      border-color: rgba(56,189,248,.26);
+      background: rgba(56,189,248,.14);
+    }
+    .btn:disabled{ opacity:.6; pointer-events:none; }
+
+    .avatar{
+      width: 44px; height: 44px;
+      border-radius: 999px;
+      display:grid;
+      place-items:center;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.18);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
+      font-weight: 900;
+      font-size: 15px;
+      user-select:none;
+    }
+
+    /* ✅ Sidebar brand */
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding: 10px 10px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+    }
+    .brand img{
+      width: 44px; height: 44px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      padding: 8px;
+    }
+    .brand .name{ font-weight: 900; font-size: 16px; line-height: 1.1; }
+    .brand .sub{ font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+
+    /* ✅ Nav links */
+    .navlist{
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
+    }
+    .navlink{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+      padding: 12px 12px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
+      text-decoration:none;
+      color: rgba(255,255,255,.86);
+      font-weight: 900;
+      transition: .18s ease;
+    }
+    .navlink:active{ transform: scale(.992); }
+    .navlink .left{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .navlink .ico{
+      width: 38px; height: 38px;
+      border-radius: 14px;
+      display:grid;
+      place-items:center;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      flex-shrink: 0;
+      font-size: 16px;
+      font-weight: 900;
+    }
+    .navlink .meta{ min-width:0; }
+    .navlink .title{ font-size: 14px; line-height: 1.1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .navlink .desc{ font-size: 12px; color: var(--text-dim); margin-top: 2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .navlink .chev{
+      width: 34px; height: 34px;
+      border-radius: 999px;
+      display:grid;
+      place-items:center;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      flex-shrink:0;
+      color: rgba(255,255,255,.80);
+      font-weight: 900;
+    }
+    .navlink.active{
+      background: var(--active);
+      border-color: var(--activeLine);
+      box-shadow: 0 0 0 1px rgba(56,189,248,.08), 0 18px 70px rgba(56,189,248,.06);
+      color:#fff;
+    }
+
+    /* ✅ Alert */
+    .alert{
+      border-radius: 18px;
+      padding: 12px 12px;
+      border: 1px solid rgba(255,255,255,.10);
+    }
+
+    /* ✅ Notification cards */
+    .note-ico{
+      width: 44px; height: 44px;
+      border-radius: 16px;
+      display:grid;
+      place-items:center;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      flex-shrink:0;
+      font-size: 18px;
+      font-weight: 900;
+    }
+    .note-title{ font-weight: 900; font-size: 14px; line-height: 1.2; }
+    .note-msg{ font-size: 13px; color: rgba(255,255,255,.76); margin-top: 6px; white-space: pre-wrap; }
+    .note-time{ font-size: 12px; color: var(--text-dim); margin-top: 8px; }
+
+    /* ✅ Drawer (mobile sidebar) */
+    .drawer-overlay{
+      position: fixed;
+      inset: 0;
+      z-index: 10040;
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease;
+    }
+    .drawer-overlay.show{
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .drawer{
+      position: fixed;
+      inset: 0;
+      z-index: 10050;
+      display:none;
+    }
+    .drawer.show{
+      display:flex;
+      align-items:stretch;
+      justify-content:flex-start;
+    }
+    .drawer-panel{
+      width: 300px;
+      max-width: 86vw;
+      height: 100%;
+      padding: calc(14px + var(--safe-top)) 14px 14px;
+      border-right: 1px solid rgba(255,255,255,.08);
+      background: rgba(10,10,14,.86);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 18px 80px rgba(0,0,0,.65);
+      display:flex;
+      flex-direction:column;
+      gap: 12px;
+      overflow:auto;
+      transform: translateX(-110%);
+      transition: transform .22s ease;
+      will-change: transform;
+    }
+    .drawer-panel.open{ transform: translateX(0); }
+
+    .side-top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .side-actions{
+      margin-top:auto;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    /* ✅ Mobile topbar */
+    .topbar{
+      display:none;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    /* ✅ Preloader */
+    .preloader{
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(1200px 600px at 20% 0%, rgba(56,189,248,.10), transparent 55%),
+        radial-gradient(1100px 650px at 80% 15%, rgba(168,85,247,.08), transparent 60%),
+        rgba(0,0,0,.55);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      transition: opacity .35s ease, transform .35s ease;
+    }
+    .preloader.hidden{
+      opacity: 0;
+      transform: scale(1.01);
+      pointer-events: none;
+    }
+    .loader-card{
+      width: min(420px, calc(100vw - 32px));
+      border-radius: 26px;
+      padding: 22px 18px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(18,18,22,.62);
+      box-shadow: 0 20px 80px rgba(0,0,0,.65);
+      text-align:center;
+    }
+    .loader-logo{
+      width: 62px;
+      height: 62px;
+      border-radius: 999px;
+      display:grid;
+      place-items:center;
+      margin: 0 auto 12px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 0 60px rgba(56,189,248,.14);
+    }
+    .loader-logo img{
+      width: 34px;
+      height: 34px;
+      opacity: .95;
+      animation: spinSoft 2.6s linear infinite;
+    }
+    @keyframes spinSoft{ 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
+
+    /* ✅ Popup modal */
+    .modal{
+      position: fixed;
+      inset: 0;
+      z-index: 11000;
+      display: none;
+      place-items: center;
+      padding: 18px;
+    }
+    .modal.show{ display:grid; }
+    .modal-back{
+      position:absolute;
+      inset:0;
+      background: rgba(0,0,0,.58);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .modal-card{
+      position: relative;
+      width: min(520px, calc(100vw - 32px));
+      border-radius: 26px;
+      padding: 18px;
+      background: rgba(18,18,22,.70);
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 22px 90px rgba(0,0,0,.70);
+      overflow:hidden;
+    }
+    .modal-card::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      border-radius: inherit;
+      background:
+        radial-gradient(700px 260px at 15% 0%, rgba(56,189,248,.15), transparent 58%),
+        radial-gradient(720px 260px at 85% 12%, rgba(168,85,247,.12), transparent 60%);
+      opacity: .75;
+      pointer-events:none;
+      mix-blend-mode: screen;
+    }
+    .modal-title{ font-size: 16px; font-weight: 900; }
+    .modal-msg{ font-size: 13px; color: rgba(255,255,255,.78); margin-top: 10px; white-space: pre-wrap; }
+    .modal-sub{ font-size: 12px; color: rgba(255,255,255,.55); margin-top: 10px; }
+
+    /* ✅ Responsive */
+    @media (max-width: 959.99px){
+      .sidebar{ display:none; }
+      .topbar{ display:flex; }
+      .wrap{ max-width: 560px; }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ✅ PRELOADER -->
+  <div id="preloader" class="preloader">
+    <div class="loader-card">
+      <div class="loader-logo">
+        <img src="assets/icon/favicon.svg" alt="">
+      </div>
+      <div class="font-black text-[18px]">Notifications</div>
+      <div class="text-[13px] text-white/65 mt-2" id="preloaderText">Loading notifications…</div>
+    </div>
+  </div>
+
+  <!-- ✅ BACKGROUND -->
+  <div class="bg-stack" aria-hidden="true">
+    <img src="assets/icon/mask_group.svg" alt="" class="bg-map" />
+    <div class="bg-film"></div>
+  </div>
+
+  <!-- ✅ MOBILE DRAWER -->
+  <div id="drawerOverlay" class="drawer-overlay"></div>
+  <div id="drawer" class="drawer" aria-hidden="true">
+    <aside id="drawerPanel" class="drawer-panel">
+      <div class="side-top">
+        <div class="brand min-w-0">
+          <img src="assets/icon/favicon.svg" alt="">
+          <div class="min-w-0">
+            <div class="name truncate">Upcoinmeta</div>
+            <div class="sub truncate" id="sideUserEmail">—</div>
+          </div>
+        </div>
+        <button id="btnCloseDrawer" class="btn" type="button">Close</button>
+      </div>
+
+      <div class="navlist" id="sideNavMobile"></div>
+
+      <div class="side-actions">
+        <button id="btnLogoutMobile" class="btn" type="button">Logout</button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ✅ POPUP MODAL (from /notify/popup) -->
+  <div id="popupModal" class="modal" aria-hidden="true">
+    <div class="modal-back" id="popupBack"></div>
+    <div class="modal-card glass">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <div class="modal-title" id="popupTitle">—</div>
+          <div class="modal-sub" id="popupTime">—</div>
+        </div>
+        <button id="btnClosePopup" class="btn" type="button">Close</button>
+      </div>
+      <div class="modal-msg" id="popupMessage">—</div>
+      <div class="mt-4 flex gap-2 justify-end">
+        <button id="btnNextPopup" class="btn primary" type="button">Next</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="shell">
+    <!-- ✅ DESKTOP SIDEBAR -->
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="assets/icon/favicon.svg" alt="">
+        <div class="min-w-0">
+          <div class="name truncate">Upcoinmeta</div>
+          <div class="sub truncate" id="sideUserEmailDesktop">—</div>
+        </div>
+      </div>
+
+      <div class="navlist" id="sideNavDesktop"></div>
+
+      <div class="side-actions">
+        <button id="btnLogoutDesktop" class="btn" type="button">Logout</button>
+      </div>
+    </aside>
+
+    <!-- ✅ CONTENT -->
+    <section class="content">
+      <div class="wrap">
+
+        <!-- ✅ TOPBAR (MOBILE) -->
+        <div class="topbar">
+          <button id="btnMenu" class="btn" type="button">☰ Menu</button>
+          <div class="flex items-center gap-3">
+            <div id="hdrNameMini" class="txt-h2 skeleton rounded-xl px-3 py-2">&nbsp;&nbsp;&nbsp;</div>
+            <div class="avatar" id="hdrInitialMini">U</div>
+          </div>
+        </div>
+
+        <!-- ✅ HEADER -->
+        <header class="glass rounded-[26px] px-4 py-4 flex items-center justify-between gap-4">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="avatar" id="btnBack" title="Back">←</div>
+            <div class="min-w-0">
+              <div class="txt-h1 leading-[1.05] truncate">Notifications</div>
+              <div class="txt-sm t-dim truncate">Important updates and announcements</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 shrink-0">
+            <div id="hdrName" class="txt-h2 skeleton rounded-xl px-3 py-2">&nbsp;&nbsp;&nbsp;</div>
+            <div class="avatar" id="hdrInitial">U</div>
+          </div>
+        </header>
+
+        <div id="alert" class="hidden mt-4 glass-soft alert text-sm"></div>
+
+        <!-- ✅ CONTROLS -->
+        <section class="mt-5 glass rounded-[26px] p-5">
+          <div class="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <div class="txt-h1">Inbox</div>
+              <div class="txt-sm t-dim">System notifications for you (and global announcements).</div>
+            </div>
+
+            <div class="flex gap-2">
+              <button id="btnRefresh" class="btn" type="button">Refresh</button>
+              <button id="btnLoadMore" class="btn primary" type="button">Load more</button>
+            </div>
+          </div>
+
+          <div class="mt-3 text-[12px] t-dim">
+            Showing <span class="text-white/90 font-black" id="countLabel">—</span> notifications.
+          </div>
+        </section>
+
+        <!-- ✅ LIST -->
+        <section class="mt-5">
+          <div id="listWrap" class="grid grid-cols-1 gap-4">
+            <div class="glass rounded-[26px] p-4"><div class="skeleton rounded-2xl h-16 w-full"></div></div>
+            <div class="glass rounded-[26px] p-4"><div class="skeleton rounded-2xl h-16 w-full"></div></div>
+          </div>
+        </section>
+
+        <footer class="mt-8 text-center text-xs t-dim pb-10">
+          © <span id="yr"></span> Upcoinmeta • Investment Services
+        </footer>
+
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const API_BASE = window.SwayApi.userBase;
+    const TOKEN_KEY = "upcoinmeta_token";
+    const USER_KEY  = "upcoinmeta_user";
+    document.getElementById("yr").textContent = new Date().getFullYear();
+
+    // ✅ Preloader
+    const preloader = document.getElementById("preloader");
+    const preloaderText = document.getElementById("preloaderText");
+    function showPreloader(msg="Loading…"){
+      preloader.style.display = "grid";
+      preloader.classList.remove("hidden");
+      preloaderText.textContent = msg;
+    }
+    function hidePreloader(){
+      preloader.classList.add("hidden");
+      setTimeout(() => { preloader.style.display = "none"; }, 420);
+    }
+
+    // ✅ Helpers
+    function getToken() {
+      return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY) || "";
+    }
+    function authHeaders() {
+      const token = getToken();
+      return { Authorization: `Bearer ${token}` };
+    }
+    function safeStr(v, fallback="—") {
+      const s = String(v ?? "").trim();
+      return s ? s : fallback;
+    }
+    function fmtDate(v){
+      try{
+        const d = new Date(v);
+        return d.toLocaleString();
+      }catch{ return safeStr(v); }
+    }
+
+    // ✅ Alert
+    const alertBox = document.getElementById("alert");
+    function showAlert(type, msg) {
+      alertBox.classList.remove("hidden");
+      alertBox.textContent = msg;
+
+      alertBox.classList.remove("bg-red-500/10","border-red-400/20","text-red-200");
+      alertBox.classList.remove("bg-emerald-500/10","border-emerald-400/20","text-emerald-200");
+      alertBox.classList.remove("bg-amber-500/10","border-amber-400/20","text-amber-200");
+
+      if (type === "success") alertBox.classList.add("bg-emerald-500/10","border","border-emerald-400/20","text-emerald-200");
+      else if (type === "warn") alertBox.classList.add("bg-amber-500/10","border","border-amber-400/20","text-amber-200");
+      else alertBox.classList.add("bg-red-500/10","border","border-red-400/20","text-red-200");
+    }
+
+    // ✅ Logout
+    function doLogout(){
+      try{
+        localStorage.removeItem(TOKEN_KEY);
+        sessionStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
+        sessionStorage.removeItem(USER_KEY);
+      }catch(_){}
+      window.location.href = "../auth/login.html";
+    }
+
+    // ✅ Sidebar links
+    const navItems = [
+      { href: "../pages/dashboard.html", title: "Dashboard", desc: "Portfolio overview", ico: "🏠" },
+      { href: "../pages/deposit.html", title: "Deposit", desc: "Fund your balance", ico: "+" },
+      { href: "../pages/withdraw.html", title: "Withdraw", desc: "Send funds out", ico: "−" },
+      { href: "../pages/trades.html", title: "Trades", desc: "Open & track trades", ico: "↗" },
+      { href: "../pages/copy-trader.html", title: "Copy Trader", desc: "Copy a professional", ico: "🤝" },
+      { href: "../pages/transactions.html", title: "Transactions", desc: "Deposits & withdrawals", ico: "≡" },
+      { href: "../pages/account-upgrades.html", title: "Account Upgrades", desc: "Upgrade requests", ico: "⭐" },
+      { href: "../pages/notification.html", title: "Notifications", desc: "Updates & alerts", ico: "🔔" },
+      { href: "../pages/setting.html", title: "Settings", desc: "Security & preferences", ico: "⚙️" },
+      { href: "../pages/profile.html", title: "Profile", desc: "Account details", ico: "👤" }
+    ];
+
+    function renderNav(containerId){
+      const el = document.getElementById(containerId);
+      if (!el) return;
+
+      const current = location.pathname.split("/").pop();
+      el.innerHTML = "";
+
+      navItems.forEach(item => {
+        const isActive = (item.href.split("/").pop() === current);
+        const a = document.createElement("a");
+        a.href = item.href;
+        a.className = "navlink" + (isActive ? " active" : "");
+        a.innerHTML = `
+          <div class="left">
+            <div class="ico">${item.ico}</div>
+            <div class="meta">
+              <div class="title">${item.title}</div>
+              <div class="desc">${item.desc}</div>
+            </div>
+          </div>
+          <div class="chev">›</div>
+        `;
+        el.appendChild(a);
+      });
+    }
+
+    // ✅ Drawer
+    const drawer = document.getElementById("drawer");
+    const drawerPanel = document.getElementById("drawerPanel");
+    const overlay = document.getElementById("drawerOverlay");
+    const btnMenu = document.getElementById("btnMenu");
+    const btnCloseDrawer = document.getElementById("btnCloseDrawer");
+
+    function openDrawer(){
+      overlay.classList.add("show");
+      drawer.classList.add("show");
+      drawerPanel.classList.add("open");
+      drawer.setAttribute("aria-hidden","false");
+    }
+    function closeDrawer(){
+      overlay.classList.remove("show");
+      drawerPanel.classList.remove("open");
+      setTimeout(() => { drawer.classList.remove("show"); }, 180);
+      drawer.setAttribute("aria-hidden","true");
+    }
+    if (btnMenu) btnMenu.addEventListener("click", openDrawer);
+    overlay.addEventListener("click", closeDrawer);
+    btnCloseDrawer.addEventListener("click", closeDrawer);
+    document.addEventListener("click", (e) => {
+      const a = e.target.closest("#sideNavMobile a.navlink");
+      if (a) closeDrawer();
+    });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDrawer(); });
+
+    document.getElementById("btnLogoutDesktop").addEventListener("click", doLogout);
+    document.getElementById("btnLogoutMobile").addEventListener("click", doLogout);
+
+    // ✅ Header / nav refs
+    const btnBack = document.getElementById("btnBack");
+    const hdrName = document.getElementById("hdrName");
+    const hdrInitial = document.getElementById("hdrInitial");
+    const hdrNameMini = document.getElementById("hdrNameMini");
+    const hdrInitialMini = document.getElementById("hdrInitialMini");
+
+    btnBack.addEventListener("click", () => {
+      if (history.length > 1) history.back();
+      else window.location.href = "../pages/profile.html";
+    });
+
+    // ✅ API calls
+    async function fetchMe() {
+      const token = getToken();
+      if (!token) {
+        showAlert("warn", "Session expired. Please login again.");
+        setTimeout(() => window.location.href = "../auth/login.html", 900);
+        throw new Error("No token");
+      }
+      const res = await axios.get(`${API_BASE}/me`, { headers: authHeaders(), timeout: 20000 });
+      return res.data?.user;
+    }
+
+    async function getNotifications(limit=50, offset=0){
+      const res = await axios.get(`${API_BASE}/notify/notification?limit=${encodeURIComponent(limit)}&offset=${encodeURIComponent(offset)}`, {
+        headers: authHeaders(),
+        timeout: 25000
+      });
+      return res.data;
+    }
+
+    async function getPopups(){
+      const res = await axios.get(`${API_BASE}/notify/popup`, { headers: authHeaders(), timeout: 25000 });
+      return res.data;
+    }
+
+    function renderHeader(user){
+      const name = user?.username || user?.full_name || "Upcoinmeta";
+      hdrName.classList.remove("skeleton");
+      hdrName.textContent = name;
+      hdrInitial.textContent = (String(name).trim().slice(0,1).toUpperCase() || "U");
+
+      hdrNameMini.classList.remove("skeleton");
+      hdrNameMini.textContent = String(name).split(" ")[0] || "User";
+      hdrInitialMini.textContent = hdrInitial.textContent;
+
+      const email = user?.email || "—";
+      document.getElementById("sideUserEmail").textContent = email;
+      document.getElementById("sideUserEmailDesktop").textContent = email;
+    }
+
+    // ✅ Rendering notifications
+    const listWrap = document.getElementById("listWrap");
+    const countLabel = document.getElementById("countLabel");
+
+    function iconFor(title, msg){
+      const s = (String(title||"") + " " + String(msg||"")).toLowerCase();
+      if (s.includes("deposit")) return "＋";
+      if (s.includes("withdraw")) return "−";
+      if (s.includes("trade")) return "↗";
+      if (s.includes("upgrade")) return "⭐";
+      if (s.includes("security") || s.includes("pin") || s.includes("otp")) return "🛡️";
+      if (s.includes("warning") || s.includes("urgent")) return "⚠";
+      return "🔔";
+    }
+
+    function setLoadingList(){
+      listWrap.innerHTML = `
+        <div class="glass rounded-[26px] p-4"><div class="skeleton rounded-2xl h-16 w-full"></div></div>
+        <div class="glass rounded-[26px] p-4"><div class="skeleton rounded-2xl h-16 w-full"></div></div>
+      `;
+    }
+
+    function renderList(items, append=false){
+      if (!append) listWrap.innerHTML = "";
+
+      if (!items.length && !append){
+        listWrap.innerHTML = `
+          <div class="glass rounded-[26px] p-5">
+            <div class="txt-h2">No notifications</div>
+            <div class="txt-sm t-dim mt-1">You’ll see system updates and announcements here.</div>
+          </div>
+        `;
+        return;
+      }
+
+      items.forEach(n => {
+        const card = document.createElement("div");
+        card.className = "glass rounded-[26px] p-5";
+        const ico = iconFor(n.title, n.message);
+
+        card.innerHTML = `
+          <div class="flex items-start gap-3">
+            <div class="note-ico">${ico}</div>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="note-title truncate">${safeStr(n.title, "Notification")}</div>
+                  <div class="note-time">${fmtDate(n.created_at)}</div>
+                </div>
+                <span class="pill rounded-2xl px-3 py-2 text-[12px] font-black">#${safeStr(n.id)}</span>
+              </div>
+              <div class="note-msg">${safeStr(n.message, "")}</div>
+            </div>
+          </div>
+        `;
+        listWrap.appendChild(card);
+      });
+    }
+
+    // ✅ Popups
+    const popupModal = document.getElementById("popupModal");
+    const popupBack  = document.getElementById("popupBack");
+    const popupTitle = document.getElementById("popupTitle");
+    const popupTime  = document.getElementById("popupTime");
+    const popupMessage = document.getElementById("popupMessage");
+    const btnClosePopup = document.getElementById("btnClosePopup");
+    const btnNextPopup  = document.getElementById("btnNextPopup");
+
+    let popupQueue = [];
+    let popupIndex = 0;
+
+    function openPopupModal(){
+      popupModal.classList.add("show");
+      popupModal.setAttribute("aria-hidden","false");
+    }
+    function closePopupModal(){
+      popupModal.classList.remove("show");
+      popupModal.setAttribute("aria-hidden","true");
+    }
+    function showPopupAt(i){
+      const p = popupQueue[i];
+      if (!p) return closePopupModal();
+      popupTitle.textContent = safeStr(p.title, "Popup");
+      popupTime.textContent = `Sent: ${fmtDate(p.created_at)}${p.expires_at ? " • Expires: " + fmtDate(p.expires_at) : ""}`;
+      popupMessage.textContent = safeStr(p.message, "");
+      btnNextPopup.textContent = (i < popupQueue.length - 1) ? "Next" : "Done";
+      openPopupModal();
+    }
+
+    btnClosePopup.addEventListener("click", closePopupModal);
+    popupBack.addEventListener("click", closePopupModal);
+    btnNextPopup.addEventListener("click", () => {
+      popupIndex += 1;
+      if (popupIndex >= popupQueue.length) return closePopupModal();
+      showPopupAt(popupIndex);
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && popupModal.classList.contains("show")) closePopupModal();
+    });
+
+    // ✅ Pagination state
+    let limit = 50;
+    let offset = 0;
+    let totalLoaded = 0;
+
+    const btnRefresh = document.getElementById("btnRefresh");
+    const btnLoadMore = document.getElementById("btnLoadMore");
+
+    async function loadNotifications(reset=false){
+      if (reset){
+        offset = 0;
+        totalLoaded = 0;
+        setLoadingList();
+      }
+
+      btnLoadMore.disabled = true;
+      btnLoadMore.textContent = "Loading…";
+
+      const data = await getNotifications(limit, offset);
+      const items = data?.notifications || [];
+      const count = Number(data?.count || items.length);
+
+      renderList(items, !reset);
+      totalLoaded += count;
+      offset += count;
+      countLabel.textContent = String(totalLoaded);
+
+      // if returned less than limit, likely end
+      if (count < limit) {
+        btnLoadMore.disabled = true;
+        btnLoadMore.textContent = "No more";
+      } else {
+        btnLoadMore.disabled = false;
+        btnLoadMore.textContent = "Load more";
+      }
+    }
+
+    async function loadPopupsOnce(){
+      try{
+        const data = await getPopups();
+        popupQueue = data?.popups || [];
+        if (popupQueue.length){
+          popupIndex = 0;
+          showPopupAt(0);
+        }
+      }catch(_){}
+    }
+
+    btnRefresh.addEventListener("click", async () => {
+      try{
+        await loadNotifications(true);
+        showAlert("success","Refreshed.");
+        setTimeout(() => alertBox.classList.add("hidden"), 900);
+      }catch(e){
+        showAlert("error", e?.message || "Refresh failed.");
+      }
+    });
+
+    btnLoadMore.addEventListener("click", async () => {
+      try{
+        await loadNotifications(false);
+      }catch(e){
+        showAlert("error", e?.message || "Load more failed.");
+      }
+    });
+
+    async function init(){
+      showPreloader("Loading your account…");
+      try{
+        renderNav("sideNavDesktop");
+        renderNav("sideNavMobile");
+
+        const me = await fetchMe();
+        renderHeader(me);
+
+        try{
+          const storage = localStorage.getItem(TOKEN_KEY) ? localStorage : sessionStorage;
+          storage.setItem(USER_KEY, JSON.stringify(me || {}));
+        }catch{}
+
+        showPreloader("Loading notifications…");
+        await Promise.all([
+          loadNotifications(true),
+          loadPopupsOnce()
+        ]);
+
+        hidePreloader();
+      }catch(err){
+        hidePreloader();
+        const msg = err?.response?.data?.message || err?.message || "Failed to load notifications.";
+        showAlert("error", msg);
+
+        const status = err?.response?.status;
+        if (status === 401 || status === 403) setTimeout(() => window.location.href = "../auth/login.html", 900);
+      }
+    }
+
+    // ✅ logout buttons
+    document.getElementById("btnLogoutDesktop").addEventListener("click", doLogout);
+    document.getElementById("btnLogoutMobile").addEventListener("click", doLogout);
+
+    // ✅ start
+    init();
+  </script>
+</body>
+</html>

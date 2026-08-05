@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Upcoinmeta — Trades</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="../assets/js/api.js"></script>
+
+  <style>
+    :root{
+      --safe-top: env(safe-area-inset-top);
+      --safe-bottom: env(safe-area-inset-bottom);
+      --nav-h: 82px;
+
+      --bg: #07080c83;
+      --card: rgba(18, 18, 22, .62);
+      --card2: rgba(18, 18, 22, .46);
+      --line: rgba(255,255,255,.10);
+      --line2: rgba(255,255,255,.07);
+      --text-dim: rgba(255,255,255,.60);
+
+      --active: rgba(56,189,248,.18);
+      --activeLine: rgba(56,189,248,.25);
+    }
+
+    html,body{
+      height:100%;
+      width:100%;
+      margin:0;
+      padding:0;
+      overflow:hidden;
+      background: var(--bg);
+      color:#fff;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{ -webkit-tap-highlight-color: transparent; }
+
+    /* ✅ BACKGROUND */
+    .bg-stack{
+      position: fixed;
+      inset: 0;
+      z-index: -10;
+      pointer-events: none;
+      overflow: hidden;
+      background: var(--bg);
+    }
+    .bg-map{
+      position:absolute;
+      inset:0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      opacity: 1;
+      filter: contrast(1.12) brightness(1.05);
+      user-select:none;
+    }
+    .bg-film{
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(900px 520px at 20% 0%, rgba(255,255,255,0.06), transparent 60%),
+        radial-gradient(900px 520px at 80% 10%, rgba(255,255,255,0.05), transparent 60%),
+        linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.52));
+    }
+
+    .scroll-shell{
+      height:100vh;
+      height:100dvh;
+      overflow-y:auto;
+      overflow-x:hidden;
+      -webkit-overflow-scrolling:touch;
+      padding-top: calc(12px + var(--safe-top));
+      padding-bottom: calc(18px + var(--safe-bottom));
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ✅ PREMIUM CARD GLOW */
+    .glass{
+      background: var(--card);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid var(--line2);
+      box-shadow:
+        0 18px 70px rgba(0,0,0,.55),
+        0 0 0 1px rgba(255,255,255,.04),
+        0 0 46px rgba(56,189,248,.06);
+      position: relative;
+      overflow: hidden;
+      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    }
+    .glass::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      border-radius: inherit;
+      background:
+        radial-gradient(700px 260px at 15% 0%, rgba(56,189,248,.14), transparent 58%),
+        radial-gradient(720px 260px at 85% 12%, rgba(168,85,247,.10), transparent 60%);
+      opacity: .65;
+      pointer-events:none;
+      mix-blend-mode: screen;
+    }
+
+    .glass-soft{
+      background: var(--card2);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--line2);
+      box-shadow:
+        0 14px 44px rgba(0,0,0,.35),
+        0 0 34px rgba(56,189,248,.05);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .pill{
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--line);
+    }
+
+    .t-dim{ color: var(--text-dim); }
+    .txt-h1{ font-size: clamp(18px, 4.8vw, 22px); font-weight: 900; }
+    .txt-h2{ font-size: clamp(16px, 4.2vw, 18px); font-weight: 900; }
+    .txt-sm{ font-size: 13px; }
+
+    .skeleton{
+      background: rgba(255,255,255,.08);
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes pulse{ 0%,100%{opacity:.55} 50%{opacity:.85} }
+
+    .avatar{
+      width: 42px; height: 42px;
+      border-radius: 999px;
+      display:grid;
+      place-items:center;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.18);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
+      font-weight: 900;
+      font-size: 15px;
+      cursor: pointer;
+      user-select:none;
+    }
+
+    .field{
+      width:100%;
+      border-radius: 18px;
+      padding: 12px 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+      color: #fff;
+      outline: none;
+      transition: .18s ease;
+    }
+    .field:focus{
+      border-color: rgba(56,189,248,.35);
+      box-shadow: 0 0 0 4px rgba(56,189,248,.12);
+    }
+    .field::placeholder{ color: rgba(255,255,255,.45); }
+
+    .btn{
+      border-radius: 18px;
+      padding: 12px 14px;
+      font-weight: 900;
+      font-size: 13px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      transition: .18s ease;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      user-select:none;
+      cursor:pointer;
+    }
+    .btn.primary{
+      border-color: rgba(56,189,248,.26);
+      background: rgba(56,189,248,.14);
+    }
+    .btn:disabled{ opacity:.6; pointer-events:none; }
+
+    .seg{
+      display:flex;
+      gap:10px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.10);
+      padding: 8px;
+      border-radius: 20px;
+    }
+    .seg button{
+      flex:1;
+      border-radius: 16px;
+      padding: 10px 10px;
+      font-weight: 900;
+      font-size: 12px;
+      border: 1px solid transparent;
+      color: rgba(255,255,255,.70);
+      background: transparent;
+      cursor:pointer;
+      transition:.18s ease;
+    }
+    .seg button.active{
+      color:#fff;
+      background: rgba(56,189,248,.14);
+      border-color: rgba(56,189,248,.25);
+      box-shadow: 0 0 0 1px rgba(56,189,248,.06), 0 16px 60px rgba(56,189,248,.06);
+    }
+
+    .status-pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+      white-space: nowrap;
+    }
+    .st-open{ color: rgb(252 211 77); border-color: rgba(252,211,77,.25); background: rgba(252,211,77,.08); }
+    .st-closed{ color: rgb(110 231 183); border-color: rgba(110,231,183,.25); background: rgba(110,231,183,.08); }
+
+    /* ✅ Stock picker dropdown */
+    .picker{
+      position: relative;
+    }
+    .picker-panel{
+      position:absolute;
+      z-index: 30;
+      left:0;
+      right:0;
+      top: calc(100% + 10px);
+      border-radius: 22px;
+      background: rgba(18,18,22,.85);
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: 0 22px 80px rgba(0,0,0,.60);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      overflow: hidden;
+      display:none;
+    }
+    .picker-panel.show{ display:block; }
+    .picker-list{
+      max-height: 260px;
+      overflow:auto;
+    }
+    .picker-item{
+      padding: 12px 14px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+      cursor:pointer;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .picker-item:hover{ background: rgba(56,189,248,.08); }
+    .picker-item:last-child{ border-bottom:0; }
+    .ticker{
+      font-weight: 900;
+    }
+    .company{
+      font-size: 12px;
+      color: rgba(255,255,255,.65);
+      margin-top: 3px;
+    }
+    .ex{
+      font-size: 11px;
+      padding: 6px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.8);
+      white-space: nowrap;
+    }
+
+    /* ✅ Preloader */
+    .preloader{
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(1200px 600px at 20% 0%, rgba(56,189,248,.10), transparent 55%),
+        radial-gradient(1100px 650px at 80% 15%, rgba(168,85,247,.08), transparent 60%),
+        rgba(0,0,0,.55);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      transition: opacity .35s ease, transform .35s ease;
+    }
+    .preloader.hidden{
+      opacity: 0;
+      transform: scale(1.01);
+      pointer-events: none;
+    }
+    .loader-card{
+      width: min(420px, calc(100vw - 32px));
+      border-radius: 26px;
+      padding: 22px 18px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(18,18,22,.62);
+      box-shadow: 0 20px 80px rgba(0,0,0,.65);
+      text-align:center;
+    }
+    .loader-logo{
+      width: 62px;
+      height: 62px;
+      border-radius: 999px;
+      display:grid;
+      place-items:center;
+      margin: 0 auto 12px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 0 60px rgba(56,189,248,.14);
+    }
+    .loader-logo img{
+      width: 34px;
+      height: 34px;
+      opacity: .95;
+      animation: spinSoft 2.6s linear infinite;
+    }
+    @keyframes spinSoft{ 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
+
+    /* ✅ Bottom navbar */
+  </style>
+</head>
+
+<body>
+  <!-- ✅ PRELOADER -->
+  <div id="preloader" class="preloader">
+    <div class="loader-card">
+      <div class="loader-logo">
+        <img src="assets/icon/favicon.svg" alt="">
+      </div>
+      <div class="font-black text-[18px]">Trades</div>
+      <div class="text-[13px] text-white/65 mt-2" id="preloaderText">Loading trades…</div>
+    </div>
+  </div>
+
+  <!-- ✅ BACKGROUND -->
+  <div class="bg-stack" aria-hidden="true">
+    <img src="assets/icon/mask_group.svg" alt="" class="bg-map" />
+    <div class="bg-film"></div>
+  </div>
+
+  <div class="scroll-shell">
+    <main class="mx-auto max-w-[560px] px-4">
+
+      <!-- ✅ HEADER -->
+      <header class="glass rounded-[26px] px-4 py-4 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="avatar" id="btnBack" title="Back">←</div>
+          <div class="min-w-0">
+            <div class="txt-h1 leading-[1.05] truncate">Trades</div>
+            <div class="txt-sm t-dim truncate">Open & track your stock trades</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 shrink-0">
+          <div id="hdrName" class="txt-h2 skeleton rounded-xl px-3 py-2">&nbsp;&nbsp;&nbsp;</div>
+          <div class="avatar" id="hdrInitial">U</div>
+        </div>
+      </header>
+
+      <div id="alert" class="hidden mt-4 glass-soft rounded-2xl px-4 py-3 text-sm"></div>
+
+      <!-- ✅ BALANCE / SETTLE -->
+      <section class="mt-5 glass rounded-[26px] p-5">
+        <div class="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <div class="txt-h1">Trading Balance</div>
+            <div class="txt-sm t-dim">Trades stake is deducted from main balance</div>
+          </div>
+          <div class="flex gap-2 flex-wrap">
+            <button id="btnCopyTrader" class="btn primary" type="button">Copy Trader</button>
+            <button id="btnSettle" class="btn" type="button">Settle expired</button>
+            <button id="btnRefresh" class="btn" type="button">Refresh</button>
+          </div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="glass-soft rounded-[22px] p-4">
+            <div class="txt-sm t-dim">Main Balance</div>
+            <div id="mainBal" class="mt-2 text-[26px] font-black">
+              <span class="inline-block skeleton rounded-xl w-28 h-8"></span>
+            </div>
+          </div>
+          <div class="glass-soft rounded-[22px] p-4">
+            <div class="txt-sm t-dim">Profit Balance</div>
+            <div id="profitBal" class="mt-2 text-[26px] font-black">
+              <span class="inline-block skeleton rounded-xl w-28 h-8"></span>
+            </div>
+          </div>
+          <div class="glass-soft rounded-[22px] p-4">
+            <div class="txt-sm t-dim">Investment</div>
+            <div id="investBal" class="mt-2 text-[26px] font-black">
+              <span class="inline-block skeleton rounded-xl w-28 h-8"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-3 text-[12px] t-dim" id="settleInfo">Tip: expired trades can be settled to return funds to main balance.</div>
+      </section>
+
+      <!-- ✅ OPEN TRADE FORM -->
+      <section class="mt-5 glass rounded-[26px] p-5">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <div class="txt-h1">Open Trade</div>
+            <div class="txt-sm t-dim">Pick a stock from list (no wrong symbol)</div>
+          </div>
+          <span class="pill rounded-2xl px-3 py-2 text-[12px] font-black">Status: LIVE</span>
+        </div>
+
+        <!-- ✅ Symbol picker -->
+        <div class="mt-4 picker">
+          <label class="txt-sm t-dim">Symbol</label>
+          <input id="symbolSearch" class="field mt-2" placeholder="Search stock (e.g. Apple, Tesla, AAPL)..." autocomplete="off" />
+          <div id="pickerPanel" class="picker-panel">
+            <div class="px-4 py-3 border-b border-white/10 text-[12px] text-white/70">
+              Select a stock
+            </div>
+            <div id="pickerList" class="picker-list"></div>
+          </div>
+          <div class="mt-2 text-[12px] t-dim">
+            Selected: <span id="symbolSelected" class="text-white font-black">—</span>
+          </div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="txt-sm t-dim">Amount (USD)</label>
+            <input id="amount" class="field mt-2" type="number" min="1" step="0.01" placeholder="Enter amount" />
+          </div>
+
+          <div>
+            <label class="txt-sm t-dim">Duration</label>
+            <select id="duration" class="field mt-2">
+              <option value="30s">30 seconds</option>
+              <option value="1m">1 minute</option>
+              <option value="5m">5 minutes</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <label class="txt-sm t-dim">Side</label>
+          <div class="seg mt-2">
+            <button id="sideBuy" class="active" type="button">BUY</button>
+            <button id="sideSell" type="button">SELL</button>
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <label class="txt-sm t-dim">Entry Price (optional)</label>
+          <input id="entry_price" class="field mt-2" type="number" min="0" step="0.0001" placeholder="Leave empty if none" />
+          <div class="mt-2 text-[12px] t-dim">If you don’t have live price feed yet, leave blank.</div>
+        </div>
+
+        <div class="mt-5 flex gap-3">
+          <button id="btnOpenTrade" class="btn primary flex-1" type="button">Open Trade</button>
+          <button id="btnClear" class="btn flex-1" type="button">Clear</button>
+        </div>
+      </section>
+
+      <!-- ✅ TRADES LIST -->
+      <section class="mt-5">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <div class="txt-h1">My Trades</div>
+            <div class="txt-sm t-dim">Open & closed history</div>
+          </div>
+        </div>
+
+        <div id="tradesWrap" class="mt-4 grid grid-cols-1 gap-4">
+          <div class="glass rounded-[26px] p-4"><div class="skeleton rounded-2xl h-16 w-full"></div></div>
+          <div class="glass rounded-[26px] p-4"><div class="skeleton rounded-2xl h-16 w-full"></div></div>
+        </div>
+      </section>
+
+      <footer class="mt-8 text-center text-xs t-dim pb-10">
+        © <span id="yr"></span> Upcoinmeta • Investment Services
+      </footer>
+
+    </main>
+  </div>
+
+  <!-- ✅ Bottom Navbar -->
+
+  <script>
+    const API_BASE = window.SwayApi.userBase;
+    const TOKEN_KEY = "upcoinmeta_token";
+    const USER_KEY  = "upcoinmeta_user";
+
+    document.getElementById("yr").textContent = new Date().getFullYear();
+
+    const preloader = document.getElementById("preloader");
+    const preloaderText = document.getElementById("preloaderText");
+    const alertBox = document.getElementById("alert");
+
+    function showPreloader(msg="Loading…"){
+      preloader.style.display = "grid";
+      preloader.classList.remove("hidden");
+      preloaderText.textContent = msg;
+    }
+    function hidePreloader(){
+      preloader.classList.add("hidden");
+      setTimeout(() => { preloader.style.display = "none"; }, 420);
+    }
+
+    function getToken() {
+      return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY) || "";
+    }
+    function authHeaders() {
+      const token = getToken();
+      return { Authorization: `Bearer ${token}` };
+    }
+
+    function showAlert(type, msg) {
+      alertBox.classList.remove("hidden");
+      alertBox.textContent = msg;
+
+      alertBox.classList.remove("bg-red-500/10","border-red-400/20","text-red-200");
+      alertBox.classList.remove("bg-emerald-500/10","border-emerald-400/20","text-emerald-200");
+      alertBox.classList.remove("bg-amber-500/10","border-amber-400/20","text-amber-200");
+
+      if (type === "success") alertBox.classList.add("bg-emerald-500/10","border","border-emerald-400/20","text-emerald-200");
+      else if (type === "warn") alertBox.classList.add("bg-amber-500/10","border","border-amber-400/20","text-amber-200");
+      else alertBox.classList.add("bg-red-500/10","border","border-red-400/20","text-red-200");
+    }
+
+    function safeStr(v, fallback="—") {
+      const s = String(v ?? "").trim();
+      return s ? s : fallback;
+    }
+
+    function fmtMoney(n) {
+      const num = Number(n || 0);
+      return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    function fmtDate(v){
+      try{
+        const d = new Date(v);
+        return d.toLocaleString();
+      }catch{ return safeStr(v); }
+    }
+
+    async function fetchMe() {
+      const token = getToken();
+      if (!token) {
+        showAlert("warn", "Session expired. Please login again.");
+        setTimeout(() => window.location.href = "../auth/login.html", 900);
+        throw new Error("No token");
+      }
+      const res = await axios.get(`${API_BASE}/me`, { headers: authHeaders(), timeout: 20000 });
+      return res.data?.user;
+    }
+
+    async function fetchBalances(){
+      const res = await axios.get(`${API_BASE}/balances`, { headers: authHeaders(), timeout: 20000 });
+      return res.data?.balances;
+    }
+
+    async function fetchTrades(){
+      const res = await axios.get(`${API_BASE}/trades`, { headers: authHeaders(), timeout: 20000 });
+      return res.data?.trades || [];
+    }
+
+    async function openTrade(payload){
+      const res = await axios.post(`${API_BASE}/trades`, payload, { headers: authHeaders(), timeout: 30000 });
+      return res.data;
+    }
+
+    async function settleExpired(){
+      const res = await axios.post(`${API_BASE}/trades/settle-expired`, {}, { headers: authHeaders(), timeout: 30000 });
+      return res.data;
+    }
+
+    function renderUserHeader(user) {
+      const name = user?.username || user?.full_name || "Upcoinmeta";
+      const hdrName = document.getElementById("hdrName");
+      const hdrInitial = document.getElementById("hdrInitial");
+      hdrName.classList.remove("skeleton");
+      hdrName.textContent = name;
+      hdrInitial.textContent = (String(name).trim().slice(0,1).toUpperCase() || "U");
+    }
+
+    // UI refs
+    const mainBalEl = document.getElementById("mainBal");
+    const profitBalEl = document.getElementById("profitBal");
+    const investBalEl = document.getElementById("investBal");
+    const tradesWrap = document.getElementById("tradesWrap");
+
+    const btnBack = document.getElementById("btnBack");
+    const btnRefresh = document.getElementById("btnRefresh");
+    const btnSettle = document.getElementById("btnSettle");
+    const btnCopyTrader = document.getElementById("btnCopyTrader");
+    const settleInfo = document.getElementById("settleInfo");
+
+    const amountEl = document.getElementById("amount");
+    const durationEl = document.getElementById("duration");
+    const entryPriceEl = document.getElementById("entry_price");
+    const btnOpenTrade = document.getElementById("btnOpenTrade");
+    const btnClear = document.getElementById("btnClear");
+
+    const sideBuy = document.getElementById("sideBuy");
+    const sideSell = document.getElementById("sideSell");
+    let currentSide = "buy";
+
+    // ✅ Stock picker refs
+    const symbolSearch = document.getElementById("symbolSearch");
+    const pickerPanel = document.getElementById("pickerPanel");
+    const pickerList = document.getElementById("pickerList");
+    const symbolSelected = document.getElementById("symbolSelected");
+
+    // ✅ curated stock list (safe for users: no wrong typing)
+    const STOCKS = [
+      { symbol: "AAPL", name: "Apple Inc.", ex: "NASDAQ" },
+      { symbol: "MSFT", name: "Microsoft Corp.", ex: "NASDAQ" },
+      { symbol: "AMZN", name: "Amazon.com Inc.", ex: "NASDAQ" },
+      { symbol: "TSLA", name: "Tesla Inc.", ex: "NASDAQ" },
+      { symbol: "GOOGL", name: "Alphabet Inc. (Class A)", ex: "NASDAQ" },
+      { symbol: "META", name: "Meta Platforms Inc.", ex: "NASDAQ" },
+      { symbol: "NVDA", name: "NVIDIA Corp.", ex: "NASDAQ" },
+      { symbol: "NFLX", name: "Netflix Inc.", ex: "NASDAQ" },
+      { symbol: "INTC", name: "Intel Corp.", ex: "NASDAQ" },
+      { symbol: "AMD", name: "Advanced Micro Devices", ex: "NASDAQ" },
+      { symbol: "ORCL", name: "Oracle Corp.", ex: "NYSE" },
+      { symbol: "DIS", name: "Walt Disney Co.", ex: "NYSE" },
+      { symbol: "KO", name: "Coca-Cola Co.", ex: "NYSE" },
+      { symbol: "PEP", name: "PepsiCo Inc.", ex: "NASDAQ" },
+      { symbol: "NKE", name: "Nike Inc.", ex: "NYSE" },
+      { symbol: "BA", name: "Boeing Co.", ex: "NYSE" },
+      { symbol: "JPM", name: "JPMorgan Chase & Co.", ex: "NYSE" },
+      { symbol: "V", name: "Visa Inc.", ex: "NYSE" },
+      { symbol: "MA", name: "Mastercard Inc.", ex: "NYSE" },
+      { symbol: "WMT", name: "Walmart Inc.", ex: "NYSE" },
+      { symbol: "XOM", name: "Exxon Mobil Corp.", ex: "NYSE" }
+    ];
+
+    let selectedSymbol = ""; // ✅ this is what we send to backend
+
+    function setSide(side){
+      currentSide = side;
+      sideBuy.classList.toggle("active", side === "buy");
+      sideSell.classList.toggle("active", side === "sell");
+    }
+    sideBuy.addEventListener("click", () => setSide("buy"));
+    sideSell.addEventListener("click", () => setSide("sell"));
+
+    btnBack.addEventListener("click", () => {
+      if (history.length > 1) history.back();
+      else window.location.href = "../pages/dashboard.html";
+    });
+
+    document.getElementById("hdrInitial").addEventListener("click", () => {
+      window.location.href = "../pages/profile.html";
+    });
+
+    // ✅ Copy Trader page button
+    btnCopyTrader.addEventListener("click", () => {
+      window.location.href = "../pages/copy-trader.html";
+    });
+
+    function statusClass(s){
+      const v = String(s||"").toLowerCase();
+      return v === "open" ? "st-open" : "st-closed";
+    }
+
+    function secondsLeft(expires_at){
+      const end = new Date(expires_at).getTime();
+      const now = Date.now();
+      return Math.floor((end - now) / 1000);
+    }
+
+    function formatLeft(sec){
+      const s = Math.max(0, sec);
+      const m = Math.floor(s/60);
+      const r = s % 60;
+      if (m > 0) return `${m}m ${r}s`;
+      return `${r}s`;
+    }
+
+    function renderTrades(list){
+      tradesWrap.innerHTML = "";
+      if (!list.length){
+        tradesWrap.innerHTML = `
+          <div class="glass rounded-[26px] p-5">
+            <div class="txt-h2">No trades yet</div>
+            <div class="txt-sm t-dim mt-1">Open your first trade above.</div>
+          </div>
+        `;
+        return;
+      }
+
+      list.forEach(t => {
+        const card = document.createElement("div");
+        card.className = "glass rounded-[26px] p-5";
+
+        const status = String(t.status||"open").toUpperCase();
+        const methodPill = `<span class="status-pill ${statusClass(t.status)}">${status}</span>`;
+
+        const entry = (t.entry_price !== null && t.entry_price !== undefined) ? Number(t.entry_price) : null;
+        const exit = (t.exit_price !== null && t.exit_price !== undefined) ? Number(t.exit_price) : null;
+
+        let countdownLine = "";
+        if (String(t.status).toLowerCase() === "open" && t.expires_at){
+          countdownLine = `
+            <div class="mt-2 text-[12px] t-dim">
+              Expires in: <span class="text-white/90 font-black" data-countdown="${t.id}" data-expires="${t.expires_at}">—</span>
+            </div>
+          `;
+        } else if (t.closed_at){
+          countdownLine = `<div class="mt-2 text-[12px] t-dim">Closed: <span class="text-white/90">${fmtDate(t.closed_at)}</span></div>`;
+        }
+
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="txt-h2">${safeStr(t.symbol)} • ${String(t.side||"").toUpperCase()}</div>
+              <div class="txt-sm t-dim">#${safeStr(t.id)} • Opened: ${fmtDate(t.opened_at)}</div>
+            </div>
+            ${methodPill}
+          </div>
+
+          <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="glass-soft rounded-2xl p-3">
+              <div class="txt-sm t-dim">Stake</div>
+              <div class="mt-1 text-[18px] font-black">$${fmtMoney(t.amount)}</div>
+            </div>
+            <div class="glass-soft rounded-2xl p-3">
+              <div class="txt-sm t-dim">Duration</div>
+              <div class="mt-1 text-[18px] font-black">${Number(t.duration_seconds||0)}s</div>
+            </div>
+            <div class="glass-soft rounded-2xl p-3">
+              <div class="txt-sm t-dim">PNL</div>
+              <div class="mt-1 text-[18px] font-black">${t.pnl === null || t.pnl === undefined ? "—" : `$${fmtMoney(t.pnl)}`}</div>
+            </div>
+          </div>
+
+          <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-[13px]">
+            <div class="glass-soft rounded-2xl p-3">
+              <div class="t-dim">Entry price</div>
+              <div class="font-black mt-1">${entry ? entry : "—"}</div>
+            </div>
+            <div class="glass-soft rounded-2xl p-3">
+              <div class="t-dim">Exit price</div>
+              <div class="font-black mt-1">${exit ? exit : "—"}</div>
+            </div>
+          </div>
+
+          ${countdownLine}
+        `;
+        tradesWrap.appendChild(card);
+      });
+
+      startCountdownTick();
+    }
+
+    let countdownTimer = null;
+    function startCountdownTick(){
+      if (countdownTimer) clearInterval(countdownTimer);
+
+      function tick(){
+        document.querySelectorAll("[data-countdown]").forEach(el => {
+          const exp = el.getAttribute("data-expires");
+          const left = secondsLeft(exp);
+          el.textContent = left <= 0 ? "expired" : formatLeft(left);
+        });
+      }
+      tick();
+      countdownTimer = setInterval(tick, 1000);
+    }
+
+    async function loadBalances(){
+      const b = await fetchBalances();
+      mainBalEl.textContent = "$" + fmtMoney(b?.main_balance);
+      profitBalEl.textContent = "$" + fmtMoney(b?.profit_balance);
+      investBalEl.textContent = "$" + fmtMoney(b?.investment_balance);
+    }
+
+    async function loadTrades(){
+      tradesWrap.innerHTML = `
+        <div class="glass rounded-[26px] p-4"><div class="skeleton rounded-2xl h-16 w-full"></div></div>
+        <div class="glass rounded-[26px] p-4"><div class="skeleton rounded-2xl h-16 w-full"></div></div>
+      `;
+      const list = await fetchTrades();
+      renderTrades(list);
+    }
+
+    btnClear.addEventListener("click", () => {
+      // clear fields
+      symbolSearch.value = "";
+      selectedSymbol = "";
+      symbolSelected.textContent = "—";
+      amountEl.value = "";
+      durationEl.value = "30s";
+      entryPriceEl.value = "";
+      setSide("buy");
+      showAlert("success","Cleared.");
+      setTimeout(() => alertBox.classList.add("hidden"), 900);
+    });
+
+    btnOpenTrade.addEventListener("click", async () => {
+      try{
+        alertBox.classList.add("hidden");
+
+        const symbol = String(selectedSymbol||"").trim().toUpperCase();
+        const amount = Number(amountEl.value);
+        const duration = String(durationEl.value||"").trim().toLowerCase();
+        const entry_price_raw = String(entryPriceEl.value||"").trim();
+        const entry_price = entry_price_raw ? Number(entry_price_raw) : undefined;
+
+        if (!symbol) return showAlert("warn","Please select a stock from the list.");
+        if (!["buy","sell"].includes(currentSide)) return showAlert("warn","Select buy or sell.");
+        if (!amount || Number.isNaN(amount) || amount <= 0) return showAlert("warn","Enter a valid trade amount.");
+        if (!["30s","1m","5m"].includes(duration)) return showAlert("warn","Duration must be 30s, 1m, or 5m.");
+        if (entry_price_raw && (Number.isNaN(entry_price) || entry_price <= 0)) return showAlert("warn","Invalid entry price.");
+
+        btnOpenTrade.disabled = true;
+        btnOpenTrade.textContent = "Opening…";
+
+        const payload = { symbol, side: currentSide, amount, duration };
+        if (entry_price_raw) payload.entry_price = entry_price;
+
+        const res = await openTrade(payload);
+        showAlert("success", res?.message || "Trade opened.");
+
+        await Promise.all([loadBalances(), loadTrades()]);
+      }catch(err){
+        const msg = err?.response?.data?.message || err?.message || "Failed to open trade.";
+        showAlert("error", msg);
+
+        const status = err?.response?.status;
+        if (status === 401 || status === 403) setTimeout(() => window.location.href = "../auth/login.html", 900);
+      } finally {
+        btnOpenTrade.disabled = false;
+        btnOpenTrade.textContent = "Open Trade";
+      }
+    });
+
+    btnRefresh.addEventListener("click", async () => {
+      try{
+        await Promise.all([loadBalances(), loadTrades()]);
+        showAlert("success","Refreshed.");
+        setTimeout(() => alertBox.classList.add("hidden"), 900);
+      }catch(e){
+        showAlert("error", e?.message || "Refresh failed.");
+      }
+    });
+
+    btnSettle.addEventListener("click", async () => {
+      try{
+        btnSettle.disabled = true;
+        btnSettle.textContent = "Settling…";
+        const res = await settleExpired();
+        settleInfo.textContent = `${res?.message || "Expired trades settled."} Settled: ${res?.settled ?? 0}`;
+        showAlert("success", settleInfo.textContent);
+        await Promise.all([loadBalances(), loadTrades()]);
+      }catch(err){
+        const msg = err?.response?.data?.message || err?.message || "Failed to settle.";
+        showAlert("error", msg);
+      } finally {
+        btnSettle.disabled = false;
+        btnSettle.textContent = "Settle expired";
+      }
+    });
+
+    // ✅ Stock picker helpers
+    function openPicker(){ pickerPanel.classList.add("show"); }
+    function closePicker(){ pickerPanel.classList.remove("show"); }
+
+    function renderPicker(items){
+      pickerList.innerHTML = "";
+      if (!items.length){
+        pickerList.innerHTML = `<div class="px-4 py-4 text-[12px] text-white/70">No matches found.</div>`;
+        return;
+      }
+      items.forEach(s => {
+        const div = document.createElement("div");
+        div.className = "picker-item";
+        div.innerHTML = `
+          <div>
+            <div class="ticker">${s.symbol}</div>
+            <div class="company">${s.name}</div>
+          </div>
+          <div class="ex">${s.ex}</div>
+        `;
+        div.addEventListener("click", () => {
+          selectedSymbol = s.symbol;
+          symbolSelected.textContent = s.symbol;
+          symbolSearch.value = `${s.symbol} — ${s.name}`;
+          closePicker();
+        });
+        pickerList.appendChild(div);
+      });
+    }
+
+    function filterStocks(q){
+      const query = String(q||"").trim().toLowerCase();
+      if (!query) return STOCKS.slice(0, 25);
+      return STOCKS.filter(s =>
+        s.symbol.toLowerCase().includes(query) ||
+        s.name.toLowerCase().includes(query) ||
+        s.ex.toLowerCase().includes(query)
+      ).slice(0, 30);
+    }
+
+    symbolSearch.addEventListener("focus", () => {
+      renderPicker(filterStocks(symbolSearch.value));
+      openPicker();
+    });
+
+    symbolSearch.addEventListener("input", () => {
+      renderPicker(filterStocks(symbolSearch.value));
+      openPicker();
+      // if user edits after selecting, we clear to prevent mismatch
+      selectedSymbol = "";
+      symbolSelected.textContent = "—";
+    });
+
+    document.addEventListener("click", (e) => {
+      const picker = document.querySelector(".picker");
+      if (!picker.contains(e.target)) closePicker();
+    });
+
+    async function init(){
+      showPreloader("Loading balances & trades…");
+      try{
+        const me = await fetchMe();
+        renderUserHeader(me);
+
+        try{
+          const storage = localStorage.getItem(TOKEN_KEY) ? localStorage : sessionStorage;
+          storage.setItem(USER_KEY, JSON.stringify(me || {}));
+        }catch{}
+
+        // auto settle expired (silent)
+        try{ await settleExpired(); }catch(_){}
+
+        await Promise.all([loadBalances(), loadTrades()]);
+        hidePreloader();
+      }catch(err){
+        hidePreloader();
+        const msg = err?.response?.data?.message || err?.message || "Failed to load trades.";
+        showAlert("error", msg);
+
+        const status = err?.response?.status;
+        if (status === 401 || status === 403) setTimeout(() => window.location.href = "../auth/login.html", 900);
+      }
+    }
+
+    // start
+    setSide("buy");
+    renderPicker(STOCKS.slice(0, 25));
+    init();
+  </script>
+</body>
+</html>

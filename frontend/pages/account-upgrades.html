@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Upcoinmeta — Account Upgrades</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="../assets/js/api.js"></script>
+
+  <style>
+    :root{
+      --safe-top: env(safe-area-inset-top);
+      --safe-bottom: env(safe-area-inset-bottom);
+      --nav-h: 82px;
+
+      --bg: #07080c83;
+      --card: rgba(18, 18, 22, .62);
+      --card2: rgba(18, 18, 22, .46);
+      --line: rgba(255,255,255,.10);
+      --line2: rgba(255,255,255,.07);
+      --text-dim: rgba(255,255,255,.60);
+
+      --active: rgba(56,189,248,.18);
+      --activeLine: rgba(56,189,248,.25);
+    }
+
+    html,body{
+      height:100%;
+      width:100%;
+      margin:0;
+      padding:0;
+      overflow:hidden;
+      background: var(--bg);
+      color:#fff;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{ -webkit-tap-highlight-color: transparent; }
+
+    /* ✅ BACKGROUND */
+    .bg-stack{
+      position: fixed;
+      inset: 0;
+      z-index: -10;
+      pointer-events: none;
+      overflow: hidden;
+      background: var(--bg);
+    }
+    .bg-map{
+      position:absolute;
+      inset:0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      opacity: 1;
+      filter: contrast(1.12) brightness(1.05);
+      user-select:none;
+    }
+    .bg-film{
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(900px 520px at 20% 0%, rgba(255,255,255,0.06), transparent 60%),
+        radial-gradient(900px 520px at 80% 10%, rgba(255,255,255,0.05), transparent 60%),
+        linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.54));
+    }
+
+    /* ✅ Layout */
+    .shell{
+      height:100vh;
+      height:100dvh;
+      display:flex;
+      overflow:hidden;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ✅ Desktop Sidebar */
+    .sidebar{
+      width: 300px;
+      flex: 0 0 300px;
+      padding: calc(14px + var(--safe-top)) 14px 14px;
+      border-right: 1px solid rgba(255,255,255,.08);
+      background: rgba(10,10,14,.78);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 18px 80px rgba(0,0,0,.55);
+      display:flex;
+      flex-direction:column;
+      gap: 12px;
+      overflow:auto;
+    }
+
+    .content{
+      flex: 1;
+      overflow-y:auto;
+      overflow-x:hidden;
+      -webkit-overflow-scrolling:touch;
+      padding: calc(12px + var(--safe-top)) 16px calc(22px + var(--safe-bottom));
+    }
+
+    .wrap{
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    /* ✅ PREMIUM CARD GLOW */
+    .glass{
+      background: var(--card);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid var(--line2);
+      box-shadow:
+        0 18px 70px rgba(0,0,0,.55),
+        0 0 0 1px rgba(255,255,255,.04),
+        0 0 46px rgba(56,189,248,.06);
+      position: relative;
+      overflow: hidden;
+      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    }
+    .glass::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      border-radius: inherit;
+      background:
+        radial-gradient(700px 260px at 15% 0%, rgba(56,189,248,.14), transparent 58%),
+        radial-gradient(720px 260px at 85% 12%, rgba(168,85,247,.10), transparent 60%);
+      opacity: .65;
+      pointer-events:none;
+      mix-blend-mode: screen;
+    }
+
+    .glass-soft{
+      background: var(--card2);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--line2);
+      box-shadow:
+        0 14px 44px rgba(0,0,0,.35),
+        0 0 34px rgba(56,189,248,.05);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .pill{
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--line);
+    }
+
+    .t-dim{ color: var(--text-dim); }
+    .txt-h1{ font-size: clamp(18px, 4.8vw, 22px); font-weight: 900; }
+    .txt-h2{ font-size: clamp(16px, 4.2vw, 18px); font-weight: 900; }
+    .txt-sm{ font-size: 13px; }
+
+    .skeleton{
+      background: rgba(255,255,255,.08);
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes pulse{ 0%,100%{opacity:.55} 50%{opacity:.85} }
+
+    .btn{
+      border-radius: 18px;
+      padding: 12px 14px;
+      font-weight: 900;
+      font-size: 13px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      transition: .18s ease;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      user-select:none;
+      cursor:pointer;
+      color: #fff;
+      text-decoration:none;
+    }
+    .btn.primary{
+      border-color: rgba(56,189,248,.26);
+      background: rgba(56,189,248,.14);
+    }
+    .btn.danger{
+      border-color: rgba(248,113,113,.22);
+      background: rgba(248,113,113,.10);
+    }
+    .btn:disabled{ opacity:.6; pointer-events:none; }
+
+    .avatar{
+      width: 44px; height: 44px;
+      border-radius: 999px;
+      display:grid;
+      place-items:center;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.18);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
+      font-weight: 900;
+      font-size: 15px;
+      user-select:none;
+    }
+
+    /* ✅ Sidebar brand */
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding: 10px 10px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+    }
+    .brand img{
+      width: 44px; height: 44px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      padding: 8px;
+    }
+    .brand .name{ font-weight: 900; font-size: 16px; line-height: 1.1; }
+    .brand .sub{ font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+
+    /* ✅ Nav links */
+    .navlist{
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
+    }
+    .navlink{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+      padding: 12px 12px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
+      text-decoration:none;
+      color: rgba(255,255,255,.86);
+      font-weight: 900;
+      transition: .18s ease;
+    }
+    .navlink:active{ transform: scale(.992); }
+    .navlink .left{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .navlink .ico{
+      width: 38px; height: 38px;
+      border-radius: 14px;
+      display:grid;
+      place-items:center;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      flex-shrink: 0;
+      font-size: 16px;
+      font-weight: 900;
+    }
+    .navlink .meta{ min-width:0; }
+    .navlink .title{ font-size: 14px; line-height: 1.1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .navlink .desc{ font-size: 12px; color: var(--text-dim); margin-top: 2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .navlink .chev{
+      width: 34px; height: 34px;
+      border-radius: 999px;
+      display:grid;
+      place-items:center;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      flex-shrink:0;
+      color: rgba(255,255,255,.80);
+      font-weight: 900;
+    }
+    .navlink.active{
+      background: var(--active);
+      border-color: var(--activeLine);
+      box-shadow: 0 0 0 1px rgba(56,189,248,.08), 0 18px 70px rgba(56,189,248,.06);
+      color:#fff;
+    }
+
+    /* ✅ Alert */
+    .alert{
+      border-radius: 18px;
+      padding: 12px 12px;
+      border: 1px solid rgba(255,255,255,.10);
+    }
+
+    /* ✅ Form fields */
+    .field{
+      width:100%;
+      border-radius: 18px;
+      padding: 12px 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+      color: #fff;
+      outline: none;
+      transition: .18s ease;
+    }
+    .field:focus{
+      border-color: rgba(56,189,248,.35);
+      box-shadow: 0 0 0 4px rgba(56,189,248,.12);
+    }
+    .field::placeholder{ color: rgba(255,255,255,.45); }
+    textarea.field{ min-height: 110px; resize: vertical; }
+
+    /* ✅ Mobile topbar */
+    .topbar{
+      display:none;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    /* ✅ Drawer (mobile sidebar) */
+    .drawer-overlay{
+      position: fixed;
+      inset: 0;
+      z-index: 10040;
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease;
+    }
+    .drawer-overlay.show{
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .drawer{
+      position: fixed;
+      inset: 0;
+      z-index: 10050;
+      display:none;
+    }
+    .drawer.show{
+      display:flex;
+      align-items:stretch;
+      justify-content:flex-start;
+    }
+    .drawer-panel{
+      width: 300px;
+      max-width: 86vw;
+      height: 100%;
+      padding: calc(14px + var(--safe-top)) 14px 14px;
+      border-right: 1px solid rgba(255,255,255,.08);
+      background: rgba(10,10,14,.86);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 18px 80px rgba(0,0,0,.65);
+      display:flex;
+      flex-direction:column;
+      gap: 12px;
+      overflow:auto;
+      transform: translateX(-110%);
+      transition: transform .22s ease;
+      will-change: transform;
+    }
+    .drawer-panel.open{ transform: translateX(0); }
+
+    .side-top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .side-actions{
+      margin-top:auto;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    /* ✅ Preloader */
+    .preloader{
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(1200px 600px at 20% 0%, rgba(56,189,248,.10), transparent 55%),
+        radial-gradient(1100px 650px at 80% 15%, rgba(168,85,247,.08), transparent 60%),
+        rgba(0,0,0,.55);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      transition: opacity .35s ease, transform .35s ease;
+    }
+    .preloader.hidden{
+      opacity: 0;
+      transform: scale(1.01);
+      pointer-events: none;
+    }
+    .loader-card{
+      width: min(420px, calc(100vw - 32px));
+      border-radius: 26px;
+      padding: 22px 18px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(18,18,22,.62);
+      box-shadow: 0 20px 80px rgba(0,0,0,.65);
+      text-align:center;
+    }
+    .loader-logo{
+      width: 62px;
+      height: 62px;
+      border-radius: 999px;
+      display:grid;
+      place-items:center;
+      margin: 0 auto 12px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 0 60px rgba(56,189,248,.14);
+    }
+    .loader-logo img{
+      width: 34px;
+      height: 34px;
+      opacity: .95;
+      animation: spinSoft 2.6s linear infinite;
+    }
+    @keyframes spinSoft{ 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
+
+    /* ✅ Status pills */
+    .status-pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+      white-space: nowrap;
+    }
+    .st-pending{ color: rgb(252 211 77); border-color: rgba(252,211,77,.25); background: rgba(252,211,77,.08); }
+    .st-approved{ color: rgb(110 231 183); border-color: rgba(110,231,183,.25); background: rgba(110,231,183,.08); }
+    .st-declined{ color: rgb(248 113 113); border-color: rgba(248,113,113,.25); background: rgba(248,113,113,.08); }
+
+    /* ✅ File row */
+    .filebox{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      padding: 12px 12px;
+      border-radius: 18px;
+      border: 1px dashed rgba(255,255,255,.16);
+      background: rgba(255,255,255,.04);
+    }
+    .file-meta{
+      min-width:0;
+    }
+    .file-name{
+      font-weight: 900;
+      font-size: 13px;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .file-sub{
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+
+    /* ✅ Responsive */
+    @media (max-width: 959.99px){
+      .sidebar{ display:none; }
+      .topbar{ display:flex; }
+      .wrap{ max-width: 560px; }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ✅ PRELOADER -->
+  <div id="preloader" class="preloader">
+    <div class="loader-card">
+      <div class="loader-logo">
+        <img src="assets/icon/favicon.svg" alt="">
+      </div>
+      <div class="font-black text-[18px]">Account Upgrades</div>
+      <div class="text-[13px] text-white/65 mt-2" id="preloaderText">Loading upgrades…</div>
+    </div>
+  </div>
+
+  <!-- ✅ BACKGROUND -->
+  <div class="bg-stack" aria-hidden="true">
+    <img src="assets/icon/mask_group.svg" alt="" class="bg-map" />
+    <div class="bg-film"></div>
+  </div>
+
+  <!-- ✅ MOBILE DRAWER -->
+  <div id="drawerOverlay" class="drawer-overlay"></div>
+  <div id="drawer" class="drawer" aria-hidden="true">
+    <aside id="drawerPanel" class="drawer-panel">
+      <div class="side-top">
+        <div class="brand min-w-0">
+          <img src="assets/icon/favicon.svg" alt="">
+          <div class="min-w-0">
+            <div class="name truncate">Upcoinmeta</div>
+            <div class="sub truncate" id="sideUserEmail">—</div>
+          </div>
+        </div>
+        <button id="btnCloseDrawer" class="btn" type="button">Close</button>
+      </div>
+
+      <div class="navlist" id="sideNavMobile"></div>
+
+      <div class="side-actions">
+        <button id="btnLogoutMobile" class="btn danger" type="button">Logout</button>
+      </div>
+    </aside>
+  </div>
+
+  <div class="shell">
+    <!-- ✅ DESKTOP SIDEBAR -->
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="assets/icon/favicon.svg" alt="">
+        <div class="min-w-0">
+          <div class="name truncate">Upcoinmeta</div>
+          <div class="sub truncate" id="sideUserEmailDesktop">—</div>
+        </div>
+      </div>
+
+      <div class="navlist" id="sideNavDesktop"></div>
+
+      <div class="side-actions">
+        <button id="btnLogoutDesktop" class="btn danger" type="button">Logout</button>
+      </div>
+    </aside>
+
+    <!-- ✅ CONTENT -->
+    <section class="content">
+      <div class="wrap">
+
+        <!-- ✅ TOPBAR (MOBILE) -->
+        <div class="topbar">
+          <button id="btnMenu" class="btn" type="button">☰ Menu</button>
+          <div class="flex items-center gap-3">
+            <div id="hdrNameMini" class="txt-h2 skeleton rounded-xl px-3 py-2">&nbsp;&nbsp;&nbsp;</div>
+            <div class="avatar" id="hdrInitialMini">U</div>
+          </div>
+        </div>
+
+        <!-- ✅ HEADER -->
+        <header class="glass rounded-[26px] px-4 py-4 flex items-center justify-between gap-4">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="avatar" id="btnBack" title="Back">←</div>
+            <div class="min-w-0">
+              <div class="txt-h1 leading-[1.05] truncate">Account Upgrades</div>
+              <div class="txt-sm t-dim truncate">Request an upgrade & track approval</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 shrink-0">
+            <div id="hdrName" class="txt-h2 skeleton rounded-xl px-3 py-2">&nbsp;&nbsp;&nbsp;</div>
+            <div class="avatar" id="hdrInitial">U</div>
+          </div>
+        </header>
+
+        <div id="alert" class="hidden mt-4 glass-soft alert text-sm"></div>
+
+        <!-- ✅ REQUEST UPGRADE -->
+        <section class="mt-5 glass rounded-[26px] p-5">
+          <div class="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <div class="txt-h1">Request Upgrade</div>
+              <div class="txt-sm t-dim">Upload proof (optional) and send request for admin approval.</div>
+            </div>
+            <span class="pill rounded-2xl px-3 py-2 text-[12px] font-black" id="currentTypePill">Current: —</span>
+          </div>
+
+          <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="txt-sm t-dim">Requested Account Type</label>
+              <select id="requestedType" class="field mt-2">
+                <option value="">Select account type</option>
+                <option value="Basic">Basic</option>
+                <option value="Standard">Standard</option>
+                <option value="Premium">Premium</option>
+                <option value="VIP">VIP</option>
+              </select>
+              <div class="mt-2 text-[12px] t-dim">Make sure it’s different from your current account type.</div>
+            </div>
+
+            <div>
+              <label class="txt-sm t-dim">Proof (optional)</label>
+              <div class="filebox mt-2">
+                <div class="file-meta">
+                  <div class="file-name" id="proofName">No file selected</div>
+                  <div class="file-sub">PNG/JPG/PDF • Max depends on server</div>
+                </div>
+                <label class="btn primary" for="proofFile">Choose</label>
+                <input id="proofFile" type="file" class="hidden" accept="image/*,.pdf" />
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <label class="txt-sm t-dim">Note (optional)</label>
+            <textarea id="note" class="field mt-2" placeholder="Explain why you want this upgrade, include any reference or details…"></textarea>
+          </div>
+
+          <div class="mt-5 flex gap-3">
+            <button id="btnSubmit" class="btn primary flex-1" type="button">Submit Request</button>
+            <button id="btnClear" class="btn flex-1" type="button">Clear</button>
+          </div>
+
+          <div class="mt-3 text-[12px] t-dim" id="formHint">
+            If you already have a pending request, the server will block duplicates.
+          </div>
+        </section>
+
+        <!-- ✅ HISTORY -->
+        <section class="mt-5">
+          <div class="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <div class="txt-h1">My Upgrade Requests</div>
+              <div class="txt-sm t-dim">Pending, approved, and declined requests</div>
+            </div>
+            <button id="btnRefresh" class="btn" type="button">Refresh</button>
+          </div>
+
+          <div id="historyWrap" class="mt-4 grid grid-cols-1 gap-4">
+            <div class="glass rounded-[26px] p-4"><div class="skeleton rounded-2xl h-16 w-full"></div></div>
+            <div class="glass rounded-[26px] p-4"><div class="skeleton rounded-2xl h-16 w-full"></div></div>
+          </div>
+        </section>
+
+        <footer class="mt-8 text-center text-xs t-dim pb-10">
+          © <span id="yr"></span> Upcoinmeta • Investment Services
+        </footer>
+
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const API_BASE = window.SwayApi.userBase;
+    const TOKEN_KEY = "upcoinmeta_token";
+    const USER_KEY  = "upcoinmeta_user";
+    document.getElementById("yr").textContent = new Date().getFullYear();
+
+    // ✅ Preloader
+    const preloader = document.getElementById("preloader");
+    const preloaderText = document.getElementById("preloaderText");
+    function showPreloader(msg="Loading…"){
+      preloader.style.display = "grid";
+      preloader.classList.remove("hidden");
+      preloaderText.textContent = msg;
+    }
+    function hidePreloader(){
+      preloader.classList.add("hidden");
+      setTimeout(() => { preloader.style.display = "none"; }, 420);
+    }
+
+    // ✅ Helpers
+    function getToken() {
+      return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY) || "";
+    }
+    function authHeaders() {
+      const token = getToken();
+      return { Authorization: `Bearer ${token}` };
+    }
+    function safeStr(v, fallback="—") {
+      const s = String(v ?? "").trim();
+      return s ? s : fallback;
+    }
+    function fmtDate(v){
+      try{
+        const d = new Date(v);
+        return d.toLocaleString();
+      }catch{ return safeStr(v); }
+    }
+
+    // ✅ Alert
+    const alertBox = document.getElementById("alert");
+    function showAlert(type, msg) {
+      alertBox.classList.remove("hidden");
+      alertBox.textContent = msg;
+
+      alertBox.classList.remove("bg-red-500/10","border-red-400/20","text-red-200");
+      alertBox.classList.remove("bg-emerald-500/10","border-emerald-400/20","text-emerald-200");
+      alertBox.classList.remove("bg-amber-500/10","border-amber-400/20","text-amber-200");
+
+      if (type === "success") alertBox.classList.add("bg-emerald-500/10","border","border-emerald-400/20","text-emerald-200");
+      else if (type === "warn") alertBox.classList.add("bg-amber-500/10","border","border-amber-400/20","text-amber-200");
+      else alertBox.classList.add("bg-red-500/10","border","border-red-400/20","text-red-200");
+    }
+
+    // ✅ Auth calls
+    async function fetchMe() {
+      const token = getToken();
+      if (!token) {
+        showAlert("warn", "Session expired. Please login again.");
+        setTimeout(() => window.location.href = "../auth/login.html", 900);
+        throw new Error("No token");
+      }
+      const res = await axios.get(`${API_BASE}/me`, { headers: authHeaders(), timeout: 20000 });
+      return res.data?.user;
+    }
+
+    async function fetchUpgrades(){
+      // you already shared this endpoint earlier
+      const res = await axios.get(`${API_BASE}/account-upgrades`, { headers: authHeaders(), timeout: 25000 });
+      return res.data?.upgrades || [];
+    }
+
+    async function createUpgrade(formData){
+      const res = await axios.post(`${API_BASE}/account-upgrades`, formData, {
+        headers: { ...authHeaders(), "Content-Type": "multipart/form-data" },
+        timeout: 60000
+      });
+      return res.data;
+    }
+
+    // ✅ Logout
+    function doLogout(){
+      try{
+        localStorage.removeItem(TOKEN_KEY);
+        sessionStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
+        sessionStorage.removeItem(USER_KEY);
+      }catch(_){}
+      window.location.href = "../auth/login.html";
+    }
+
+    // ✅ Sidebar links
+    const navItems = [
+      { href: "../pages/dashboard.html", title: "Dashboard", desc: "Portfolio overview", ico: "🏠" },
+      { href: "../pages/deposit.html", title: "Deposit", desc: "Fund your balance", ico: "+" },
+      { href: "../pages/withdraw.html", title: "Withdraw", desc: "Send funds out", ico: "−" },
+      { href: "../pages/trades.html", title: "Trades", desc: "Open & track trades", ico: "↗" },
+      { href: "../pages/copy-trader.html", title: "Copy Trader", desc: "Copy a professional", ico: "🤝" },
+      { href: "../pages/transactions.html", title: "Transactions", desc: "Deposits & withdrawals", ico: "≡" },
+      { href: "../pages/account-upgrades.html", title: "Account Upgrades", desc: "Upgrade requests", ico: "⭐" },
+      { href: "../pages/notification.html", title: "Notifications", desc: "Updates & alerts", ico: "🔔" },
+      { href: "../pages/setting.html", title: "Settings", desc: "Security & preferences", ico: "⚙️" },
+      { href: "../pages/profile.html", title: "Profile", desc: "Account details", ico: "👤" }
+    ];
+
+    function renderNav(containerId){
+      const el = document.getElementById(containerId);
+      if (!el) return;
+
+      const current = location.pathname.split("/").pop();
+      el.innerHTML = "";
+
+      navItems.forEach(item => {
+        const isActive = (item.href.split("/").pop() === current);
+        const a = document.createElement("a");
+        a.href = item.href;
+        a.className = "navlink" + (isActive ? " active" : "");
+        a.innerHTML = `
+          <div class="left">
+            <div class="ico">${item.ico}</div>
+            <div class="meta">
+              <div class="title">${item.title}</div>
+              <div class="desc">${item.desc}</div>
+            </div>
+          </div>
+          <div class="chev">›</div>
+        `;
+        el.appendChild(a);
+      });
+    }
+
+    // ✅ Drawer
+    const drawer = document.getElementById("drawer");
+    const drawerPanel = document.getElementById("drawerPanel");
+    const overlay = document.getElementById("drawerOverlay");
+    const btnMenu = document.getElementById("btnMenu");
+    const btnCloseDrawer = document.getElementById("btnCloseDrawer");
+
+    function openDrawer(){
+      overlay.classList.add("show");
+      drawer.classList.add("show");
+      drawerPanel.classList.add("open");
+      drawer.setAttribute("aria-hidden","false");
+    }
+    function closeDrawer(){
+      overlay.classList.remove("show");
+      drawerPanel.classList.remove("open");
+      setTimeout(() => { drawer.classList.remove("show"); }, 180);
+      drawer.setAttribute("aria-hidden","true");
+    }
+    if (btnMenu) btnMenu.addEventListener("click", openDrawer);
+    overlay.addEventListener("click", closeDrawer);
+    btnCloseDrawer.addEventListener("click", closeDrawer);
+    document.addEventListener("click", (e) => {
+      const a = e.target.closest("#sideNavMobile a.navlink");
+      if (a) closeDrawer();
+    });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDrawer(); });
+
+    document.getElementById("btnLogoutDesktop").addEventListener("click", doLogout);
+    document.getElementById("btnLogoutMobile").addEventListener("click", doLogout);
+
+    // ✅ Page refs
+    const btnBack = document.getElementById("btnBack");
+    const hdrName = document.getElementById("hdrName");
+    const hdrInitial = document.getElementById("hdrInitial");
+    const hdrNameMini = document.getElementById("hdrNameMini");
+    const hdrInitialMini = document.getElementById("hdrInitialMini");
+    const currentTypePill = document.getElementById("currentTypePill");
+
+    const requestedTypeEl = document.getElementById("requestedType");
+    const noteEl = document.getElementById("note");
+    const proofFileEl = document.getElementById("proofFile");
+    const proofNameEl = document.getElementById("proofName");
+
+    const btnSubmit = document.getElementById("btnSubmit");
+    const btnClear = document.getElementById("btnClear");
+    const btnRefresh = document.getElementById("btnRefresh");
+
+    const historyWrap = document.getElementById("historyWrap");
+
+    btnBack.addEventListener("click", () => {
+      if (history.length > 1) history.back();
+      else window.location.href = "../pages/profile.html";
+    });
+
+    proofFileEl.addEventListener("change", () => {
+      const f = proofFileEl.files && proofFileEl.files[0];
+      proofNameEl.textContent = f ? f.name : "No file selected";
+    });
+
+    function statusClass(s){
+      const v = String(s||"").toLowerCase();
+      if (v === "approved") return "st-approved";
+      if (v === "declined") return "st-declined";
+      return "st-pending";
+    }
+
+    function renderHistory(list){
+      historyWrap.innerHTML = "";
+      if (!list.length){
+        historyWrap.innerHTML = `
+          <div class="glass rounded-[26px] p-5">
+            <div class="txt-h2">No upgrade requests yet</div>
+            <div class="txt-sm t-dim mt-1">Submit an upgrade request above.</div>
+          </div>
+        `;
+        return;
+      }
+
+      list.forEach(u => {
+        const card = document.createElement("div");
+        card.className = "glass rounded-[26px] p-5";
+
+        const status = String(u.status || "pending").toUpperCase();
+        const pill = `<span class="status-pill ${statusClass(u.status)}">${status}</span>`;
+
+        const proofBtn = u.proof_url
+          ? `<a class="btn" href="${u.proof_url}" target="_blank" rel="noopener">View Proof</a>`
+          : `<span class="pill rounded-2xl px-3 py-2 text-[12px] font-black text-white/70">No proof</span>`;
+
+        const adminNote = u.admin_note ? `
+          <div class="mt-3 glass-soft rounded-2xl p-3">
+            <div class="txt-sm t-dim">Admin note</div>
+            <div class="mt-1 text-[13px] font-black">${safeStr(u.admin_note)}</div>
+          </div>
+        ` : "";
+
+        const decisionLine = u.approved_at
+          ? `<div class="mt-2 text-[12px] t-dim">Approved: <span class="text-white/90 font-black">${fmtDate(u.approved_at)}</span></div>`
+          : (u.declined_at
+              ? `<div class="mt-2 text-[12px] t-dim">Declined: <span class="text-white/90 font-black">${fmtDate(u.declined_at)}</span></div>`
+              : `<div class="mt-2 text-[12px] t-dim">Awaiting admin decision…</div>`
+            );
+
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <div class="txt-h2 truncate">${safeStr(u.current_account_type)} → ${safeStr(u.requested_account_type)}</div>
+              <div class="txt-sm t-dim truncate">#${safeStr(u.id)} • Requested: ${fmtDate(u.created_at)}</div>
+            </div>
+            ${pill}
+          </div>
+
+          <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="glass-soft rounded-2xl p-3">
+              <div class="txt-sm t-dim">Note</div>
+              <div class="mt-1 text-[13px] font-black">${safeStr(u.note, "—")}</div>
+            </div>
+            <div class="glass-soft rounded-2xl p-3">
+              <div class="txt-sm t-dim">Proof</div>
+              <div class="mt-2 flex items-center gap-2 flex-wrap">
+                ${proofBtn}
+              </div>
+            </div>
+          </div>
+
+          ${decisionLine}
+          ${adminNote}
+        `;
+
+        historyWrap.appendChild(card);
+      });
+    }
+
+    function renderHeader(user){
+      const name = user?.username || user?.full_name || "Upcoinmeta";
+      hdrName.classList.remove("skeleton");
+      hdrName.textContent = name;
+      hdrInitial.textContent = (String(name).trim().slice(0,1).toUpperCase() || "U");
+
+      hdrNameMini.classList.remove("skeleton");
+      hdrNameMini.textContent = String(name).split(" ")[0] || "User";
+      hdrInitialMini.textContent = hdrInitial.textContent;
+
+      const email = user?.email || "—";
+      document.getElementById("sideUserEmail").textContent = email;
+      document.getElementById("sideUserEmailDesktop").textContent = email;
+
+      currentTypePill.textContent = `Current: ${safeStr(user?.account_type, "—")}`;
+    }
+
+    function setLoadingHistory(){
+      historyWrap.innerHTML = `
+        <div class="glass rounded-[26px] p-4"><div class="skeleton rounded-2xl h-16 w-full"></div></div>
+        <div class="glass rounded-[26px] p-4"><div class="skeleton rounded-2xl h-16 w-full"></div></div>
+      `;
+    }
+
+    btnClear.addEventListener("click", () => {
+      requestedTypeEl.value = "";
+      noteEl.value = "";
+      proofFileEl.value = "";
+      proofNameEl.textContent = "No file selected";
+      showAlert("success","Cleared.");
+      setTimeout(() => alertBox.classList.add("hidden"), 900);
+    });
+
+    btnSubmit.addEventListener("click", async () => {
+      try{
+        alertBox.classList.add("hidden");
+
+        const requested_account_type = String(requestedTypeEl.value || "").trim();
+        const note = String(noteEl.value || "").trim();
+        const proof = proofFileEl.files && proofFileEl.files[0] ? proofFileEl.files[0] : null;
+
+        if (!requested_account_type) return showAlert("warn","Please select a requested account type.");
+
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = "Submitting…";
+
+        const fd = new FormData();
+        fd.append("requested_account_type", requested_account_type);
+        if (note) fd.append("note", note);
+        if (proof) fd.append("proof", proof);
+
+        const res = await createUpgrade(fd);
+        showAlert("success", res?.message || "Upgrade request submitted.");
+
+        // refresh history
+        await loadHistory();
+
+        // clear
+        requestedTypeEl.value = "";
+        noteEl.value = "";
+        proofFileEl.value = "";
+        proofNameEl.textContent = "No file selected";
+      }catch(err){
+        const msg = err?.response?.data?.message || err?.message || "Failed to submit upgrade request.";
+        showAlert("error", msg);
+        const status = err?.response?.status;
+        if (status === 401 || status === 403) setTimeout(() => window.location.href = "../auth/login.html", 900);
+      } finally {
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = "Submit Request";
+      }
+    });
+
+    btnRefresh.addEventListener("click", async () => {
+      try{
+        await loadHistory();
+        showAlert("success","Refreshed.");
+        setTimeout(() => alertBox.classList.add("hidden"), 900);
+      }catch(e){
+        showAlert("error", e?.message || "Refresh failed.");
+      }
+    });
+
+    async function loadHistory(){
+      setLoadingHistory();
+      const list = await fetchUpgrades();
+      renderHistory(list);
+    }
+
+    async function init(){
+      showPreloader("Loading your account…");
+      try{
+        renderNav("sideNavDesktop");
+        renderNav("sideNavMobile");
+
+        const me = await fetchMe();
+        renderHeader(me);
+
+        try{
+          const storage = localStorage.getItem(TOKEN_KEY) ? localStorage : sessionStorage;
+          storage.setItem(USER_KEY, JSON.stringify(me || {}));
+        }catch{}
+
+        showPreloader("Loading upgrade requests…");
+        await loadHistory();
+        hidePreloader();
+      }catch(err){
+        hidePreloader();
+        const msg = err?.response?.data?.message || err?.message || "Failed to load upgrades.";
+        showAlert("error", msg);
+
+        const status = err?.response?.status;
+        if (status === 401 || status === 403) setTimeout(() => window.location.href = "../auth/login.html", 900);
+      }
+    }
+
+    // start
+    init();
+  </script>
+</body>
+</html>

@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Upcoinmeta — Profile</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="../assets/js/api.js"></script>
+
+  <style>
+    :root{
+      --safe-top: env(safe-area-inset-top);
+      --safe-bottom: env(safe-area-inset-bottom);
+      --nav-h: 82px;
+
+      --bg: #07080c83;
+      --card: rgba(18, 18, 22, .62);
+      --card2: rgba(18, 18, 22, .46);
+      --line: rgba(255,255,255,.10);
+      --line2: rgba(255,255,255,.07);
+      --text-dim: rgba(255,255,255,.60);
+
+      --active: rgba(56,189,248,.18);
+      --activeLine: rgba(56,189,248,.25);
+    }
+
+    html,body{
+      height:100%;
+      width:100%;
+      margin:0;
+      padding:0;
+      overflow:hidden; /* we scroll inside .content */
+      background: var(--bg);
+      color:#fff;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{ -webkit-tap-highlight-color: transparent; }
+
+    /* ✅ BACKGROUND */
+    .bg-stack{
+      position: fixed;
+      inset: 0;
+      z-index: -10;
+      pointer-events: none;
+      overflow: hidden;
+      background: var(--bg);
+    }
+    .bg-map{
+      position:absolute;
+      inset:0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      opacity: 1;
+      filter: contrast(1.12) brightness(1.05);
+      user-select:none;
+    }
+    .bg-film{
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(900px 520px at 20% 0%, rgba(255,255,255,0.06), transparent 60%),
+        radial-gradient(900px 520px at 80% 10%, rgba(255,255,255,0.05), transparent 60%),
+        linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.54));
+    }
+
+    /* ✅ Layout */
+    .shell{
+      height:100vh;
+      height:100dvh;
+      display:flex;
+      overflow:hidden;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ✅ Desktop Sidebar */
+    .sidebar{
+      width: 300px;
+      flex: 0 0 300px;
+      padding: calc(14px + var(--safe-top)) 14px 14px;
+      border-right: 1px solid rgba(255,255,255,.08);
+      background: rgba(10,10,14,.78);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 18px 80px rgba(0,0,0,.55);
+      display:flex;
+      flex-direction:column;
+      gap: 12px;
+      overflow:auto;
+    }
+
+    .content{
+      flex: 1;
+      overflow-y:auto;
+      overflow-x:hidden;
+      -webkit-overflow-scrolling:touch;
+      padding: calc(12px + var(--safe-top)) 16px calc(22px + var(--safe-bottom));
+    }
+
+    .wrap{
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    /* ✅ PREMIUM CARD GLOW */
+    .glass{
+      background: var(--card);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid var(--line2);
+      box-shadow:
+        0 18px 70px rgba(0,0,0,.55),
+        0 0 0 1px rgba(255,255,255,.04),
+        0 0 46px rgba(56,189,248,.06);
+      position: relative;
+      overflow: hidden;
+      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    }
+    .glass::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      border-radius: inherit;
+      background:
+        radial-gradient(700px 260px at 15% 0%, rgba(56,189,248,.14), transparent 58%),
+        radial-gradient(720px 260px at 85% 12%, rgba(168,85,247,.10), transparent 60%);
+      opacity: .65;
+      pointer-events:none;
+      mix-blend-mode: screen;
+    }
+
+    .glass-soft{
+      background: var(--card2);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--line2);
+      box-shadow:
+        0 14px 44px rgba(0,0,0,.35),
+        0 0 34px rgba(56,189,248,.05);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .pill{
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--line);
+    }
+
+    .t-dim{ color: var(--text-dim); }
+    .txt-h1{ font-size: clamp(18px, 4.8vw, 22px); font-weight: 900; }
+    .txt-h2{ font-size: clamp(16px, 4.2vw, 18px); font-weight: 900; }
+    .txt-sm{ font-size: 13px; }
+
+    .skeleton{
+      background: rgba(255,255,255,.08);
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes pulse{ 0%,100%{opacity:.55} 50%{opacity:.85} }
+
+    .btn{
+      border-radius: 18px;
+      padding: 12px 14px;
+      font-weight: 900;
+      font-size: 13px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      transition: .18s ease;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      user-select:none;
+      cursor:pointer;
+      color: #fff;
+      text-decoration:none;
+    }
+    .btn.primary{
+      border-color: rgba(56,189,248,.26);
+      background: rgba(56,189,248,.14);
+    }
+    .btn.danger{
+      border-color: rgba(248,113,113,.22);
+      background: rgba(248,113,113,.10);
+    }
+    .btn:disabled{ opacity:.6; pointer-events:none; }
+
+    .avatar{
+      width: 44px; height: 44px;
+      border-radius: 999px;
+      display:grid;
+      place-items:center;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.18);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
+      font-weight: 900;
+      font-size: 15px;
+      user-select:none;
+    }
+
+    /* ✅ Sidebar brand */
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding: 10px 10px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+    }
+    .brand img{
+      width: 44px; height: 44px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      padding: 8px;
+    }
+    .brand .name{ font-weight: 900; font-size: 16px; line-height: 1.1; }
+    .brand .sub{ font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+
+    /* ✅ Nav links */
+    .navlist{
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
+    }
+    .navlink{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+      padding: 12px 12px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
+      text-decoration:none;
+      color: rgba(255,255,255,.86);
+      font-weight: 900;
+      transition: .18s ease;
+    }
+    .navlink:active{ transform: scale(.992); }
+    .navlink .left{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .navlink .ico{
+      width: 38px; height: 38px;
+      border-radius: 14px;
+      display:grid;
+      place-items:center;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      flex-shrink: 0;
+      font-size: 16px;
+      font-weight: 900;
+    }
+    .navlink .meta{ min-width:0; }
+    .navlink .title{ font-size: 14px; line-height: 1.1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .navlink .desc{ font-size: 12px; color: var(--text-dim); margin-top: 2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .navlink .chev{
+      width: 34px; height: 34px;
+      border-radius: 999px;
+      display:grid;
+      place-items:center;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      flex-shrink:0;
+      color: rgba(255,255,255,.80);
+      font-weight: 900;
+    }
+    .navlink.active{
+      background: var(--active);
+      border-color: var(--activeLine);
+      box-shadow: 0 0 0 1px rgba(56,189,248,.08), 0 18px 70px rgba(56,189,248,.06);
+      color:#fff;
+    }
+
+    /* ✅ Alert */
+    .alert{
+      border-radius: 18px;
+      padding: 12px 12px;
+      border: 1px solid rgba(255,255,255,.10);
+    }
+
+    /* ✅ Mobile header bar */
+    .topbar{
+      display:none;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    /* ✅ Drawer (FIXED + BULLETPROOF) */
+    .drawer-overlay{
+      position: fixed;
+      inset: 0;
+      z-index: 10040;
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease;
+    }
+    .drawer-overlay.show{
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .drawer{
+      position: fixed;
+      inset: 0;
+      z-index: 10050;
+      display:none; /* IMPORTANT: fully hidden until opened */
+    }
+    .drawer.show{
+      display:flex;
+      align-items:stretch;
+      justify-content:flex-start;
+    }
+
+    .drawer-panel{
+      width: 300px;
+      max-width: 86vw;
+      height: 100%;
+      padding: calc(14px + var(--safe-top)) 14px 14px;
+      border-right: 1px solid rgba(255,255,255,.08);
+      background: rgba(10,10,14,.86);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 18px 80px rgba(0,0,0,.65);
+      display:flex;
+      flex-direction:column;
+      gap: 12px;
+      overflow:auto;
+
+      transform: translateX(-110%);
+      transition: transform .22s ease;
+      will-change: transform;
+    }
+    .drawer-panel.open{
+      transform: translateX(0);
+    }
+
+    .side-top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .side-actions{
+      margin-top:auto;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    /* ✅ Preloader */
+    .preloader{
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(1200px 600px at 20% 0%, rgba(56,189,248,.10), transparent 55%),
+        radial-gradient(1100px 650px at 80% 15%, rgba(168,85,247,.08), transparent 60%),
+        rgba(0,0,0,.55);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      transition: opacity .35s ease, transform .35s ease;
+    }
+    .preloader.hidden{
+      opacity: 0;
+      transform: scale(1.01);
+      pointer-events: none;
+    }
+    .loader-card{
+      width: min(420px, calc(100vw - 32px));
+      border-radius: 26px;
+      padding: 22px 18px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(18,18,22,.62);
+      box-shadow: 0 20px 80px rgba(0,0,0,.65);
+      text-align:center;
+    }
+    .loader-logo{
+      width: 62px;
+      height: 62px;
+      border-radius: 999px;
+      display:grid;
+      place-items:center;
+      margin: 0 auto 12px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 0 60px rgba(56,189,248,.14);
+    }
+    .loader-logo img{
+      width: 34px;
+      height: 34px;
+      opacity: .95;
+      animation: spinSoft 2.6s linear infinite;
+    }
+    @keyframes spinSoft{ 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
+
+    /* ✅ Responsive */
+    @media (max-width: 959.99px){
+      .sidebar{ display:none; }
+      .topbar{ display:flex; }
+      .wrap{ max-width: 560px; }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ✅ PRELOADER -->
+  <div id="preloader" class="preloader">
+    <div class="loader-card">
+      <div class="loader-logo">
+        <img src="assets/icon/favicon.svg" alt="">
+      </div>
+      <div class="font-black text-[18px]">Profile</div>
+      <div class="text-[13px] text-white/65 mt-2" id="preloaderText">Loading your account…</div>
+    </div>
+  </div>
+
+  <!-- ✅ BACKGROUND -->
+  <div class="bg-stack" aria-hidden="true">
+    <img src="assets/icon/mask_group.svg" alt="" class="bg-map" />
+    <div class="bg-film"></div>
+  </div>
+
+  <!-- ✅ MOBILE DRAWER -->
+  <div id="drawerOverlay" class="drawer-overlay"></div>
+  <div id="drawer" class="drawer" aria-hidden="true">
+    <aside id="drawerPanel" class="drawer-panel">
+      <div class="side-top">
+        <div class="brand min-w-0">
+          <img src="assets/icon/favicon.svg" alt="">
+          <div class="min-w-0">
+            <div class="name truncate">Upcoinmeta</div>
+            <div class="sub truncate" id="sideUserEmail">—</div>
+          </div>
+        </div>
+        <button id="btnCloseDrawer" class="btn" type="button">Close</button>
+      </div>
+
+      <div class="navlist" id="sideNavMobile"></div>
+
+      <div class="side-actions">
+        <button id="btnLogoutMobile" class="btn danger" type="button">Logout</button>
+      </div>
+    </aside>
+  </div>
+
+  <div class="shell">
+    <!-- ✅ DESKTOP SIDEBAR -->
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="assets/icon/favicon.svg" alt="">
+        <div class="min-w-0">
+          <div class="name truncate">Upcoinmeta</div>
+          <div class="sub truncate" id="sideUserEmailDesktop">—</div>
+        </div>
+      </div>
+
+      <div class="navlist" id="sideNavDesktop"></div>
+
+      <div class="side-actions">
+        <button id="btnLogoutDesktop" class="btn danger" type="button">Logout</button>
+      </div>
+    </aside>
+
+    <!-- ✅ CONTENT -->
+    <section class="content">
+      <div class="wrap">
+        <!-- ✅ TOPBAR (MOBILE) -->
+        <div class="topbar">
+          <button id="btnMenu" class="btn" type="button">☰ Menu</button>
+          <div class="flex items-center gap-3">
+            <div id="hdrNameMini" class="txt-h2 skeleton rounded-xl px-3 py-2">&nbsp;&nbsp;&nbsp;</div>
+            <div class="avatar" id="hdrInitialMini">U</div>
+          </div>
+        </div>
+
+        <!-- ✅ HEADER -->
+        <header class="glass rounded-[26px] px-4 py-4 flex items-center justify-between gap-4">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="avatar" id="hdrInitial">U</div>
+            <div class="min-w-0">
+              <div class="txt-h1 leading-[1.05] truncate">Profile</div>
+              <div class="txt-sm t-dim truncate">Your account & balances</div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 shrink-0">
+            <a href="../pages/dashboard.html" class="btn primary">Dashboard</a>
+          </div>
+        </header>
+
+        <div id="alert" class="hidden mt-4 glass-soft alert text-sm"></div>
+
+        <!-- ✅ PROFILE CARD -->
+        <section class="mt-5 glass rounded-[26px] p-5">
+          <div class="flex items-start justify-between gap-3 flex-wrap">
+            <div class="min-w-0">
+              <div class="txt-h1 truncate" id="fullName">
+                <span class="inline-block skeleton rounded-xl w-44 h-7"></span>
+              </div>
+              <div class="txt-sm t-dim mt-1" id="usernameLine">
+                <span class="inline-block skeleton rounded-xl w-56 h-4"></span>
+              </div>
+            </div>
+            <span class="pill rounded-2xl px-3 py-2 text-[12px] font-black" id="verifiedPill">VERIFY…</span>
+          </div>
+
+          <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="glass-soft rounded-[22px] p-4">
+              <div class="txt-sm t-dim">Email</div>
+              <div class="mt-1 font-black" id="emailVal"><span class="inline-block skeleton rounded-xl w-40 h-5"></span></div>
+            </div>
+            <div class="glass-soft rounded-[22px] p-4">
+              <div class="txt-sm t-dim">Phone</div>
+              <div class="mt-1 font-black" id="phoneVal"><span class="inline-block skeleton rounded-xl w-32 h-5"></span></div>
+            </div>
+            <div class="glass-soft rounded-[22px] p-4">
+              <div class="txt-sm t-dim">Country</div>
+              <div class="mt-1 font-black" id="countryVal"><span class="inline-block skeleton rounded-xl w-28 h-5"></span></div>
+            </div>
+            <div class="glass-soft rounded-[22px] p-4">
+              <div class="txt-sm t-dim">Joined</div>
+              <div class="mt-1 font-black" id="joinedVal"><span class="inline-block skeleton rounded-xl w-44 h-5"></span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ✅ BALANCES -->
+        <section class="mt-5 glass rounded-[26px] p-5">
+          <div class="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <div class="txt-h1">Balances</div>
+              <div class="txt-sm t-dim">Main • Profit • Investment</div>
+            </div>
+            <button id="btnRefresh" class="btn" type="button">Refresh</button>
+          </div>
+
+          <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="glass-soft rounded-[22px] p-4">
+              <div class="txt-sm t-dim">Main Balance</div>
+              <div class="mt-2 text-[26px] font-black" id="mainBal"><span class="inline-block skeleton rounded-xl w-28 h-8"></span></div>
+            </div>
+            <div class="glass-soft rounded-[22px] p-4">
+              <div class="txt-sm t-dim">Profit Balance</div>
+              <div class="mt-2 text-[26px] font-black" id="profitBal"><span class="inline-block skeleton rounded-xl w-28 h-8"></span></div>
+            </div>
+            <div class="glass-soft rounded-[22px] p-4">
+              <div class="txt-sm t-dim">Investment Balance</div>
+              <div class="mt-2 text-[26px] font-black" id="investBal"><span class="inline-block skeleton rounded-xl w-28 h-8"></span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ✅ STATUS -->
+        <section class="mt-5 glass rounded-[26px] p-5">
+          <div class="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <div class="txt-h1">Status</div>
+              <div class="txt-sm t-dim">Account • Trading • Copy Trading</div>
+            </div>
+            <span class="pill rounded-2xl px-3 py-2 text-[12px] font-black" id="acctTypePill">—</span>
+          </div>
+
+          <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="glass-soft rounded-[22px] p-4">
+              <div class="txt-sm t-dim">Account</div>
+              <div class="mt-1 font-black" id="accountStatusVal"><span class="inline-block skeleton rounded-xl w-24 h-5"></span></div>
+            </div>
+            <div class="glass-soft rounded-[22px] p-4">
+              <div class="txt-sm t-dim">Trading</div>
+              <div class="mt-1 font-black" id="tradingStatusVal"><span class="inline-block skeleton rounded-xl w-24 h-5"></span></div>
+            </div>
+            <div class="glass-soft rounded-[22px] p-4">
+              <div class="txt-sm t-dim">Copy Trading</div>
+              <div class="mt-1 font-black" id="copyStatusVal"><span class="inline-block skeleton rounded-xl w-24 h-5"></span></div>
+            </div>
+          </div>
+
+          <div class="mt-3 text-[12px] t-dim" id="statusLine">—</div>
+        </section>
+
+        <!-- ✅ CRYPTO BALANCES -->
+        <section class="mt-5 glass rounded-[26px] p-5">
+          <div class="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <div class="txt-h1">Crypto Balances</div>
+              <div class="txt-sm t-dim">Your wallet holdings</div>
+            </div>
+          </div>
+
+          <div id="cryptoGrid" class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="glass-soft rounded-[22px] p-4"><div class="skeleton rounded-2xl h-14 w-full"></div></div>
+            <div class="glass-soft rounded-[22px] p-4"><div class="skeleton rounded-2xl h-14 w-full"></div></div>
+          </div>
+        </section>
+
+        <footer class="mt-8 text-center text-xs t-dim pb-10">
+          © <span id="yr"></span> Upcoinmeta • Investment Services
+        </footer>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const API_BASE = window.SwayApi.userBase;
+    const TOKEN_KEY = "upcoinmeta_token";
+    const USER_KEY  = "upcoinmeta_user";
+    document.getElementById("yr").textContent = new Date().getFullYear();
+
+    // ✅ Preloader
+    const preloader = document.getElementById("preloader");
+    const preloaderText = document.getElementById("preloaderText");
+    function showPreloader(msg="Loading…"){
+      preloader.style.display = "grid";
+      preloader.classList.remove("hidden");
+      preloaderText.textContent = msg;
+    }
+    function hidePreloader(){
+      preloader.classList.add("hidden");
+      setTimeout(() => { preloader.style.display = "none"; }, 420);
+    }
+
+    // ✅ Helpers
+    function getToken() {
+      return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY) || "";
+    }
+    function authHeaders() {
+      const token = getToken();
+      return { Authorization: `Bearer ${token}` };
+    }
+    function safeStr(v, fallback="—") {
+      const s = String(v ?? "").trim();
+      return s ? s : fallback;
+    }
+    function fmtMoney(n) {
+      const num = Number(n || 0);
+      return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    function fmtCrypto(n) {
+      const num = Number(n || 0);
+      return num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 8 });
+    }
+
+    // ✅ Alert
+    const alertBox = document.getElementById("alert");
+    function showAlert(type, msg) {
+      alertBox.classList.remove("hidden");
+      alertBox.textContent = msg;
+
+      alertBox.classList.remove("bg-red-500/10","border-red-400/20","text-red-200");
+      alertBox.classList.remove("bg-emerald-500/10","border-emerald-400/20","text-emerald-200");
+      alertBox.classList.remove("bg-amber-500/10","border-amber-400/20","text-amber-200");
+
+      if (type === "success") alertBox.classList.add("bg-emerald-500/10","border","border-emerald-400/20","text-emerald-200");
+      else if (type === "warn") alertBox.classList.add("bg-amber-500/10","border","border-amber-400/20","text-amber-200");
+      else alertBox.classList.add("bg-red-500/10","border","border-red-400/20","text-red-200");
+    }
+
+    // ✅ Auth
+    async function fetchMe() {
+      const token = getToken();
+      if (!token) {
+        showAlert("warn", "Session expired. Please login again.");
+        setTimeout(() => window.location.href = "../auth/login.html", 900);
+        throw new Error("No token");
+      }
+      const res = await axios.get(`${API_BASE}/me`, { headers: authHeaders(), timeout: 20000 });
+      return res.data?.user;
+    }
+
+    // ✅ Logout
+    function doLogout(){
+      try{
+        localStorage.removeItem(TOKEN_KEY);
+        sessionStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
+        sessionStorage.removeItem(USER_KEY);
+      }catch(_){}
+      window.location.href = "../auth/login.html";
+    }
+
+    // ✅ Sidebar links
+    const navItems = [
+      { href: "../pages/dashboard.html", title: "Dashboard", desc: "Portfolio overview", ico: "🏠" },
+      { href: "../pages/deposit.html", title: "Deposit", desc: "Fund your balance", ico: "+" },
+      { href: "../pages/withdraw.html", title: "Withdraw", desc: "Send funds out", ico: "−" },
+      { href: "../pages/trades.html", title: "Trades", desc: "Open & track trades", ico: "↗" },
+      { href: "../pages/copy-trader.html", title: "Copy Trader", desc: "Copy a professional", ico: "🤝" },
+      { href: "../pages/transactions.html", title: "Transactions", desc: "Deposits & withdrawals", ico: "≡" },
+      { href: "../pages/account-upgrades.html", title: "Account Upgrades", desc: "Upgrade requests", ico: "⭐" },
+      { href: "../pages/notification.html", title: "Notifications", desc: "Updates & alerts", ico: "🔔" },
+      { href: "../pages/setting.html", title: "Settings", desc: "Security & preferences", ico: "⚙️" },
+      { href: "../pages/profile.html", title: "Profile", desc: "Account details", ico: "👤" }
+    ];
+
+    function renderNav(containerId){
+      const el = document.getElementById(containerId);
+      if (!el) return;
+
+      const current = location.pathname.split("/").pop();
+      el.innerHTML = "";
+
+      navItems.forEach(item => {
+        const isActive = (item.href.split("/").pop() === current);
+        const a = document.createElement("a");
+        a.href = item.href;
+        a.className = "navlink" + (isActive ? " active" : "");
+        a.innerHTML = `
+          <div class="left">
+            <div class="ico">${item.ico}</div>
+            <div class="meta">
+              <div class="title">${item.title}</div>
+              <div class="desc">${item.desc}</div>
+            </div>
+          </div>
+          <div class="chev">›</div>
+        `;
+        el.appendChild(a);
+      });
+    }
+
+    // ✅ Drawer logic (FIXED)
+    const drawer = document.getElementById("drawer");
+    const drawerPanel = document.getElementById("drawerPanel");
+    const overlay = document.getElementById("drawerOverlay");
+    const btnMenu = document.getElementById("btnMenu");
+    const btnCloseDrawer = document.getElementById("btnCloseDrawer");
+
+    function openDrawer(){
+      overlay.classList.add("show");
+      drawer.classList.add("show");
+      drawerPanel.classList.add("open");   // ✅ IMPORTANT FIX
+      drawer.setAttribute("aria-hidden","false");
+    }
+    function closeDrawer(){
+      overlay.classList.remove("show");
+      drawerPanel.classList.remove("open"); // slide out first
+      setTimeout(() => { drawer.classList.remove("show"); }, 180);
+      drawer.setAttribute("aria-hidden","true");
+    }
+
+    if (btnMenu) btnMenu.addEventListener("click", openDrawer);
+    overlay.addEventListener("click", closeDrawer);
+    btnCloseDrawer.addEventListener("click", closeDrawer);
+
+    // close drawer when tapping a mobile nav link
+    document.addEventListener("click", (e) => {
+      const a = e.target.closest("#sideNavMobile a.navlink");
+      if (a) closeDrawer();
+    });
+
+    // ESC closes drawer (desktop testing)
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeDrawer();
+    });
+
+    // ✅ Logout buttons
+    document.getElementById("btnLogoutDesktop").addEventListener("click", doLogout);
+    document.getElementById("btnLogoutMobile").addEventListener("click", doLogout);
+
+    // ✅ UI refs
+    const hdrInitial = document.getElementById("hdrInitial");
+    const hdrInitialMini = document.getElementById("hdrInitialMini");
+    const hdrNameMini = document.getElementById("hdrNameMini");
+
+    const fullNameEl = document.getElementById("fullName");
+    const usernameLineEl = document.getElementById("usernameLine");
+    const verifiedPill = document.getElementById("verifiedPill");
+    const emailVal = document.getElementById("emailVal");
+    const phoneVal = document.getElementById("phoneVal");
+    const countryVal = document.getElementById("countryVal");
+    const joinedVal = document.getElementById("joinedVal");
+
+    const mainBalEl = document.getElementById("mainBal");
+    const profitBalEl = document.getElementById("profitBal");
+    const investBalEl = document.getElementById("investBal");
+
+    const acctTypePill = document.getElementById("acctTypePill");
+    const accountStatusVal = document.getElementById("accountStatusVal");
+    const tradingStatusVal = document.getElementById("tradingStatusVal");
+    const copyStatusVal = document.getElementById("copyStatusVal");
+    const statusLine = document.getElementById("statusLine");
+
+    const cryptoGrid = document.getElementById("cryptoGrid");
+    const btnRefresh = document.getElementById("btnRefresh");
+
+    function setVerified(isVerified){
+      const ok = Number(isVerified) === 1 || isVerified === true;
+      verifiedPill.textContent = ok ? "VERIFIED" : "UNVERIFIED";
+      verifiedPill.className = "pill rounded-2xl px-3 py-2 text-[12px] font-black " + (ok ? "text-emerald-300" : "text-amber-300");
+    }
+
+    function renderCryptoBalances(map){
+      const entries = Object.entries(map || {});
+      const wantedOrder = ["BTC","ETH","USDT","BNB","LTC","DOGE","XRP","SHIB","SOL"];
+      entries.sort((a,b) => wantedOrder.indexOf(a[0]) - wantedOrder.indexOf(b[0]));
+
+      const list = entries.length ? entries : wantedOrder.map(a => [a, "0"]);
+
+      cryptoGrid.innerHTML = "";
+      list.forEach(([asset, balance]) => {
+        const card = document.createElement("div");
+        card.className = "glass-soft rounded-[22px] p-4";
+        card.innerHTML = `
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="font-black">${asset}</div>
+              <div class="txt-sm t-dim mt-1">Balance</div>
+            </div>
+            <div class="font-black text-[16px]">${fmtCrypto(balance)} ${asset}</div>
+          </div>
+        `;
+        cryptoGrid.appendChild(card);
+      });
+    }
+
+    function renderProfile(user){
+      const name = user?.full_name || user?.username || "Upcoinmeta";
+      const username = user?.username ? `@${user.username}` : "—";
+      const email = user?.email || "—";
+
+      hdrInitial.textContent = (String(name).trim().slice(0,1).toUpperCase() || "U");
+      hdrInitialMini.textContent = hdrInitial.textContent;
+
+      hdrNameMini.classList.remove("skeleton");
+      hdrNameMini.textContent = String(name).split(" ")[0] || "User";
+
+      fullNameEl.textContent = name;
+      usernameLineEl.textContent = `${username} • ${safeStr(user?.role, "user").toUpperCase()}`;
+
+      setVerified(user?.is_verified);
+
+      emailVal.textContent = email;
+      phoneVal.textContent = safeStr(user?.phone);
+      countryVal.textContent = safeStr(user?.country);
+      joinedVal.textContent = safeStr(user?.created_at_formatted || user?.created_at_from_now || user?.created_at);
+
+      mainBalEl.textContent = "$" + fmtMoney(user?.main_balance);
+      profitBalEl.textContent = "$" + fmtMoney(user?.profit_balance);
+      investBalEl.textContent = "$" + fmtMoney(user?.investment_balance);
+
+      acctTypePill.textContent = safeStr(user?.account_type, "—").toUpperCase();
+      accountStatusVal.textContent = safeStr(user?.account_status, "—").toUpperCase();
+      tradingStatusVal.textContent = safeStr(user?.trading_status, "—").toUpperCase();
+      copyStatusVal.textContent = safeStr(user?.copy_trading_status, "—").toUpperCase();
+
+      statusLine.textContent =
+        `Account: ${safeStr(user?.account_status)} • Trading: ${safeStr(user?.trading_status)} • Copy: ${safeStr(user?.copy_trading_status)} • Progress: ${safeStr(user?.trade_progress, 0)}% • Signal: ${safeStr(user?.signal_strength, 0)}%`;
+
+      document.getElementById("sideUserEmail").textContent = email;
+      document.getElementById("sideUserEmailDesktop").textContent = email;
+
+      renderCryptoBalances(user?.crypto_balances || {});
+    }
+
+    async function load(){
+      alertBox.classList.add("hidden");
+      showPreloader("Loading your account…");
+      try{
+        renderNav("sideNavDesktop");
+        renderNav("sideNavMobile");
+
+        const user = await fetchMe();
+
+        try{
+          const storage = localStorage.getItem(TOKEN_KEY) ? localStorage : sessionStorage;
+          storage.setItem(USER_KEY, JSON.stringify(user || {}));
+        }catch(_){}
+
+        renderProfile(user);
+        hidePreloader();
+      }catch(err){
+        hidePreloader();
+        const msg = err?.response?.data?.message || err?.message || "Failed to load profile.";
+        showAlert("error", msg);
+
+        const status = err?.response?.status;
+        if (status === 401 || status === 403) {
+          setTimeout(() => window.location.href = "../auth/login.html", 900);
+        }
+      }
+    }
+
+    btnRefresh.addEventListener("click", async () => {
+      try{
+        await load();
+        showAlert("success","Profile refreshed.");
+        setTimeout(() => alertBox.classList.add("hidden"), 900);
+      }catch(_){}
+    });
+
+    // start
+    load();
+  </script>
+</body>
+</html>

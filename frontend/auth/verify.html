@@ -1,0 +1,378 @@
+<!-- ../auth/verify.html ✅ My Sway Market OTP Verification (matches login/signup theme) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>My Sway Market — Verify Email</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="../assets/js/api.js"></script>
+
+  <style>
+    * { -webkit-tap-highlight-color: transparent; }
+    :root{
+      --safe-top: env(safe-area-inset-top);
+      --safe-bottom: env(safe-area-inset-bottom);
+    }
+
+    html, body{
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #05060b;
+      overscroll-behavior: none;
+    }
+
+    .app-shell{
+      height: 100vh;
+      height: 100dvh;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-top: calc(16px + var(--safe-top));
+      padding-bottom: calc(16px + var(--safe-bottom));
+    }
+
+    .glass{
+      background: rgba(10,10,14,.64);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.07);
+      box-shadow: 0 18px 70px rgba(0,0,0,.62);
+    }
+    .chip{ background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); }
+    .soft-border{ border: 1px solid rgba(255,255,255,0.10); }
+    .text-muted{ color: rgba(255,255,255,0.74); }
+    .text-faint{ color: rgba(255,255,255,0.52); }
+
+    .bg-broker{
+      background:
+        radial-gradient(1000px 420px at 20% 0%, rgba(56,189,248,0.18), transparent 60%),
+        radial-gradient(900px 480px at 80% 10%, rgba(34,197,94,0.12), transparent 62%),
+        radial-gradient(900px 520px at 55% 100%, rgba(168,85,247,0.14), transparent 62%),
+        linear-gradient(180deg, #05060b 0%, #070813 45%, #05060b 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .bg-broker::before{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        linear-gradient(to right, rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,.04) 1px, transparent 1px);
+      background-size: 60px 60px;
+      opacity:.16;
+      pointer-events:none;
+    }
+    .bg-broker::after{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        radial-gradient(circle at 12% 18%, rgba(56,189,248,.45) 0 2px, transparent 3px),
+        radial-gradient(circle at 30% 30%, rgba(56,189,248,.35) 0 2px, transparent 3px),
+        radial-gradient(circle at 55% 18%, rgba(56,189,248,.35) 0 2px, transparent 3px),
+        radial-gradient(circle at 78% 34%, rgba(56,189,248,.35) 0 2px, transparent 3px),
+        radial-gradient(circle at 64% 62%, rgba(56,189,248,.25) 0 2px, transparent 3px),
+        radial-gradient(circle at 18% 68%, rgba(56,189,248,.25) 0 2px, transparent 3px);
+      opacity:.55;
+      pointer-events:none;
+      mix-blend-mode: screen;
+    }
+    .ring-glow{ box-shadow: 0 0 0 1px rgba(255,255,255,.06), 0 18px 70px rgba(56,189,248,.10); }
+
+    .badge-otp{
+      background: rgba(168,85,247,0.10);
+      border: 1px solid rgba(168,85,247,0.22);
+      color: rgba(233,213,255,0.95);
+    }
+
+    .btn-primary{ background: linear-gradient(90deg, rgba(56,189,248,0.95), rgba(168,85,247,0.92)); }
+    .btn-primary:hover{ filter: brightness(1.05); }
+    .btn-primary:active{ transform: scale(0.99); }
+
+    .btn-ghost{
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.10);
+    }
+    .btn-ghost:hover{ background: rgba(255,255,255,0.08); }
+    .btn-ghost:active{ transform: scale(0.99); }
+
+    .input{
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.10);
+      outline: none;
+    }
+    .input:focus{
+      box-shadow: 0 0 0 3px rgba(56,189,248,0.22);
+      border-color: rgba(56,189,248,0.28);
+    }
+
+    /* iOS zoom prevention */
+    @media (max-width: 420px){
+      input, button { font-size: 16px; }
+    }
+
+    /* OTP boxes */
+    .otp-box{
+      width: 100%;
+      height: 54px;
+      text-align: center;
+      letter-spacing: 2px;
+      font-weight: 900;
+      font-size: 18px;
+      border-radius: 16px;
+    }
+  </style>
+</head>
+
+<body class="bg-broker text-white">
+  <div class="app-shell">
+    <div class="mx-auto max-w-[520px] px-4">
+      <div class="w-full glass ring-glow rounded-3xl p-5 sm:p-6">
+        <!-- Header -->
+        <div class="flex items-start justify-between gap-4">
+          <div class="flex items-center gap-3">
+<div class="w-11 h-11 rounded-2xl chip grid place-items-center shrink-0 overflow-hidden">
+  <img
+    src="logo.svg"
+    alt="My Sway Market Logo"
+    class="w-7 h-7 object-contain"
+    draggable="false"
+  />
+</div>
+            <div>
+              <div class="text-xl font-extrabold leading-tight">My Sway Market</div>
+              <div class="text-sm text-faint -mt-0.5">Verify email • OTP confirmation</div>
+            </div>
+          </div>
+
+          <span class="badge-otp rounded-xl px-3 py-1 text-xs font-extrabold whitespace-nowrap">
+            OTP REQUIRED
+          </span>
+        </div>
+
+        <div class="mt-4 text-sm text-white/70 leading-relaxed">
+          Enter the 6-digit OTP sent to your email. OTP expires in <b>5 minutes</b>.
+        </div>
+
+        <!-- Email preview -->
+        <div class="mt-3 rounded-2xl px-4 py-3 text-sm soft-border bg-white/5">
+          <div class="text-white/60 text-xs font-semibold">Verifying</div>
+          <div id="emailPreview" class="font-extrabold break-all">—</div>
+        </div>
+
+        <!-- Alert -->
+        <div id="alert" class="hidden mt-5 rounded-2xl px-4 py-3 text-sm soft-border"></div>
+
+        <!-- OTP Form -->
+        <form id="otpForm" class="mt-5 space-y-4">
+          <!-- OTP input -->
+          <div>
+            <label class="text-sm font-semibold text-muted">One-Time Password (6 digits)</label>
+            <input
+              id="otp"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              maxlength="6"
+              placeholder="••••••"
+              class="mt-2 w-full otp-box input px-4 py-3"
+              required
+            />
+            <div class="mt-2 text-[12px] text-white/50">
+              Tip: You can paste the entire code.
+            </div>
+          </div>
+
+          <!-- Buttons -->
+          <button id="verifyBtn" type="submit"
+            class="w-full rounded-2xl btn-primary transition font-extrabold py-3">
+            Verify Email
+          </button>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button id="resendBtn" type="button"
+              class="w-full rounded-2xl btn-ghost transition font-extrabold py-3">
+              Resend OTP
+            </button>
+
+            <a href="../auth/login.html"
+              class="w-full text-center rounded-2xl btn-ghost transition font-extrabold py-3 inline-block">
+              Back to Login
+            </a>
+          </div>
+
+          <p class="text-[12px] text-white/55 leading-relaxed">
+            Resend has a <b>30-minute cooldown</b>. If you recently requested an OTP, please wait before trying again.
+          </p>
+        </form>
+
+        <!-- Footer -->
+        <div class="mt-6 text-center text-xs text-white/45">
+          © <span id="yr"></span> My Sway Market • Broker & Investment Services
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.SwayApi.userBase;
+
+    // must match signup.html (recommended)
+    const PENDING_EMAIL_KEY = "upcoinmeta_pending_email";
+
+    const alertBox = document.getElementById("alert");
+    const otpForm  = document.getElementById("otpForm");
+    const verifyBtn = document.getElementById("verifyBtn");
+    const resendBtn = document.getElementById("resendBtn");
+    const otpInput = document.getElementById("otp");
+    const emailPreview = document.getElementById("emailPreview");
+
+    document.getElementById("yr").textContent = new Date().getFullYear();
+
+    function showAlert(type, msg) {
+      alertBox.classList.remove("hidden");
+      alertBox.textContent = msg;
+
+      alertBox.classList.remove("bg-red-500/10", "border-red-400/20", "text-red-200");
+      alertBox.classList.remove("bg-emerald-500/10", "border-emerald-400/20", "text-emerald-200");
+      alertBox.classList.remove("bg-amber-500/10", "border-amber-400/20", "text-amber-200");
+
+      if (type === "success") {
+        alertBox.classList.add("bg-emerald-500/10", "border", "border-emerald-400/20", "text-emerald-200");
+      } else if (type === "warn") {
+        alertBox.classList.add("bg-amber-500/10", "border", "border-amber-400/20", "text-amber-200");
+      } else {
+        alertBox.classList.add("bg-red-500/10", "border", "border-red-400/20", "text-red-200");
+      }
+    }
+
+    function setVerifyLoading(isLoading) {
+      if (isLoading) {
+        verifyBtn.disabled = true;
+        verifyBtn.textContent = "Verifying…";
+        verifyBtn.classList.add("opacity-70");
+      } else {
+        verifyBtn.disabled = false;
+        verifyBtn.textContent = "Verify Email";
+        verifyBtn.classList.remove("opacity-70");
+      }
+    }
+
+    function setResendLoading(isLoading) {
+      if (isLoading) {
+        resendBtn.disabled = true;
+        resendBtn.textContent = "Sending…";
+        resendBtn.classList.add("opacity-70");
+      } else {
+        resendBtn.disabled = false;
+        resendBtn.textContent = "Resend OTP";
+        resendBtn.classList.remove("opacity-70");
+      }
+    }
+
+    function getEmailFromSources() {
+      // 1) query string ?email=
+      const params = new URLSearchParams(window.location.search);
+      const qsEmail = (params.get("email") || "").trim().toLowerCase();
+
+      // 2) sessionStorage from signup
+      const stored = (sessionStorage.getItem(PENDING_EMAIL_KEY) || "").trim().toLowerCase();
+
+      return qsEmail || stored;
+    }
+
+    const email = getEmailFromSources();
+    emailPreview.textContent = email ? email : "Email not found (go back to signup)";
+
+    if (email) {
+      // keep it in session storage so user can refresh
+      sessionStorage.setItem(PENDING_EMAIL_KEY, email);
+    }
+
+    function onlyDigits(str) {
+      return String(str || "").replace(/\D/g, "");
+    }
+
+    // ✅ auto-format OTP: digits only, max 6
+    otpInput.addEventListener("input", () => {
+      otpInput.value = onlyDigits(otpInput.value).slice(0, 6);
+    });
+
+    // Submit verify
+    otpForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      alertBox.classList.add("hidden");
+
+      const otp = onlyDigits(otpInput.value).slice(0, 6);
+
+      if (!email) return showAlert("error", "Email is missing. Please return to signup.");
+      if (!otp || otp.length !== 6) return showAlert("error", "Enter the 6-digit OTP.");
+
+      setVerifyLoading(true);
+
+      try {
+        await axios.post(`${API_BASE}/verify-otp`, { email, otp }, {
+          headers: { "Content-Type": "application/json" },
+          timeout: 20000,
+        });
+
+        showAlert("success", "Email verified successfully. Redirecting to login…");
+
+        // clear pending email
+        sessionStorage.removeItem(PENDING_EMAIL_KEY);
+
+        setTimeout(() => {
+          window.location.href = "../auth/login.html";
+        }, 1000);
+
+      } catch (err) {
+        const status = err?.response?.status;
+        const msg = err?.response?.data?.message || "Verification failed. Please try again.";
+
+        if (status === 400) {
+          showAlert("error", msg); // Invalid/expired OTP
+        } else {
+          showAlert("error", msg);
+        }
+      } finally {
+        setVerifyLoading(false);
+      }
+    });
+
+    // Resend OTP (30 min cooldown on backend)
+    resendBtn.addEventListener("click", async () => {
+      alertBox.classList.add("hidden");
+
+      if (!email) return showAlert("error", "Email is missing. Please return to signup.");
+
+      setResendLoading(true);
+
+      try {
+        const res = await axios.post(`${API_BASE}/resend-otp`, { email }, {
+          headers: { "Content-Type": "application/json" },
+          timeout: 20000,
+        });
+
+        showAlert("success", res?.data?.message || "OTP resent successfully. Check your email.");
+      } catch (err) {
+        const status = err?.response?.status;
+        const msg = err?.response?.data?.message || "Resend failed. Please try again.";
+
+        if (status === 429) {
+          showAlert("warn", msg); // cooldown
+        } else if (status === 404) {
+          showAlert("error", "User not found for this email.");
+        } else if (status === 400) {
+          showAlert("warn", msg); // already verified etc.
+        } else {
+          showAlert("error", msg);
+        }
+      } finally {
+        setResendLoading(false);
+      }
+    });
+  </script>
+</body>
+</html>

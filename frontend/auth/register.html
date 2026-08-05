@@ -1,0 +1,405 @@
+<!-- ../auth/signup.html ✅ Upcoinmeta Register Page (MORE RESPONSIVE + bulletproof mobile scrolling) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>My Sway Market — Create Account</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="../assets/js/api.js"></script>
+
+  <style>
+    * { -webkit-tap-highlight-color: transparent; }
+    :root{
+      --safe-top: env(safe-area-inset-top);
+      --safe-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* ✅ Bulletproof scrolling + better mobile height handling */
+    html, body{
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;      /* ✅ body doesn't scroll; shell does */
+      background: #05060b;
+      overscroll-behavior: none;
+    }
+
+    .app-shell{
+      height: 100vh;
+      height: 100dvh;        /* ✅ modern mobile browsers */
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-top: calc(16px + var(--safe-top));
+      padding-bottom: calc(16px + var(--safe-bottom));
+    }
+
+    .glass{
+      background: rgba(10,10,14,.64);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.07);
+      box-shadow: 0 18px 70px rgba(0,0,0,.62);
+    }
+    .chip{ background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); }
+    .soft-border{ border: 1px solid rgba(255,255,255,0.10); }
+    .text-muted{ color: rgba(255,255,255,0.74); }
+    .text-faint{ color: rgba(255,255,255,0.52); }
+
+    .bg-broker{
+      background:
+        radial-gradient(1000px 420px at 20% 0%, rgba(56,189,248,0.18), transparent 60%),
+        radial-gradient(900px 480px at 80% 10%, rgba(34,197,94,0.12), transparent 62%),
+        radial-gradient(900px 520px at 55% 100%, rgba(168,85,247,0.14), transparent 62%),
+        linear-gradient(180deg, #05060b 0%, #070813 45%, #05060b 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .bg-broker::before{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        linear-gradient(to right, rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,.04) 1px, transparent 1px);
+      background-size: 60px 60px;
+      opacity:.16;
+      pointer-events:none;
+    }
+    .bg-broker::after{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        radial-gradient(circle at 12% 18%, rgba(56,189,248,.45) 0 2px, transparent 3px),
+        radial-gradient(circle at 30% 30%, rgba(56,189,248,.35) 0 2px, transparent 3px),
+        radial-gradient(circle at 55% 18%, rgba(56,189,248,.35) 0 2px, transparent 3px),
+        radial-gradient(circle at 78% 34%, rgba(56,189,248,.35) 0 2px, transparent 3px),
+        radial-gradient(circle at 64% 62%, rgba(56,189,248,.25) 0 2px, transparent 3px),
+        radial-gradient(circle at 18% 68%, rgba(56,189,248,.25) 0 2px, transparent 3px);
+      opacity:.55;
+      pointer-events:none;
+      mix-blend-mode: screen;
+    }
+    .ring-glow{ box-shadow: 0 0 0 1px rgba(255,255,255,.06), 0 18px 70px rgba(56,189,248,.10); }
+
+    .badge-sec{
+      background: rgba(56,189,248,0.10);
+      border: 1px solid rgba(56,189,248,0.22);
+      color: rgba(186,230,253,0.95);
+    }
+
+    .btn-primary{ background: linear-gradient(90deg, rgba(56,189,248,0.95), rgba(168,85,247,0.92)); }
+    .btn-primary:hover{ filter: brightness(1.05); }
+    .btn-primary:active{ transform: scale(0.99); }
+
+    .input{
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.10);
+      outline: none;
+    }
+    .input:focus{
+      box-shadow: 0 0 0 3px rgba(56,189,248,0.22);
+      border-color: rgba(56,189,248,0.28);
+    }
+
+    /* ✅ Better tap targets + prevents zoom-on-focus on iOS */
+    @media (max-width: 420px){
+      input, button { font-size: 16px; }  /* iOS: stops auto-zoom */
+    }
+  </style>
+</head>
+
+<body class="bg-broker text-white">
+  <!-- ✅ Shell scrolls (so mobile small screens are perfect) -->
+  <div class="app-shell">
+    <div class="mx-auto max-w-[520px] px-4">
+      <div class="w-full glass ring-glow rounded-3xl p-5 sm:p-6">
+        <!-- Header -->
+        <div class="flex items-start justify-between gap-4">
+          <div class="flex items-center gap-3">
+<div class="w-11 h-11 rounded-2xl chip grid place-items-center shrink-0 overflow-hidden">
+  <img
+    src="logo.svg"
+    alt="My Sway Market Logo"
+    class="w-7 h-7 object-contain"
+    draggable="false"
+  />
+</div>
+            <div>
+              <div class="text-xl font-extrabold leading-tight">My Sway Market</div>
+              <div class="text-sm text-faint -mt-0.5">Create account • Secure onboarding</div>
+            </div>
+          </div>
+
+          <span class="badge-sec rounded-xl px-3 py-1 text-xs font-extrabold whitespace-nowrap">
+            EMAIL OTP
+          </span>
+        </div>
+
+        <!-- Intro -->
+        <div class="mt-4 text-sm text-white/70 leading-relaxed">
+          Register to access your dashboard. We’ll send a <b>5-minute OTP</b> to your email for verification.
+        </div>
+
+        <!-- Alert -->
+        <div id="alert" class="hidden mt-5 rounded-2xl px-4 py-3 text-sm soft-border"></div>
+
+        <!-- Form -->
+        <form id="signupForm" class="mt-5 space-y-4">
+          <!-- Names -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div>
+              <label class="text-sm font-semibold text-muted">Full Name</label>
+              <input id="full_name" type="text" placeholder="e.g. Keating Woodman"
+                class="mt-2 w-full rounded-2xl input px-4 py-3" required />
+            </div>
+            <div>
+              <label class="text-sm font-semibold text-muted">Username</label>
+              <input id="username" type="text" placeholder="e.g. playstation44"
+                class="mt-2 w-full rounded-2xl input px-4 py-3" required />
+            </div>
+          </div>
+
+          <!-- ✅ Location (Country + City + Zip) BEFORE Address -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+            <div class="sm:col-span-1">
+              <label class="text-sm font-semibold text-muted">Country</label>
+              <input id="country" type="text" placeholder="Country"
+                class="mt-2 w-full rounded-2xl input px-4 py-3" required />
+            </div>
+            <div class="sm:col-span-1">
+              <label class="text-sm font-semibold text-muted">City</label>
+              <input id="city" type="text" placeholder="City"
+                class="mt-2 w-full rounded-2xl input px-4 py-3" required />
+            </div>
+            <div class="sm:col-span-1">
+              <label class="text-sm font-semibold text-muted">Zipcode (optional)</label>
+              <input id="zipcode" type="text" placeholder="Zip / Postal"
+                class="mt-2 w-full rounded-2xl input px-4 py-3" />
+            </div>
+          </div>
+
+          <!-- Address -->
+          <div>
+            <label class="text-sm font-semibold text-muted">Address</label>
+            <input id="address" type="text" placeholder="Street / Building / Area"
+              class="mt-2 w-full rounded-2xl input px-4 py-3" required />
+          </div>
+
+          <!-- Contact -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div>
+              <label class="text-sm font-semibold text-muted">Phone</label>
+              <input id="phone" type="tel" placeholder="+1..."
+                class="mt-2 w-full rounded-2xl input px-4 py-3" required />
+            </div>
+            <div>
+              <label class="text-sm font-semibold text-muted">Email</label>
+              <input id="email" type="email" placeholder="you@email.com"
+                class="mt-2 w-full rounded-2xl input px-4 py-3" required />
+            </div>
+          </div>
+
+          <!-- Password -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div>
+              <label class="text-sm font-semibold text-muted">Password</label>
+              <div class="mt-2 relative">
+                <input id="password" type="password" autocomplete="new-password" placeholder="Create a password"
+                  class="w-full rounded-2xl input px-4 py-3 pr-14" required />
+                <button type="button" id="togglePass1"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 chip rounded-xl px-3 py-2 text-xs font-extrabold">
+                  SHOW
+                </button>
+              </div>
+              <div class="mt-2 text-[12px] text-white/50">
+                Use at least 8 characters for better security.
+              </div>
+            </div>
+
+            <div>
+              <label class="text-sm font-semibold text-muted">Confirm Password</label>
+              <div class="mt-2 relative">
+                <input id="password2" type="password" autocomplete="new-password" placeholder="Repeat password"
+                  class="w-full rounded-2xl input px-4 py-3 pr-14" required />
+                <button type="button" id="togglePass2"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 chip rounded-xl px-3 py-2 text-xs font-extrabold">
+                  SHOW
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Terms -->
+          <label class="flex items-start gap-3 text-sm text-white/70 cursor-pointer select-none pt-1">
+            <input id="agree" type="checkbox" class="accent-sky-400 w-4 h-4 mt-1" required />
+            <span>
+              I confirm my details are correct and I agree to OTP verification to activate my account.
+            </span>
+          </label>
+
+          <button id="signupBtn" type="submit"
+            class="w-full rounded-2xl btn-primary transition font-extrabold py-3">
+            Create Account & Send OTP
+          </button>
+
+          <div class="flex items-center gap-3">
+            <div class="h-px flex-1 bg-white/10"></div>
+            <div class="text-xs text-white/50 font-semibold">ALREADY REGISTERED?</div>
+            <div class="h-px flex-1 bg-white/10"></div>
+          </div>
+
+          <a href="../auth/login.html"
+            class="w-full block text-center rounded-2xl bg-white/5 hover:bg-white/10 active:scale-[0.99] transition font-extrabold py-3 soft-border">
+            Back to Login
+          </a>
+
+          <p class="text-[12px] text-white/55 leading-relaxed">
+            After registration, you’ll be redirected to OTP verification. OTP expires in <b>5 minutes</b>.
+          </p>
+        </form>
+
+        <!-- Footer -->
+        <div class="mt-6 text-center text-xs text-white/45">
+          © <span id="yr"></span> My Sway Market • Broker & Investment Services
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.SwayApi.userBase;
+
+    const PENDING_EMAIL_KEY = "upcoinmeta_pending_email";
+    const PENDING_UID_KEY   = "upcoinmeta_pending_user_id";
+
+    const alertBox  = document.getElementById("alert");
+    const signupForm = document.getElementById("signupForm");
+    const signupBtn  = document.getElementById("signupBtn");
+
+    document.getElementById("yr").textContent = new Date().getFullYear();
+
+    function showAlert(type, msg) {
+      alertBox.classList.remove("hidden");
+      alertBox.textContent = msg;
+
+      alertBox.classList.remove("bg-red-500/10", "border-red-400/20", "text-red-200");
+      alertBox.classList.remove("bg-emerald-500/10", "border-emerald-400/20", "text-emerald-200");
+      alertBox.classList.remove("bg-amber-500/10", "border-amber-400/20", "text-amber-200");
+
+      if (type === "success") {
+        alertBox.classList.add("bg-emerald-500/10", "border", "border-emerald-400/20", "text-emerald-200");
+      } else if (type === "warn") {
+        alertBox.classList.add("bg-amber-500/10", "border", "border-amber-400/20", "text-amber-200");
+      } else {
+        alertBox.classList.add("bg-red-500/10", "border", "border-red-400/20", "text-red-200");
+      }
+    }
+
+    function setLoading(isLoading) {
+      if (isLoading) {
+        signupBtn.disabled = true;
+        signupBtn.textContent = "Creating account… sending OTP…";
+        signupBtn.classList.add("opacity-70");
+      } else {
+        signupBtn.disabled = false;
+        signupBtn.textContent = "Create Account & Send OTP";
+        signupBtn.classList.remove("opacity-70");
+      }
+    }
+
+    function attachToggle(btnId, inputId) {
+      const btn = document.getElementById(btnId);
+      btn.addEventListener("click", () => {
+        const input = document.getElementById(inputId);
+        const hidden = input.type === "password";
+        input.type = hidden ? "text" : "password";
+        btn.textContent = hidden ? "HIDE" : "SHOW";
+      });
+    }
+    attachToggle("togglePass1", "password");
+    attachToggle("togglePass2", "password2");
+
+    function isValidEmail(v) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || "").trim());
+    }
+
+    signupForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      alertBox.classList.add("hidden");
+
+      const full_name = document.getElementById("full_name").value.trim();
+      const username  = document.getElementById("username").value.trim();
+      const address   = document.getElementById("address").value.trim();
+      const city      = document.getElementById("city").value.trim();
+      const zipcode   = document.getElementById("zipcode").value.trim();
+      const country   = document.getElementById("country").value.trim();
+      const phone     = document.getElementById("phone").value.trim();
+      const email     = document.getElementById("email").value.trim().toLowerCase();
+      const password  = document.getElementById("password").value;
+      const password2 = document.getElementById("password2").value;
+      const agree     = document.getElementById("agree").checked;
+
+      if (!full_name || !username || !address || !city || !country || !phone || !email || !password) {
+        return showAlert("error", "All required fields must be filled.");
+      }
+      if (!isValidEmail(email)) {
+        return showAlert("error", "Please enter a valid email address.");
+      }
+      if (password.length < 8) {
+        return showAlert("error", "Password must be at least 8 characters.");
+      }
+      if (password !== password2) {
+        return showAlert("error", "Passwords do not match.");
+      }
+      if (!agree) {
+        return showAlert("error", "Please confirm the verification agreement to continue.");
+      }
+
+      setLoading(true);
+
+      try {
+        const res = await axios.post(`${API_BASE}/register`, {
+          full_name,
+          username,
+          address,
+          city,
+          zipcode: zipcode ? zipcode : null,
+          country,
+          phone,
+          email,
+          password,
+        }, {
+          headers: { "Content-Type": "application/json" },
+          timeout: 20000,
+        });
+
+        const data = res.data || {};
+        const userId = data.user_id;
+
+        sessionStorage.setItem(PENDING_EMAIL_KEY, email);
+        if (userId) sessionStorage.setItem(PENDING_UID_KEY, String(userId));
+
+        showAlert("success", "Registration successful. OTP sent to email. Redirecting to verification…");
+
+        setTimeout(() => {
+          window.location.href = `../auth/verify.html?email=${encodeURIComponent(email)}`;
+        }, 900);
+      } catch (err) {
+        const status = err?.response?.status;
+        const msg = err?.response?.data?.message || "Registration failed. Please try again.";
+
+        if (status === 409) {
+          showAlert("warn", "Email already registered. Redirecting to login…");
+          setTimeout(() => { window.location.href = "../auth/login.html"; }, 1100);
+        } else {
+          showAlert("error", msg);
+        }
+      } finally {
+        setLoading(false);
+      }
+    });
+  </script>
+</body>
+</html>

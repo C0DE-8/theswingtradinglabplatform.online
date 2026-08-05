@@ -1,0 +1,982 @@
+<!-- /admin/user-management.html ✅ Upcoinmeta Admin — User Management (MORE RESPONSIVE) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Upcoinmeta — User Management</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="../assets/js/api.js"></script>
+
+  <style>
+    * { -webkit-tap-highlight-color: transparent; }
+    :root{
+      --safe-top: env(safe-area-inset-top);
+      --safe-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* ✅ bulletproof scrolling */
+    html, body{
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #05060b;
+      overscroll-behavior: none;
+    }
+    .app-shell{
+      height: 100vh;
+      height: 100dvh;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-top: calc(14px + var(--safe-top));
+      padding-bottom: calc(14px + var(--safe-bottom));
+    }
+
+    /* ✅ shared theme */
+    .glass{
+      background: rgba(10,10,14,.64);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.07);
+      box-shadow: 0 18px 70px rgba(0,0,0,.62);
+    }
+    .chip{ background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); }
+    .soft-border{ border: 1px solid rgba(255,255,255,0.10); }
+    .text-muted{ color: rgba(255,255,255,0.74); }
+    .text-faint{ color: rgba(255,255,255,0.52); }
+
+    .bg-broker{
+      background:
+        radial-gradient(1000px 420px at 20% 0%, rgba(56,189,248,0.18), transparent 60%),
+        radial-gradient(900px 480px at 80% 10%, rgba(34,197,94,0.12), transparent 62%),
+        radial-gradient(900px 520px at 55% 100%, rgba(168,85,247,0.14), transparent 62%),
+        linear-gradient(180deg, #05060b 0%, #070813 45%, #05060b 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .bg-broker::before{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        linear-gradient(to right, rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,.04) 1px, transparent 1px);
+      background-size: 60px 60px;
+      opacity:.16;
+      pointer-events:none;
+    }
+    .bg-broker::after{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        radial-gradient(circle at 12% 18%, rgba(56,189,248,.45) 0 2px, transparent 3px),
+        radial-gradient(circle at 30% 30%, rgba(56,189,248,.35) 0 2px, transparent 3px),
+        radial-gradient(circle at 55% 18%, rgba(56,189,248,.35) 0 2px, transparent 3px),
+        radial-gradient(circle at 78% 34%, rgba(56,189,248,.35) 0 2px, transparent 3px),
+        radial-gradient(circle at 64% 62%, rgba(56,189,248,.25) 0 2px, transparent 3px),
+        radial-gradient(circle at 18% 68%, rgba(56,189,248,.25) 0 2px, transparent 3px);
+      opacity:.55;
+      pointer-events:none;
+      mix-blend-mode: screen;
+    }
+    .ring-glow{ box-shadow: 0 0 0 1px rgba(255,255,255,.06), 0 18px 70px rgba(56,189,248,.10); }
+
+    .btn-primary{ background: linear-gradient(90deg, rgba(56,189,248,0.95), rgba(168,85,247,0.92)); }
+    .btn-primary:hover{ filter: brightness(1.05); }
+    .btn-primary:active{ transform: scale(0.99); }
+
+    .btn-ghost{ background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10); }
+    .btn-ghost:hover{ background: rgba(255,255,255,0.08); }
+    .btn-ghost:active{ transform: scale(0.99); }
+
+    .input{ background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10); outline: none; }
+    .input:focus{ box-shadow: 0 0 0 3px rgba(56,189,248,0.22); border-color: rgba(56,189,248,0.28); }
+
+    .card{ background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10); }
+
+    /* ✅ table stays scrollable on mobile, but also looks good on desktop */
+    .table-wrap{ overflow:auto; -webkit-overflow-scrolling:touch; border-radius: 18px; }
+    table{ width:100%; border-collapse: separate; border-spacing: 0; min-width: 920px; }
+    th, td{ padding: 12px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); vertical-align: middle; }
+    th{
+      position: sticky; top: 0;
+      background: rgba(10,10,14,.82);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 2;
+      text-align:left;
+      font-size: 12px;
+      color: rgba(255,255,255,0.72);
+      white-space: nowrap;
+    }
+    td{ font-size: 13px; color: rgba(255,255,255,0.84); }
+    tr:hover td{ background: rgba(255,255,255,0.03); }
+
+    .pill{ display:inline-flex; align-items:center; gap:6px; padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05); white-space: nowrap; }
+    .pill.ok{ border-color: rgba(34,197,94,0.28); background: rgba(34,197,94,0.10); color: rgba(167,243,208,0.95); }
+    .pill.warn{ border-color: rgba(245,158,11,0.30); background: rgba(245,158,11,0.10); color: rgba(253,230,138,0.95); }
+    .pill.bad{ border-color: rgba(239,68,68,0.30); background: rgba(239,68,68,0.10); color: rgba(254,202,202,0.95); }
+
+    /* ✅ responsive modals */
+    .modal-backdrop{
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      display:none;
+      align-items: center;
+      justify-content:center;
+      padding: 14px;
+      z-index: 50;
+    }
+    .modal-open{ display:flex; }
+
+    /* The modal becomes a "sheet" on mobile */
+    .modal{
+      width: 100%;
+      max-width: 1040px;
+      border-radius: 22px;
+      max-height: calc(100dvh - 28px);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-header{
+      padding: 14px 14px 10px;
+      flex: 0 0 auto;
+    }
+    .modal-body{
+      padding: 0 14px 14px;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      flex: 1 1 auto;
+    }
+
+    .modal-sm{
+      width: 100%;
+      max-width: 560px;
+      border-radius: 22px;
+      max-height: calc(100dvh - 28px);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ✅ header actions wrap better */
+    .action-wrap{
+      display:flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    /* ✅ small screens: tighter spacing, bigger tap targets */
+    @media (max-width: 640px){
+      .app-shell{ padding-top: calc(10px + var(--safe-top)); padding-bottom: calc(10px + var(--safe-bottom)); }
+      .mobile-stack{ flex-direction: column; align-items: stretch !important; }
+      .action-wrap{ justify-content: stretch; }
+      .action-wrap > button{ width: 100%; }
+      .btn-big{ width: 100%; }
+      .tight-pad{ padding: 16px !important; }
+      table{ min-width: 860px; } /* still scrollable */
+    }
+
+    /* stop iOS zoom */
+    @media (max-width: 420px){
+      input, button, select, textarea { font-size: 16px; }
+    }
+  </style>
+</head>
+
+<body class="bg-broker text-white">
+  <div class="app-shell">
+    <div class="mx-auto max-w-[1240px] px-4">
+      <div class="w-full glass ring-glow rounded-3xl p-5 sm:p-7 tight-pad">
+        <!-- Top -->
+        <div class="flex gap-4 sm:items-center sm:justify-between mobile-stack">
+          <div class="flex items-center gap-3">
+            <a href="./dashboard.html" class="w-11 h-11 rounded-2xl chip grid place-items-center shrink-0 hover:opacity-90" title="Back to dashboard">
+              <span class="text-lg font-black">U</span>
+            </a>
+            <div>
+              <div class="text-xl font-extrabold leading-tight">User Management</div>
+              <div class="text-sm text-faint -mt-0.5">Admin • View & update users + crypto balances</div>
+            </div>
+          </div>
+
+          <div class="action-wrap">
+            <button id="btnReload" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold btn-big">Reload</button>
+            <button id="btnBootstrapAll" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold btn-big">Bootstrap Crypto (All)</button>
+            <button id="btnLogout" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold btn-big">Logout</button>
+          </div>
+        </div>
+
+        <!-- Alert -->
+        <div id="alert" class="hidden mt-5 rounded-2xl px-4 py-3 text-sm soft-border"></div>
+
+        <!-- Controls -->
+        <div class="mt-5 grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div class="rounded-3xl card p-4">
+            <div class="text-xs text-white/55 font-semibold">Search</div>
+            <input id="q" class="mt-2 w-full rounded-2xl input px-4 py-3"
+                   placeholder="Search by name, username, email, phone, country…" />
+            <div class="mt-2 text-xs text-white/45">Tip: you can type partial matches.</div>
+          </div>
+
+          <div class="rounded-3xl card p-4">
+            <div class="text-xs text-white/55 font-semibold">Filters</div>
+            <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <select id="filterVerified" class="w-full rounded-2xl input px-4 py-3">
+                <option value="all">All verification</option>
+                <option value="verified">Verified only</option>
+                <option value="unverified">Unverified only</option>
+              </select>
+              <select id="filterStatus" class="w-full rounded-2xl input px-4 py-3">
+                <option value="all">All status</option>
+                <option value="active">Active</option>
+                <option value="hold">Hold</option>
+                <option value="banned">Banned</option>
+              </select>
+            </div>
+            <div class="mt-2 text-xs text-white/45">Status filter matches <b>account_status</b> value.</div>
+          </div>
+
+          <div class="rounded-3xl card p-4">
+            <div class="text-xs text-white/55 font-semibold">Overview</div>
+            <div class="mt-2 text-lg font-extrabold" id="countText">0 users</div>
+            <div class="mt-1 text-xs text-white/45" id="metaText">—</div>
+            <div class="mt-3 flex items-center gap-2">
+              <button id="btnExport" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold w-full">Export CSV (filtered)</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="mt-5 rounded-3xl card p-0">
+          <div class="px-5 py-4 flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <div class="font-extrabold">Users</div>
+              <div class="text-sm text-white/60">Tap <b>Manage</b> to edit full details + crypto balances.</div>
+            </div>
+            <div class="chip rounded-xl px-3 py-2 text-xs font-extrabold" id="lastLoaded">Last loaded: —</div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Full Name</th>
+                  <th>Username</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Country</th>
+                  <th>Verified</th>
+                  <th>Status</th>
+                  <th>Main Bal</th>
+                  <th>Profit Bal</th>
+                  <th>Invest Bal</th>
+                  <th>Created</th>
+                  <th style="min-width:140px;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="tbody">
+                <tr><td colspan="13" class="text-white/60">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="mt-7 text-center text-xs text-white/45">
+          © <span id="yr"></span> Upcoinmeta • Admin Console
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manage Modal -->
+  <div id="manageBackdrop" class="modal-backdrop">
+    <div class="glass ring-glow modal">
+      <div class="modal-header">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div class="text-lg font-extrabold">Manage User</div>
+            <div class="text-sm text-white/60" id="manageSubtitle">—</div>
+          </div>
+          <div class="action-wrap">
+            <button id="btnViewPin" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">View PIN</button>
+            <button id="btnSetPin" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Set PIN</button>
+            <button id="btnBootstrapUser" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Bootstrap Crypto</button>
+            <button id="btnCloseManage" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Close</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <!-- Left: user fields -->
+          <div class="rounded-3xl card p-4">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <div class="font-extrabold">Profile</div>
+              <div class="chip rounded-xl px-3 py-1 text-xs font-extrabold" id="userIdChip">ID —</div>
+            </div>
+
+            <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="text-sm font-semibold text-muted">Full Name</label>
+                <input id="m_full_name" class="mt-2 w-full rounded-2xl input px-4 py-3" />
+              </div>
+              <div>
+                <label class="text-sm font-semibold text-muted">Username</label>
+                <input id="m_username" class="mt-2 w-full rounded-2xl input px-4 py-3" />
+              </div>
+
+              <div class="sm:col-span-2">
+                <label class="text-sm font-semibold text-muted">Email</label>
+                <input id="m_email" type="email" class="mt-2 w-full rounded-2xl input px-4 py-3" />
+              </div>
+
+              <div class="sm:col-span-2">
+                <label class="text-sm font-semibold text-muted">Address</label>
+                <input id="m_address" class="mt-2 w-full rounded-2xl input px-4 py-3" />
+              </div>
+
+              <div>
+                <label class="text-sm font-semibold text-muted">City</label>
+                <input id="m_city" class="mt-2 w-full rounded-2xl input px-4 py-3" />
+              </div>
+              <div>
+                <label class="text-sm font-semibold text-muted">Zipcode</label>
+                <input id="m_zipcode" class="mt-2 w-full rounded-2xl input px-4 py-3" />
+              </div>
+
+              <div>
+                <label class="text-sm font-semibold text-muted">Country</label>
+                <input id="m_country" class="mt-2 w-full rounded-2xl input px-4 py-3" />
+              </div>
+              <div>
+                <label class="text-sm font-semibold text-muted">Phone</label>
+                <input id="m_phone" class="mt-2 w-full rounded-2xl input px-4 py-3" />
+              </div>
+
+              <div>
+                <label class="text-sm font-semibold text-muted">Role</label>
+                <select id="m_role" class="mt-2 w-full rounded-2xl input px-4 py-3">
+                  <option value="user">user</option>
+                  <option value="admin">admin</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="text-sm font-semibold text-muted">Verified</label>
+                <select id="m_is_verified" class="mt-2 w-full rounded-2xl input px-4 py-3">
+                  <option value="0">0 (No)</option>
+                  <option value="1">1 (Yes)</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="text-sm font-semibold text-muted">Account Status</label>
+                <select id="m_account_status" class="mt-2 w-full rounded-2xl input px-4 py-3">
+                  <option value="active">active</option>
+                  <option value="hold">hold</option>
+                  <option value="banned">banned</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="text-sm font-semibold text-muted">Account Type</label>
+                <input id="m_account_type" class="mt-2 w-full rounded-2xl input px-4 py-3" placeholder="e.g. Standard / VIP" />
+              </div>
+
+              <div>
+                <label class="text-sm font-semibold text-muted">Trade Progress</label>
+                <input id="m_trade_progress" class="mt-2 w-full rounded-2xl input px-4 py-3" placeholder="e.g. 0%" />
+              </div>
+
+              <div>
+                <label class="text-sm font-semibold text-muted">Signal Strength</label>
+                <input id="m_signal_strength" class="mt-2 w-full rounded-2xl input px-4 py-3" placeholder="e.g. 78%" />
+              </div>
+
+              <div>
+                <label class="text-sm font-semibold text-muted">Copy Trading Status</label>
+                <select id="m_copy_trading_status" class="mt-2 w-full rounded-2xl input px-4 py-3">
+                  <option value="active">active</option>
+                  <option value="hold">hold</option>
+                  <option value="disabled">disabled</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="text-sm font-semibold text-muted">Trading Status</label>
+                <select id="m_trading_status" class="mt-2 w-full rounded-2xl input px-4 py-3">
+                  <option value="active">active</option>
+                  <option value="hold">hold</option>
+                  <option value="disabled">disabled</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label class="text-sm font-semibold text-muted">Main Balance</label>
+                <input id="m_main_balance" class="mt-2 w-full rounded-2xl input px-4 py-3" />
+              </div>
+              <div>
+                <label class="text-sm font-semibold text-muted">Profit Balance</label>
+                <input id="m_profit_balance" class="mt-2 w-full rounded-2xl input px-4 py-3" />
+              </div>
+              <div>
+                <label class="text-sm font-semibold text-muted">Investment Balance</label>
+                <input id="m_investment_balance" class="mt-2 w-full rounded-2xl input px-4 py-3" />
+              </div>
+            </div>
+
+            <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button id="btnSaveUser" class="rounded-2xl btn-primary px-5 py-3 font-extrabold">Save Changes</button>
+              <button id="btnRefreshUser" class="rounded-2xl btn-ghost px-5 py-3 font-extrabold">Refresh</button>
+            </div>
+
+            <div class="mt-3 text-xs text-white/45">
+              Only fields included in your backend <b>allowed[]</b> list will update.
+            </div>
+          </div>
+
+          <!-- Right: crypto balances -->
+          <div class="rounded-3xl card p-4">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <div>
+                <div class="font-extrabold">Crypto Balances</div>
+                <div class="text-sm text-white/60">Edit balances then save (upsert).</div>
+              </div>
+              <div class="chip rounded-xl px-3 py-1 text-xs font-extrabold">user_crypto_balances</div>
+            </div>
+
+            <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3" id="cryptoGrid"></div>
+
+            <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button id="btnSaveCrypto" class="rounded-2xl btn-primary px-5 py-3 font-extrabold">Save Crypto</button>
+              <button id="btnZeroCrypto" class="rounded-2xl btn-ghost px-5 py-3 font-extrabold">Set All = 0</button>
+            </div>
+
+            <div class="mt-3 text-xs text-white/45">
+              Allowed assets: BTC, ETH, USDT, BNB, LTC, DOGE, XRP, SHIB, SOL
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIN Modal -->
+  <div id="pinBackdrop" class="modal-backdrop">
+    <div class="glass ring-glow modal-sm">
+      <div class="modal-header">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <div class="text-lg font-extrabold" id="pinTitle">PIN</div>
+            <div class="text-sm text-white/60" id="pinSub">—</div>
+          </div>
+          <button id="btnClosePin" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Close</button>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <div id="pinViewBox" class="hidden rounded-3xl card p-4">
+          <div class="text-xs text-white/55 font-semibold">Current PIN</div>
+          <div class="mt-2 text-2xl font-extrabold tracking-widest" id="pinValue">—</div>
+          <div class="mt-2 text-xs text-white/45">
+            (Backend returns the plain value from <b>pin_hash</b>.)
+          </div>
+        </div>
+
+        <div id="pinSetBox" class="hidden rounded-3xl card p-4">
+          <label class="text-sm font-semibold text-muted">New PIN (4–6 digits)</label>
+          <input id="pinInput" class="mt-2 w-full rounded-2xl input px-4 py-3" placeholder="e.g. 1234" />
+          <button id="btnConfirmSetPin" class="mt-3 w-full rounded-2xl btn-primary py-3 font-extrabold">Set PIN</button>
+          <div class="mt-2 text-xs text-white/45">
+            Recommendation: store hashed PIN instead of plain (security).
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ✅ Admin API base
+    const ADMIN_BASE = window.SwayApi.adminBase;
+
+    // ✅ Auth keys
+    const TOKEN_KEY = "upcoinmeta_admin_token";
+    const ADMIN_KEY = "upcoinmeta_admin";
+
+    // ✅ allowed assets UI
+    const ASSETS = ["BTC","ETH","USDT","BNB","LTC","DOGE","XRP","SHIB","SOL"];
+
+    // UI refs
+    const alertBox = document.getElementById("alert");
+    const tbody = document.getElementById("tbody");
+    const qEl = document.getElementById("q");
+    const filterVerified = document.getElementById("filterVerified");
+    const filterStatus = document.getElementById("filterStatus");
+    const countText = document.getElementById("countText");
+    const metaText = document.getElementById("metaText");
+    const lastLoaded = document.getElementById("lastLoaded");
+
+    const btnReload = document.getElementById("btnReload");
+    const btnBootstrapAll = document.getElementById("btnBootstrapAll");
+    const btnLogout = document.getElementById("btnLogout");
+    const btnExport = document.getElementById("btnExport");
+
+    // Manage modal
+    const manageBackdrop = document.getElementById("manageBackdrop");
+    const manageSubtitle = document.getElementById("manageSubtitle");
+    const userIdChip = document.getElementById("userIdChip");
+    const btnCloseManage = document.getElementById("btnCloseManage");
+    const btnSaveUser = document.getElementById("btnSaveUser");
+    const btnRefreshUser = document.getElementById("btnRefreshUser");
+
+    const btnSaveCrypto = document.getElementById("btnSaveCrypto");
+    const btnZeroCrypto = document.getElementById("btnZeroCrypto");
+    const cryptoGrid = document.getElementById("cryptoGrid");
+
+    const btnBootstrapUser = document.getElementById("btnBootstrapUser");
+    const btnViewPin = document.getElementById("btnViewPin");
+    const btnSetPin = document.getElementById("btnSetPin");
+
+    // PIN modal
+    const pinBackdrop = document.getElementById("pinBackdrop");
+    const btnClosePin = document.getElementById("btnClosePin");
+    const pinTitle = document.getElementById("pinTitle");
+    const pinSub = document.getElementById("pinSub");
+    const pinViewBox = document.getElementById("pinViewBox");
+    const pinSetBox = document.getElementById("pinSetBox");
+    const pinValue = document.getElementById("pinValue");
+    const pinInput = document.getElementById("pinInput");
+    const btnConfirmSetPin = document.getElementById("btnConfirmSetPin");
+
+    // Manage form fields
+    const F = (id) => document.getElementById(id);
+
+    document.getElementById("yr").textContent = new Date().getFullYear();
+
+    // state
+    let ALL_USERS = [];
+    let FILTERED = [];
+    let ACTIVE_USER_ID = null;
+
+    function escapeHtml(s){
+      return String(s ?? "").replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+    }
+
+    function showAlert(type, msg) {
+      alertBox.classList.remove("hidden");
+      alertBox.textContent = msg;
+
+      alertBox.classList.remove("bg-red-500/10", "border-red-400/20", "text-red-200");
+      alertBox.classList.remove("bg-emerald-500/10", "border-emerald-400/20", "text-emerald-200");
+      alertBox.classList.remove("bg-amber-500/10", "border-amber-400/20", "text-amber-200");
+
+      if (type === "success") alertBox.classList.add("bg-emerald-500/10", "border", "border-emerald-400/20", "text-emerald-200");
+      else if (type === "warn") alertBox.classList.add("bg-amber-500/10", "border", "border-amber-400/20", "text-amber-200");
+      else alertBox.classList.add("bg-red-500/10", "border", "border-red-400/20", "text-red-200");
+    }
+
+    function token() { return localStorage.getItem(TOKEN_KEY) || ""; }
+
+    function requireAuthOrRedirect(){
+      if (!token()) { window.location.href = "./index.html"; return false; }
+      return true;
+    }
+
+    function api(){
+      return window.SwayApi.adminClient({ timeout: 25000 });
+    }
+
+    function pillVerified(v){
+      const yes = Number(v) === 1;
+      return `<span class="pill ${yes ? "ok" : "warn"}">${yes ? "Verified" : "Unverified"}</span>`;
+    }
+    function pillStatus(v){
+      const s = String(v || "").toLowerCase();
+      if (s === "active") return `<span class="pill ok">active</span>`;
+      if (s === "hold") return `<span class="pill warn">hold</span>`;
+      if (s === "banned") return `<span class="pill bad">banned</span>`;
+      return `<span class="pill">${escapeHtml(s || "—")}</span>`;
+    }
+    function fmtMoney(x){ return (x === null || x === undefined || x === "") ? "0" : String(x); }
+    function fmtDate(d){
+      if (!d) return "—";
+      const dt = new Date(d);
+      return Number.isNaN(dt.getTime()) ? String(d) : dt.toLocaleString();
+    }
+
+    function applyFilters(){
+      const q = qEl.value.trim().toLowerCase();
+      const vFilter = filterVerified.value;
+      const sFilter = filterStatus.value;
+
+      FILTERED = (ALL_USERS || []).filter(u => {
+        const blob = [u.full_name,u.username,u.email,u.phone,u.country,u.city,u.address].join(" ").toLowerCase();
+        if (q && !blob.includes(q)) return false;
+        if (vFilter === "verified" && Number(u.is_verified) !== 1) return false;
+        if (vFilter === "unverified" && Number(u.is_verified) === 1) return false;
+        if (sFilter !== "all") {
+          const st = String(u.account_status || "").toLowerCase();
+          if (st !== sFilter) return false;
+        }
+        return true;
+      });
+
+      renderTable();
+      countText.textContent = `${FILTERED.length} user${FILTERED.length === 1 ? "" : "s"}`;
+      metaText.textContent = `Showing ${FILTERED.length} / ${ALL_USERS.length}`;
+    }
+
+    function renderTable(){
+      if (!FILTERED.length) {
+        tbody.innerHTML = `<tr><td colspan="13" class="text-white/60">No users found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = FILTERED.map(u => `
+        <tr>
+          <td class="text-white/70 font-semibold">${escapeHtml(u.id)}</td>
+          <td>${escapeHtml(u.full_name || "—")}</td>
+          <td>${escapeHtml(u.username || "—")}</td>
+          <td class="text-white/70">${escapeHtml(u.email || "—")}</td>
+          <td class="text-white/70">${escapeHtml(u.phone || "—")}</td>
+          <td class="text-white/70">${escapeHtml(u.country || "—")}</td>
+          <td>${pillVerified(u.is_verified)}</td>
+          <td>${pillStatus(u.account_status)}</td>
+          <td>${escapeHtml(fmtMoney(u.main_balance))}</td>
+          <td>${escapeHtml(fmtMoney(u.profit_balance))}</td>
+          <td>${escapeHtml(fmtMoney(u.investment_balance))}</td>
+          <td class="text-white/60">${escapeHtml(fmtDate(u.created_at))}</td>
+          <td>
+            <button class="rounded-2xl btn-primary px-4 py-2 font-extrabold"
+              onclick="openManage(${Number(u.id)})">Manage</button>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    async function loadUsers(){
+      alertBox.classList.add("hidden");
+      tbody.innerHTML = `<tr><td colspan="13" class="text-white/60">Loading…</td></tr>`;
+
+      try {
+        const res = await api().get("/users");
+        const data = res.data || {};
+        ALL_USERS = Array.isArray(data.users) ? data.users : [];
+        lastLoaded.textContent = `Last loaded: ${new Date().toLocaleString()}`;
+        applyFilters();
+      } catch (err) {
+        const status = err?.response?.status;
+        const msg = err?.response?.data?.message || "Failed to load users.";
+        if (status === 401 || status === 403) {
+          showAlert("error", msg + " Redirecting to admin login…");
+          setTimeout(() => (window.location.href = "./index.html"), 700);
+          return;
+        }
+        showAlert("error", msg);
+        tbody.innerHTML = `<tr><td colspan="13" class="text-white/60">Error loading users.</td></tr>`;
+      }
+    }
+
+    function openModal(el){ el.classList.add("modal-open"); }
+    function closeModal(el){ el.classList.remove("modal-open"); }
+
+    function buildCryptoGrid(cryptoBalances){
+      cryptoGrid.innerHTML = ASSETS.map(a => {
+        const val = cryptoBalances && Object.prototype.hasOwnProperty.call(cryptoBalances, a) ? cryptoBalances[a] : "";
+        return `
+          <div>
+            <label class="text-sm font-semibold text-muted">${a}</label>
+            <input data-asset="${a}" class="mt-2 w-full rounded-2xl input px-4 py-3"
+                   placeholder="0.0000" value="${escapeHtml(val ?? "")}" />
+          </div>
+        `;
+      }).join("");
+    }
+
+    function fillManageForm(u){
+      F("m_full_name").value = u.full_name ?? "";
+      F("m_username").value = u.username ?? "";
+      F("m_email").value = u.email ?? "";
+      F("m_address").value = u.address ?? "";
+      F("m_city").value = u.city ?? "";
+      F("m_zipcode").value = u.zipcode ?? "";
+      F("m_country").value = u.country ?? "";
+      F("m_phone").value = u.phone ?? "";
+
+      F("m_role").value = (u.role ?? "user");
+      F("m_is_verified").value = String(Number(u.is_verified) || 0);
+
+      F("m_main_balance").value = u.main_balance ?? "0";
+      F("m_profit_balance").value = u.profit_balance ?? "0";
+      F("m_investment_balance").value = u.investment_balance ?? "0";
+
+      F("m_account_type").value = u.account_type ?? "";
+      F("m_trade_progress").value = u.trade_progress ?? "";
+      F("m_signal_strength").value = u.signal_strength ?? "";
+
+      F("m_account_status").value = (u.account_status ?? "active");
+      F("m_copy_trading_status").value = (u.copy_trading_status ?? "active");
+      F("m_trading_status").value = (u.trading_status ?? "active");
+
+      buildCryptoGrid(u.crypto_balances || {});
+    }
+
+    async function fetchUser(id){
+      const res = await api().get(`/users/${id}`);
+      return res.data?.user;
+    }
+
+    // expose for table buttons
+    window.openManage = async function(id){
+      ACTIVE_USER_ID = Number(id);
+      openModal(manageBackdrop);
+
+      manageSubtitle.textContent = "Loading user…";
+      userIdChip.textContent = `ID ${ACTIVE_USER_ID}`;
+
+      try {
+        const user = await fetchUser(ACTIVE_USER_ID);
+        manageSubtitle.textContent = `${user.full_name || "—"} • ${user.email || "—"}`;
+        fillManageForm(user);
+      } catch (err) {
+        const msg = err?.response?.data?.message || "Failed to load user.";
+        showAlert("error", msg);
+        manageSubtitle.textContent = "Failed to load user";
+      }
+    }
+
+    async function refreshActiveUser(){
+      if (!ACTIVE_USER_ID) return;
+      manageSubtitle.textContent = "Refreshing…";
+      try {
+        const user = await fetchUser(ACTIVE_USER_ID);
+        manageSubtitle.textContent = `${user.full_name || "—"} • ${user.email || "—"}`;
+        fillManageForm(user);
+      } catch (err) {
+        const msg = err?.response?.data?.message || "Refresh failed.";
+        showAlert("error", msg);
+      }
+    }
+
+    function collectUserUpdatePayload(){
+      return {
+        full_name: F("m_full_name").value.trim(),
+        username: F("m_username").value.trim(),
+        address: F("m_address").value.trim(),
+        city: F("m_city").value.trim(),
+        zipcode: F("m_zipcode").value.trim() || null,
+        country: F("m_country").value.trim(),
+        phone: F("m_phone").value.trim(),
+        email: F("m_email").value.trim().toLowerCase(),
+
+        role: F("m_role").value,
+        is_verified: Number(F("m_is_verified").value) || 0,
+
+        main_balance: F("m_main_balance").value,
+        profit_balance: F("m_profit_balance").value,
+        investment_balance: F("m_investment_balance").value,
+
+        account_type: F("m_account_type").value.trim(),
+        trade_progress: F("m_trade_progress").value.trim(),
+        signal_strength: F("m_signal_strength").value.trim(),
+
+        account_status: F("m_account_status").value,
+        copy_trading_status: F("m_copy_trading_status").value,
+        trading_status: F("m_trading_status").value,
+      };
+    }
+
+    function collectCryptoPayload(){
+      const inputs = cryptoGrid.querySelectorAll("input[data-asset]");
+      const obj = {};
+      inputs.forEach(i => obj[i.getAttribute("data-asset")] = i.value);
+      return obj;
+    }
+
+    async function saveUserFields(){
+      if (!ACTIVE_USER_ID) return;
+
+      btnSaveUser.disabled = true; btnSaveUser.classList.add("opacity-70");
+      try {
+        const res = await api().put(`/users/${ACTIVE_USER_ID}`, collectUserUpdatePayload());
+        showAlert("success", res.data?.message || "User updated.");
+        await loadUsers();
+        await refreshActiveUser();
+      } catch (err) {
+        showAlert("error", err?.response?.data?.message || "Update failed.");
+      } finally {
+        btnSaveUser.disabled = false; btnSaveUser.classList.remove("opacity-70");
+      }
+    }
+
+    async function saveCryptoOnly(){
+      if (!ACTIVE_USER_ID) return;
+
+      btnSaveCrypto.disabled = true; btnSaveCrypto.classList.add("opacity-70");
+      try {
+        const res = await api().put(`/users/${ACTIVE_USER_ID}`, { crypto_balances: collectCryptoPayload() });
+        showAlert("success", res.data?.message || "Crypto balances updated.");
+        await loadUsers();
+        await refreshActiveUser();
+      } catch (err) {
+        showAlert("error", err?.response?.data?.message || "Crypto update failed.");
+      } finally {
+        btnSaveCrypto.disabled = false; btnSaveCrypto.classList.remove("opacity-70");
+      }
+    }
+
+    function setAllCryptoZero(){
+      cryptoGrid.querySelectorAll("input[data-asset]").forEach(i => i.value = "0");
+    }
+
+    async function bootstrapAllCrypto(){
+      btnBootstrapAll.disabled = true; btnBootstrapAll.classList.add("opacity-70");
+      try {
+        const res = await api().post("/crypto-balances/bootstrap", {});
+        showAlert("success", res.data?.message || "Bootstrap completed.");
+        await loadUsers();
+      } catch (err) {
+        showAlert("error", err?.response?.data?.message || "Bootstrap failed.");
+      } finally {
+        btnBootstrapAll.disabled = false; btnBootstrapAll.classList.remove("opacity-70");
+      }
+    }
+
+    async function bootstrapUserCrypto(){
+      if (!ACTIVE_USER_ID) return;
+      btnBootstrapUser.disabled = true; btnBootstrapUser.classList.add("opacity-70");
+      try {
+        const res = await api().post(`/users/${ACTIVE_USER_ID}/crypto-balances/bootstrap`, {});
+        showAlert("success", res.data?.message || "User bootstrap completed.");
+        await refreshActiveUser();
+        await loadUsers();
+      } catch (err) {
+        showAlert("error", err?.response?.data?.message || "User bootstrap failed.");
+      } finally {
+        btnBootstrapUser.disabled = false; btnBootstrapUser.classList.remove("opacity-70");
+      }
+    }
+
+    function openPinModal(mode){
+      if (!ACTIVE_USER_ID) return;
+      pinValue.textContent = "—";
+      pinInput.value = "";
+
+      pinViewBox.classList.toggle("hidden", mode !== "view");
+      pinSetBox.classList.toggle("hidden", mode !== "set");
+
+      pinTitle.textContent = mode === "view" ? "View PIN" : "Set PIN";
+      pinSub.textContent = `User ID ${ACTIVE_USER_ID}`;
+      openModal(pinBackdrop);
+    }
+
+    async function viewPin(){
+      openPinModal("view");
+      pinValue.textContent = "Loading…";
+      try {
+        const res = await api().get(`/users/${ACTIVE_USER_ID}/pin`);
+        pinValue.textContent = (res.data?.pin ?? "—");
+      } catch (err) {
+        pinValue.textContent = "—";
+        showAlert("error", err?.response?.data?.message || "Failed to fetch PIN.");
+      }
+    }
+
+    function setPin(){ openPinModal("set"); }
+
+    async function confirmSetPin(){
+      const pin = String(pinInput.value || "").trim();
+      if (!/^\d{4,6}$/.test(pin)) return showAlert("error", "PIN must be 4 to 6 digits.");
+
+      btnConfirmSetPin.disabled = true; btnConfirmSetPin.classList.add("opacity-70");
+      try {
+        const res = await api().post(`/users/${ACTIVE_USER_ID}/set-pin`, { pin });
+        showAlert("success", res.data?.message || "PIN set.");
+        closeModal(pinBackdrop);
+      } catch (err) {
+        showAlert("error", err?.response?.data?.message || "Failed to set PIN.");
+      } finally {
+        btnConfirmSetPin.disabled = false; btnConfirmSetPin.classList.remove("opacity-70");
+      }
+    }
+
+    function downloadCsv(rows){
+      const headers = ["id","full_name","username","email","phone","country","city","is_verified","account_status","main_balance","profit_balance","investment_balance","created_at"];
+      const lines = [headers.join(",")];
+      for (const u of rows) {
+        const vals = headers.map(h => {
+          const v = u?.[h];
+          const s = (v === null || v === undefined) ? "" : String(v).replace(/"/g,'""');
+          return `"${s}"`;
+        });
+        lines.push(vals.join(","));
+      }
+      const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `upcoinmeta_users_${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    // events
+    btnReload.addEventListener("click", loadUsers);
+    btnBootstrapAll.addEventListener("click", bootstrapAllCrypto);
+
+    btnLogout.addEventListener("click", () => {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(ADMIN_KEY);
+      showAlert("success", "Logged out. Redirecting…");
+      setTimeout(() => (window.location.href = "./index.html"), 600);
+    });
+
+    qEl.addEventListener("input", applyFilters);
+    filterVerified.addEventListener("change", applyFilters);
+    filterStatus.addEventListener("change", applyFilters);
+
+    btnExport.addEventListener("click", () => {
+      if (!FILTERED.length) return showAlert("warn", "No users to export (current filter).");
+      downloadCsv(FILTERED);
+      showAlert("success", "CSV exported.");
+    });
+
+    document.getElementById("btnCloseManage").addEventListener("click", () => closeModal(manageBackdrop));
+    manageBackdrop.addEventListener("click", (e) => { if (e.target === manageBackdrop) closeModal(manageBackdrop); });
+
+    btnRefreshUser.addEventListener("click", refreshActiveUser);
+    btnSaveUser.addEventListener("click", saveUserFields);
+
+    btnSaveCrypto.addEventListener("click", saveCryptoOnly);
+    btnZeroCrypto.addEventListener("click", setAllCryptoZero);
+
+    btnBootstrapUser.addEventListener("click", bootstrapUserCrypto);
+
+    btnViewPin.addEventListener("click", viewPin);
+    btnSetPin.addEventListener("click", setPin);
+
+    btnClosePin.addEventListener("click", () => closeModal(pinBackdrop));
+    pinBackdrop.addEventListener("click", (e) => { if (e.target === pinBackdrop) closeModal(pinBackdrop); });
+
+    btnConfirmSetPin.addEventListener("click", confirmSetPin);
+
+    // init
+    (function init(){
+      if (!requireAuthOrRedirect()) return;
+      loadUsers();
+    })();
+  </script>
+</body>
+</html>

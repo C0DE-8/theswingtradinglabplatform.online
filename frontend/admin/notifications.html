@@ -1,0 +1,1400 @@
+<!-- /admin/notifications.html ✅ Upcoinmeta Admin — Notifications + Popups + Email + Users Directory (Responsive) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Upcoinmeta — Notifications</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="../assets/js/api.js"></script>
+
+  <style>
+    * { -webkit-tap-highlight-color: transparent; }
+    :root{
+      --safe-top: env(safe-area-inset-top);
+      --safe-bottom: env(safe-area-inset-bottom);
+    }
+
+    html, body{
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #05060b;
+      overscroll-behavior: none;
+    }
+    .app-shell{
+      height: 100vh;
+      height: 100dvh;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-top: calc(14px + var(--safe-top));
+      padding-bottom: calc(14px + var(--safe-bottom));
+    }
+
+    .glass{
+      background: rgba(10,10,14,.64);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.07);
+      box-shadow: 0 18px 70px rgba(0,0,0,.62);
+    }
+    .chip{ background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); }
+    .soft-border{ border: 1px solid rgba(255,255,255,0.10); }
+    .text-muted{ color: rgba(255,255,255,0.74); }
+    .text-faint{ color: rgba(255,255,255,0.52); }
+
+    .bg-broker{
+      background:
+        radial-gradient(1000px 420px at 20% 0%, rgba(56,189,248,0.18), transparent 60%),
+        radial-gradient(900px 480px at 80% 10%, rgba(34,197,94,0.12), transparent 62%),
+        radial-gradient(900px 520px at 55% 100%, rgba(168,85,247,0.14), transparent 62%),
+        linear-gradient(180deg, #05060b 0%, #070813 45%, #05060b 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .bg-broker::before{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        linear-gradient(to right, rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,.04) 1px, transparent 1px);
+      background-size: 60px 60px;
+      opacity:.16;
+      pointer-events:none;
+    }
+
+    .ring-glow{ box-shadow: 0 0 0 1px rgba(255,255,255,.06), 0 18px 70px rgba(56,189,248,.10); }
+
+    .btn-primary{ background: linear-gradient(90deg, rgba(56,189,248,0.95), rgba(168,85,247,0.92)); }
+    .btn-primary:hover{ filter: brightness(1.05); }
+    .btn-primary:active{ transform: scale(0.99); }
+
+    .btn-ghost{ background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10); }
+    .btn-ghost:hover{ background: rgba(255,255,255,0.08); }
+    .btn-ghost:active{ transform: scale(0.99); }
+
+    .btn-good{
+      background: rgba(34,197,94,0.10);
+      border: 1px solid rgba(34,197,94,0.28);
+      color: rgba(187,247,208,0.95);
+    }
+    .btn-good:hover{ background: rgba(34,197,94,0.14); }
+
+    .btn-bad{
+      background: rgba(239,68,68,0.10);
+      border: 1px solid rgba(239,68,68,0.26);
+      color: rgba(254,202,202,0.95);
+    }
+    .btn-bad:hover{ background: rgba(239,68,68,0.14); }
+
+    .btn-sky{
+      background: rgba(56,189,248,0.12);
+      border: 1px solid rgba(56,189,248,0.28);
+      color: rgba(186,230,253,0.96);
+    }
+    .btn-sky:hover{ background: rgba(56,189,248,0.16); }
+
+    .btn-purple{
+      background: rgba(168,85,247,0.12);
+      border: 1px solid rgba(168,85,247,0.28);
+      color: rgba(233,213,255,0.96);
+    }
+    .btn-purple:hover{ background: rgba(168,85,247,0.16); }
+
+    .input{ background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10); outline: none; }
+    .input:focus{ box-shadow: 0 0 0 3px rgba(56,189,248,0.22); border-color: rgba(56,189,248,0.28); }
+
+    .card{ background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10); }
+
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+    .table-wrap{ overflow:auto; -webkit-overflow-scrolling:touch; border-radius: 18px; }
+    table{ width:100%; border-collapse: separate; border-spacing: 0; min-width: 1050px; }
+    th, td{ padding: 12px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); vertical-align: top; }
+    th{
+      position: sticky; top: 0;
+      background: rgba(10,10,14,.82);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 2;
+      text-align:left;
+      font-size: 12px;
+      color: rgba(255,255,255,0.72);
+      white-space: nowrap;
+    }
+    td{ font-size: 13px; color: rgba(255,255,255,0.84); }
+    tr:hover td{ background: rgba(255,255,255,0.03); }
+
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 900;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+      white-space: nowrap;
+    }
+    .pill.type-popup{ border-color: rgba(168,85,247,0.30); background: rgba(168,85,247,0.12); color: rgba(233,213,255,0.95); }
+    .pill.type-notif{ border-color: rgba(56,189,248,0.32); background: rgba(56,189,248,0.14); color: rgba(186,230,253,0.95); }
+    .pill.stat-sent{ border-color: rgba(34,197,94,0.35); background: rgba(34,197,94,0.12); color: rgba(187,247,208,0.95); }
+    .pill.stat-failed{ border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.10); color: rgba(254,202,202,0.95); }
+    .pill.ok{ border-color: rgba(34,197,94,0.35); background: rgba(34,197,94,0.10); color: rgba(187,247,208,0.95); }
+    .pill.warn{ border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.10); color: rgba(254,243,199,0.95); }
+    .pill.bad{ border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.10); color: rgba(254,202,202,0.95); }
+
+    .modal-backdrop{
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      display:none;
+      align-items: center;
+      justify-content:center;
+      padding: 14px;
+      z-index: 50;
+    }
+    .modal-open{ display:flex; }
+
+    .modal{
+      width: 100%;
+      max-width: 1100px;
+      border-radius: 22px;
+      max-height: calc(100dvh - 28px);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-header{ padding: 14px 14px 10px; flex: 0 0 auto; }
+    .modal-body{ padding: 0 14px 14px; overflow: auto; -webkit-overflow-scrolling: touch; flex: 1 1 auto; }
+
+    .grid-compact{ display:grid; grid-template-columns: 1fr; gap: 10px; }
+    @media (min-width: 900px){
+      .grid-compact{ grid-template-columns: 1.2fr 1fr 1fr; gap: 12px; }
+    }
+
+    @media (max-width: 640px){
+      .stack{ flex-direction: column; align-items: stretch !important; }
+      .stack > *{ width: 100%; }
+      table{ min-width: 980px; }
+    }
+    @media (max-width: 420px){
+      input, button, select, textarea { font-size: 16px; }
+    }
+  </style>
+</head>
+
+<body class="bg-broker text-white">
+  <div class="app-shell">
+    <div class="mx-auto max-w-[1400px] px-4">
+      <div class="w-full glass ring-glow rounded-3xl p-5 sm:p-7">
+
+        <!-- Top -->
+        <div class="flex gap-4 sm:items-center sm:justify-between stack">
+          <div class="flex items-center gap-3">
+            <a href="./dashboard.html" class="w-11 h-11 rounded-2xl chip grid place-items-center shrink-0 hover:opacity-90" title="Back to dashboard">
+              <span class="text-lg font-black">U</span>
+            </a>
+            <div>
+              <div class="text-xl font-extrabold leading-tight">Notifications Center</div>
+              <div class="text-sm text-faint -mt-0.5">Admin • Popup • In-app notification • Email + Logs • Users Directory</div>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-2 justify-end">
+            <button id="btnCompose" class="rounded-2xl btn-primary px-4 py-3 font-extrabold">Compose</button>
+            <button id="btnReload" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Reload</button>
+            <button id="btnLogout" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Logout</button>
+          </div>
+        </div>
+
+        <!-- Alert -->
+        <div id="alert" class="hidden mt-5 rounded-2xl px-4 py-3 text-sm soft-border"></div>
+
+        <!-- Compose cards -->
+        <div class="mt-5 grid grid-cols-1 xl:grid-cols-3 gap-4">
+          <!-- Quick Send: Popup -->
+          <div class="rounded-3xl card p-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="font-extrabold">Send Popup</div>
+                <div class="text-xs text-white/50">POST <span class="mono">/notify/popup</span></div>
+              </div>
+              <span class="pill type-popup">POPUP</span>
+            </div>
+
+            <div class="mt-4 space-y-3">
+              <div>
+                <label class="text-sm font-semibold text-muted">User ID (optional)</label>
+                <input id="popup_user_id" class="mt-2 w-full rounded-2xl input px-4 py-3" placeholder="Leave empty to broadcast" />
+              </div>
+
+              <div>
+                <label class="text-sm font-semibold text-muted">Title</label>
+                <input id="popup_title" class="mt-2 w-full rounded-2xl input px-4 py-3" placeholder="e.g. Maintenance Update" />
+              </div>
+
+              <div>
+                <label class="text-sm font-semibold text-muted">Message</label>
+                <textarea id="popup_message" rows="4" class="mt-2 w-full rounded-2xl input px-4 py-3" placeholder="Write the popup message…"></textarea>
+              </div>
+
+              <div>
+                <label class="text-sm font-semibold text-muted">Expires in minutes (optional)</label>
+                <input id="popup_expires" type="number" min="1" step="1" class="mt-2 w-full rounded-2xl input px-4 py-3" placeholder="e.g. 60" />
+              </div>
+
+              <button id="btnSendPopup" class="w-full rounded-2xl btn-good px-5 py-3 font-extrabold">Send Popup</button>
+            </div>
+          </div>
+
+          <!-- Quick Send: Notification -->
+          <div class="rounded-3xl card p-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="font-extrabold">Send Notification</div>
+                <div class="text-xs text-white/50">POST <span class="mono">/notify/notification</span></div>
+              </div>
+              <span class="pill type-notif">IN-APP</span>
+            </div>
+
+            <div class="mt-4 space-y-3">
+              <div>
+                <label class="text-sm font-semibold text-muted">User ID (optional)</label>
+                <input id="notif_user_id" class="mt-2 w-full rounded-2xl input px-4 py-3" placeholder="Leave empty to broadcast" />
+              </div>
+
+              <div>
+                <label class="text-sm font-semibold text-muted">Title</label>
+                <input id="notif_title" class="mt-2 w-full rounded-2xl input px-4 py-3" placeholder="e.g. New Feature Released" />
+              </div>
+
+              <div>
+                <label class="text-sm font-semibold text-muted">Message</label>
+                <textarea id="notif_message" rows="6" class="mt-2 w-full rounded-2xl input px-4 py-3" placeholder="Write the notification…"></textarea>
+              </div>
+
+              <button id="btnSendNotif" class="w-full rounded-2xl btn-good px-5 py-3 font-extrabold">Send Notification</button>
+            </div>
+          </div>
+
+          <!-- Quick Send: Email -->
+          <div class="rounded-3xl card p-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="font-extrabold">Send Email</div>
+                <div class="text-xs text-white/50">POST <span class="mono">/notify/email</span></div>
+              </div>
+              <span class="pill chip">EMAIL</span>
+            </div>
+
+            <div class="mt-4 space-y-3">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="text-sm font-semibold text-muted">User ID (optional)</label>
+                  <input id="email_user_id" class="mt-2 w-full rounded-2xl input px-4 py-3" placeholder="e.g. 12" />
+                </div>
+                <div>
+                  <label class="text-sm font-semibold text-muted">To Email (optional)</label>
+                  <input id="email_to" class="mt-2 w-full rounded-2xl input px-4 py-3" placeholder="someone@email.com" />
+                </div>
+              </div>
+
+              <div class="rounded-2xl chip p-3">
+                <label class="flex items-center gap-2">
+                  <input id="email_broadcast" type="checkbox" class="w-5 h-5 accent-sky-400" />
+                  <span class="text-sm font-extrabold">Broadcast to all users</span>
+                </label>
+                <div class="mt-1 text-xs text-white/50">If enabled, <span class="mono">user_id</span> and <span class="mono">to_email</span> are ignored.</div>
+              </div>
+
+              <div class="rounded-2xl chip p-3">
+                <label class="flex items-center gap-2">
+                  <input id="email_html" type="checkbox" class="w-5 h-5 accent-sky-400" />
+                  <span class="text-sm font-extrabold">Send HTML template</span>
+                </label>
+                <div class="mt-1 text-xs text-white/50">If off, sends plain text email.</div>
+              </div>
+
+              <div>
+                <label class="text-sm font-semibold text-muted">Subject</label>
+                <input id="email_subject" class="mt-2 w-full rounded-2xl input px-4 py-3" placeholder="e.g. Account Update" />
+              </div>
+
+              <div>
+                <label class="text-sm font-semibold text-muted">Message</label>
+                <textarea id="email_message" rows="5" class="mt-2 w-full rounded-2xl input px-4 py-3" placeholder="Write the email message…"></textarea>
+              </div>
+
+              <button id="btnSendEmail" class="w-full rounded-2xl btn-good px-5 py-3 font-extrabold">Send Email</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="mt-5 flex flex-wrap gap-2">
+          <button id="tabNotifs" class="rounded-2xl btn-primary px-4 py-3 font-extrabold">Notifications</button>
+          <button id="tabEmails" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Email Logs</button>
+          <button id="tabUsers" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Users</button>
+          <div class="ml-auto chip rounded-xl px-3 py-2 text-xs font-extrabold" id="metaLine">—</div>
+        </div>
+
+        <!-- Filters -->
+        <div class="mt-3 grid grid-cols-1 lg:grid-cols-4 gap-4">
+          <div class="rounded-3xl card p-4">
+            <div class="text-xs text-white/55 font-semibold">Type (Notifications)</div>
+            <select id="filter_type" class="mt-2 w-full rounded-2xl input px-4 py-3">
+              <option value="" selected>All</option>
+              <option value="notification">notification</option>
+              <option value="popup">popup</option>
+            </select>
+          </div>
+
+          <div class="rounded-3xl card p-4">
+            <div class="text-xs text-white/55 font-semibold">User ID (optional)</div>
+            <input id="filter_user_id" class="mt-2 w-full rounded-2xl input px-4 py-3" placeholder="e.g. 12" />
+          </div>
+
+          <div class="rounded-3xl card p-4">
+            <div class="text-xs text-white/55 font-semibold">Page</div>
+            <input id="filter_page" type="number" min="1" step="1" class="mt-2 w-full rounded-2xl input px-4 py-3" value="1" />
+          </div>
+
+          <div class="rounded-3xl card p-4">
+            <div class="text-xs text-white/55 font-semibold">Limit</div>
+            <input id="filter_limit" type="number" min="1" max="100" step="1" class="mt-2 w-full rounded-2xl input px-4 py-3" value="20" />
+          </div>
+        </div>
+
+        <div class="mt-3 flex flex-wrap gap-2">
+          <button id="btnApplyFilters" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Apply Filters</button>
+          <button id="btnResetFilters" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Reset</button>
+
+          <div class="ml-auto flex flex-wrap gap-2">
+            <button id="btnFillFromSelected" class="rounded-2xl btn-primary px-4 py-3 font-extrabold hidden">Use Selected User</button>
+            <button id="btnClearSelected" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold hidden">Clear Selected</button>
+          </div>
+        </div>
+
+        <!-- Notifications Table -->
+        <div id="panelNotifs" class="mt-5 rounded-3xl card p-0">
+          <div class="px-5 py-4 flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <div class="font-extrabold">Notifications</div>
+              <div class="text-sm text-white/60">GET <span class="mono">/notify</span> • DELETE <span class="mono">/notify/:id</span></div>
+            </div>
+            <div class="flex gap-2">
+              <button id="btnPrevN" class="rounded-2xl btn-ghost px-4 py-2 font-extrabold">Prev</button>
+              <button id="btnNextN" class="rounded-2xl btn-ghost px-4 py-2 font-extrabold">Next</button>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Type</th>
+                  <th>Target</th>
+                  <th>Title</th>
+                  <th>Message</th>
+                  <th>Expires</th>
+                  <th>Created</th>
+                  <th style="min-width:200px;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="tbodyNotifs">
+                <tr><td colspan="8" class="text-white/60">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Email Logs Table -->
+        <div id="panelEmails" class="hidden mt-5 rounded-3xl card p-0">
+          <div class="px-5 py-4 flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <div class="font-extrabold">Email Logs</div>
+              <div class="text-sm text-white/60">GET <span class="mono">/notify/emails</span></div>
+            </div>
+            <div class="flex gap-2">
+              <button id="btnPrevE" class="rounded-2xl btn-ghost px-4 py-2 font-extrabold">Prev</button>
+              <button id="btnNextE" class="rounded-2xl btn-ghost px-4 py-2 font-extrabold">Next</button>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Status</th>
+                  <th>User ID</th>
+                  <th>User Email</th>
+                  <th>To</th>
+                  <th>Subject</th>
+                  <th>Message</th>
+                  <th>Error</th>
+                  <th>Created</th>
+                </tr>
+              </thead>
+              <tbody id="tbodyEmails">
+                <tr><td colspan="9" class="text-white/60">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Users Directory -->
+        <div id="panelUsers" class="hidden mt-5 rounded-3xl card p-0">
+          <div class="px-5 py-4 flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <div class="font-extrabold">Users Directory</div>
+              <div class="text-sm text-white/60">GET <span class="mono">/users</span> • click a user row to auto-fill recipient fields</div>
+            </div>
+            <div class="flex gap-2">
+              <button id="btnLoadUsers" class="rounded-2xl btn-ghost px-4 py-2 font-extrabold">Load Users</button>
+            </div>
+          </div>
+
+          <div class="px-5 pb-4">
+            <div class="grid-compact">
+              <div class="rounded-3xl card p-4">
+                <div class="text-xs text-white/55 font-semibold">Search</div>
+                <input id="users_search" class="mt-2 w-full rounded-2xl input px-4 py-3"
+                  placeholder="Search by id, name, username, email, phone, country…" />
+                <div class="mt-2 flex gap-2 flex-wrap">
+                  <button id="btnApplyUserSearch" class="rounded-2xl btn-ghost px-4 py-2 font-extrabold">Apply</button>
+                  <button id="btnClearUserSearch" class="rounded-2xl btn-ghost px-4 py-2 font-extrabold">Clear</button>
+                  <span id="usersCount" class="ml-auto chip rounded-xl px-3 py-2 text-xs font-extrabold">—</span>
+                </div>
+              </div>
+
+              <div class="rounded-3xl card p-4">
+                <div class="text-xs text-white/55 font-semibold">Selected User</div>
+                <div id="selectedUserBox" class="mt-2 rounded-2xl chip p-3 text-sm text-white/80">
+                  None selected
+                </div>
+                <div class="mt-3 flex gap-2 flex-wrap">
+                  <button id="btnUseForPopup" class="rounded-2xl btn-purple px-4 py-2 font-extrabold" disabled>Use for Popup</button>
+                  <button id="btnUseForNotif" class="rounded-2xl btn-sky px-4 py-2 font-extrabold" disabled>Use for In-App</button>
+                  <button id="btnUseForEmail" class="rounded-2xl btn-good px-4 py-2 font-extrabold" disabled>Use for Email</button>
+                  <button id="btnCopyEmail" class="rounded-2xl btn-ghost px-4 py-2 font-extrabold" disabled>Copy Email</button>
+                </div>
+                <div class="mt-2 text-xs text-white/45">
+                  Clicking a user row now auto-fills IDs in the compose boxes.
+                </div>
+              </div>
+
+              <div class="rounded-3xl card p-4">
+                <div class="text-xs text-white/55 font-semibold">Quick Actions</div>
+                <div class="mt-2 flex gap-2 flex-wrap">
+                  <button id="btnScrollCompose" class="rounded-2xl btn-primary px-4 py-2 font-extrabold">Go to Compose</button>
+                  <button id="btnScrollTop" class="rounded-2xl btn-ghost px-4 py-2 font-extrabold">Top</button>
+                </div>
+                <div class="mt-3 text-xs text-white/45">
+                  Tip: click any user row to auto-fill the recipient fields instantly.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table style="min-width: 1500px;">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Name / Username</th>
+                  <th>Email / Phone</th>
+                  <th>Country</th>
+                  <th>Role</th>
+                  <th>Verified</th>
+                  <th>Status</th>
+                  <th>Balances</th>
+                  <th>Crypto Balances</th>
+                  <th>Created</th>
+                  <th style="min-width:220px;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="tbodyUsers">
+                <tr><td colspan="11" class="text-white/60">Click “Load Users” to fetch users…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="mt-7 text-center text-xs text-white/45">
+          © <span id="yr"></span> Upcoinmeta • Admin Console
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Compose Modal (optional shortcut) -->
+  <div id="modalBackdrop" class="modal-backdrop">
+    <div class="glass ring-glow modal">
+      <div class="modal-header">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <div class="text-lg font-extrabold">Compose (Quick Jump)</div>
+            <div class="text-sm text-white/60">Scrolls you to a send box.</div>
+          </div>
+          <div class="flex flex-wrap gap-2 justify-end">
+            <button id="btnCloseModal" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Close</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <button id="jumpPopup" class="rounded-2xl btn-primary px-5 py-4 font-extrabold">Popup</button>
+          <button id="jumpNotif" class="rounded-2xl btn-primary px-5 py-4 font-extrabold">In-App</button>
+          <button id="jumpEmail" class="rounded-2xl btn-primary px-5 py-4 font-extrabold">Email</button>
+        </div>
+        <div class="mt-4 text-xs text-white/55">
+          Tip: You can broadcast by leaving <span class="mono">user_id</span> empty for popup/notification, or checking broadcast for email.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ADMIN_BASE = window.SwayApi.adminBase;
+    const TOKEN_KEY = "upcoinmeta_admin_token";
+    const ADMIN_KEY = "upcoinmeta_admin";
+
+    const alertBox = document.getElementById("alert");
+    const metaLine = document.getElementById("metaLine");
+
+    // top buttons
+    const btnCompose = document.getElementById("btnCompose");
+    const btnReload = document.getElementById("btnReload");
+    const btnLogout = document.getElementById("btnLogout");
+
+    // quick send inputs
+    const popup_user_id = document.getElementById("popup_user_id");
+    const popup_title = document.getElementById("popup_title");
+    const popup_message = document.getElementById("popup_message");
+    const popup_expires = document.getElementById("popup_expires");
+    const btnSendPopup = document.getElementById("btnSendPopup");
+
+    const notif_user_id = document.getElementById("notif_user_id");
+    const notif_title = document.getElementById("notif_title");
+    const notif_message = document.getElementById("notif_message");
+    const btnSendNotif = document.getElementById("btnSendNotif");
+
+    const email_user_id = document.getElementById("email_user_id");
+    const email_to = document.getElementById("email_to");
+    const email_broadcast = document.getElementById("email_broadcast");
+    const email_html = document.getElementById("email_html");
+    const email_subject = document.getElementById("email_subject");
+    const email_message = document.getElementById("email_message");
+    const btnSendEmail = document.getElementById("btnSendEmail");
+
+    // filters (shared)
+    const filter_type = document.getElementById("filter_type");
+    const filter_user_id = document.getElementById("filter_user_id");
+    const filter_page = document.getElementById("filter_page");
+    const filter_limit = document.getElementById("filter_limit");
+    const btnApplyFilters = document.getElementById("btnApplyFilters");
+    const btnResetFilters = document.getElementById("btnResetFilters");
+
+    // “Selected user” toolbar buttons
+    const btnFillFromSelected = document.getElementById("btnFillFromSelected");
+    const btnClearSelected = document.getElementById("btnClearSelected");
+
+    // tables
+    const tbodyNotifs = document.getElementById("tbodyNotifs");
+    const tbodyEmails = document.getElementById("tbodyEmails");
+    const tbodyUsers  = document.getElementById("tbodyUsers");
+
+    // tabs/panels
+    const tabNotifs = document.getElementById("tabNotifs");
+    const tabEmails = document.getElementById("tabEmails");
+    const tabUsers  = document.getElementById("tabUsers");
+
+    const panelNotifs = document.getElementById("panelNotifs");
+    const panelEmails = document.getElementById("panelEmails");
+    const panelUsers  = document.getElementById("panelUsers");
+
+    // pagination buttons
+    const btnPrevN = document.getElementById("btnPrevN");
+    const btnNextN = document.getElementById("btnNextN");
+    const btnPrevE = document.getElementById("btnPrevE");
+    const btnNextE = document.getElementById("btnNextE");
+
+    // users panel controls
+    const btnLoadUsers = document.getElementById("btnLoadUsers");
+    const users_search = document.getElementById("users_search");
+    const btnApplyUserSearch = document.getElementById("btnApplyUserSearch");
+    const btnClearUserSearch = document.getElementById("btnClearUserSearch");
+    const usersCount = document.getElementById("usersCount");
+    const selectedUserBox = document.getElementById("selectedUserBox");
+    const btnUseForPopup = document.getElementById("btnUseForPopup");
+    const btnUseForNotif = document.getElementById("btnUseForNotif");
+    const btnUseForEmail = document.getElementById("btnUseForEmail");
+    const btnCopyEmail   = document.getElementById("btnCopyEmail");
+    const btnScrollCompose = document.getElementById("btnScrollCompose");
+    const btnScrollTop = document.getElementById("btnScrollTop");
+
+    document.getElementById("yr").textContent = new Date().getFullYear();
+
+    let ACTIVE_TAB = "notifs"; // notifs | emails | users
+    let META_NOTIFS = { page: 1, total_pages: 1, total: 0, limit: 20 };
+    let META_EMAILS = { page: 1, total_pages: 1, total: 0, limit: 20 };
+
+    // users cache
+    let USERS_RAW = [];
+    let USERS_VIEW = [];
+    let SELECTED_USER = null;
+
+    function showAlert(type, msg) {
+      alertBox.classList.remove("hidden");
+      alertBox.textContent = msg;
+
+      alertBox.classList.remove("bg-red-500/10", "border-red-400/20", "text-red-200");
+      alertBox.classList.remove("bg-emerald-500/10", "border-emerald-400/20", "text-emerald-200");
+      alertBox.classList.remove("bg-amber-500/10", "border-amber-400/20", "text-amber-200");
+
+      if (type === "success") alertBox.classList.add("bg-emerald-500/10", "border", "border-emerald-400/20", "text-emerald-200");
+      else if (type === "warn") alertBox.classList.add("bg-amber-500/10", "border", "border-amber-400/20", "text-amber-200");
+      else alertBox.classList.add("bg-red-500/10", "border", "border-red-400/20", "text-red-200");
+    }
+
+    function token(){ return localStorage.getItem(TOKEN_KEY) || ""; }
+    function requireAuthOrRedirect(){
+      if (!token()) { window.location.href = "./index.html"; return false; }
+      return true;
+    }
+
+    function api(){
+      return window.SwayApi.adminClient({ timeout: 45000 });
+    }
+
+    function esc(s){
+      return String(s ?? "").replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+    }
+
+    function fmtDate(d){
+      if (!d) return "—";
+      const dt = new Date(d);
+      return Number.isNaN(dt.getTime()) ? String(d) : dt.toLocaleString();
+    }
+
+    function pillType(t){
+      if (t === "popup") return `<span class="pill type-popup">POPUP</span>`;
+      return `<span class="pill type-notif">NOTIFICATION</span>`;
+    }
+    function pillStatus(s){
+      if (s === "sent") return `<span class="pill stat-sent">SENT</span>`;
+      if (s === "failed") return `<span class="pill stat-failed">FAILED</span>`;
+      return `<span class="pill chip">${esc(s)}</span>`;
+    }
+
+    function pillBool(val){
+      return val ? `<span class="pill ok">YES</span>` : `<span class="pill bad">NO</span>`;
+    }
+
+    function setLoading(btn, on, loadingText, normalText){
+      if (on){
+        btn.disabled = true;
+        btn.classList.add("opacity-70");
+        btn.textContent = loadingText;
+      } else {
+        btn.disabled = false;
+        btn.classList.remove("opacity-70");
+        btn.textContent = normalText;
+      }
+    }
+
+    function normalizeUserId(val){
+      const s = String(val || "").trim();
+      if (!s) return null;
+      const n = Number(s);
+      return Number.isFinite(n) && n > 0 ? n : null;
+    }
+
+    function setSelectedUser(u){
+      SELECTED_USER = u || null;
+
+      const enabled = !!SELECTED_USER;
+      btnUseForPopup.disabled = !enabled;
+      btnUseForNotif.disabled = !enabled;
+      btnUseForEmail.disabled = !enabled;
+      btnCopyEmail.disabled = !enabled;
+
+      btnFillFromSelected.classList.toggle("hidden", !enabled);
+      btnClearSelected.classList.toggle("hidden", !enabled);
+
+      if (!SELECTED_USER){
+        selectedUserBox.textContent = "None selected";
+        return;
+      }
+
+      const email = SELECTED_USER.email ? SELECTED_USER.email : "—";
+      const phone = SELECTED_USER.phone ? SELECTED_USER.phone : "—";
+      selectedUserBox.innerHTML = `
+        <div class="font-extrabold">#${esc(SELECTED_USER.id)} • ${esc(SELECTED_USER.full_name || "—")}</div>
+        <div class="text-xs text-white/60">${esc(SELECTED_USER.username || "—")} • ${esc(email)} • ${esc(phone)}</div>
+      `;
+    }
+
+    function copyTextToClipboard(text){
+      const t = String(text || "").trim();
+      if (!t) return;
+      navigator.clipboard?.writeText(t).then(() => {
+        showAlert("success", "Copied to clipboard");
+      }).catch(() => {
+        const ta = document.createElement("textarea");
+        ta.value = t;
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand("copy"); showAlert("success", "Copied to clipboard"); }
+        catch(e){ showAlert("error", "Copy failed"); }
+        document.body.removeChild(ta);
+      });
+    }
+
+    function setTab(tab){
+      ACTIVE_TAB = tab;
+
+      panelNotifs.classList.add("hidden");
+      panelEmails.classList.add("hidden");
+      panelUsers.classList.add("hidden");
+
+      tabNotifs.className = "rounded-2xl btn-ghost px-4 py-3 font-extrabold";
+      tabEmails.className = "rounded-2xl btn-ghost px-4 py-3 font-extrabold";
+      tabUsers.className  = "rounded-2xl btn-ghost px-4 py-3 font-extrabold";
+
+      if (tab === "notifs") {
+        panelNotifs.classList.remove("hidden");
+        tabNotifs.className = "rounded-2xl btn-primary px-4 py-3 font-extrabold";
+        loadNotifications();
+      } else if (tab === "emails") {
+        panelEmails.classList.remove("hidden");
+        tabEmails.className = "rounded-2xl btn-primary px-4 py-3 font-extrabold";
+        loadEmailLogs();
+      } else {
+        panelUsers.classList.remove("hidden");
+        tabUsers.className = "rounded-2xl btn-primary px-4 py-3 font-extrabold";
+        const total = USERS_VIEW.length || 0;
+        metaLine.textContent = `Users • Loaded ${USERS_RAW.length} • Showing ${total}`;
+      }
+    }
+
+    function getSharedFilters(){
+      const page = Math.max(parseInt(filter_page.value || "1", 10), 1);
+      const limit = Math.min(Math.max(parseInt(filter_limit.value || "20", 10), 1), 100);
+
+      const user_id_raw = String(filter_user_id.value || "").trim();
+      const user_id = user_id_raw ? Number(user_id_raw) : null;
+
+      return { page, limit, user_id, type: String(filter_type.value || "").trim() };
+    }
+
+    async function loadNotifications(){
+      alertBox.classList.add("hidden");
+      tbodyNotifs.innerHTML = `<tr><td colspan="8" class="text-white/60">Loading…</td></tr>`;
+
+      const { page, limit, user_id, type } = getSharedFilters();
+
+      try{
+        const params = { page, limit };
+        if (type) params.type = type;
+        if (user_id) params.user_id = user_id;
+
+        const res = await api().get(`/notify`, { params });
+        const data = res.data || {};
+        META_NOTIFS = data.meta || { page, limit, total_pages: 1, total: 0 };
+
+        const rows = Array.isArray(data.notifications) ? data.notifications : [];
+        renderNotifications(rows);
+        metaLine.textContent = `Notifications • Page ${META_NOTIFS.page} / ${META_NOTIFS.total_pages} • Total ${META_NOTIFS.total}`;
+      }catch(e){
+        const status = e?.response?.status;
+        const msg = e?.response?.data?.message || "Failed to load notifications.";
+        if (status === 401 || status === 403) {
+          showAlert("error", msg + " Redirecting…");
+          setTimeout(() => (window.location.href = "./index.html"), 700);
+          return;
+        }
+        showAlert("error", msg);
+        tbodyNotifs.innerHTML = `<tr><td colspan="8" class="text-white/60">Error loading notifications.</td></tr>`;
+      }
+    }
+
+    function renderNotifications(rows){
+      if (!rows.length){
+        tbodyNotifs.innerHTML = `<tr><td colspan="8" class="text-white/60">No notifications found.</td></tr>`;
+        return;
+      }
+
+      tbodyNotifs.innerHTML = rows.map(n => {
+        const target = n.user_id ? `User #${n.user_id}` : "Broadcast";
+        const expires = n.expires_at ? fmtDate(n.expires_at) : "—";
+        const created = fmtDate(n.created_at);
+
+        return `
+          <tr>
+            <td class="text-white/70 font-semibold">#${esc(n.id)}</td>
+            <td>${pillType(n.type)}</td>
+            <td class="text-white/70">${esc(target)}<div class="text-xs text-white/45">${n.email ? esc(n.email) : ""}</div></td>
+            <td class="font-extrabold">${esc(n.title)}</td>
+            <td class="text-white/80">${esc(n.message)}</td>
+            <td class="text-white/60">${esc(expires)}</td>
+            <td class="text-white/60">${esc(created)}</td>
+            <td>
+              <button class="rounded-2xl btn-bad px-4 py-2 font-extrabold" onclick="deleteNotification(${Number(n.id)})">Delete</button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    window.deleteNotification = async function(id){
+      const ok = confirm(`Delete notification #${id}?`);
+      if (!ok) return;
+
+      try{
+        showAlert("warn", `Deleting notification #${id}…`);
+        await api().delete(`/notify/${id}`);
+        showAlert("success", `Notification #${id} deleted.`);
+        loadNotifications();
+      }catch(e){
+        showAlert("error", e?.response?.data?.message || "Delete failed.");
+      }
+    }
+
+    async function loadEmailLogs(){
+      alertBox.classList.add("hidden");
+      tbodyEmails.innerHTML = `<tr><td colspan="9" class="text-white/60">Loading…</td></tr>`;
+
+      const { page, limit, user_id } = getSharedFilters();
+
+      try{
+        const params = { page, limit };
+        if (user_id) params.user_id = user_id;
+
+        const res = await api().get(`/notify/emails`, { params });
+        const data = res.data || {};
+        META_EMAILS = data.meta || { page, limit, total_pages: 1, total: 0 };
+
+        const rows = Array.isArray(data.emails) ? data.emails : [];
+        renderEmails(rows);
+        metaLine.textContent = `Email Logs • Page ${META_EMAILS.page} / ${META_EMAILS.total_pages} • Total ${META_EMAILS.total}`;
+      }catch(e){
+        const status = e?.response?.status;
+        const msg = e?.response?.data?.message || "Failed to load email logs.";
+        if (status === 401 || status === 403) {
+          showAlert("error", msg + " Redirecting…");
+          setTimeout(() => (window.location.href = "./index.html"), 700);
+          return;
+        }
+        showAlert("error", msg);
+        tbodyEmails.innerHTML = `<tr><td colspan="9" class="text-white/60">Error loading email logs.</td></tr>`;
+      }
+    }
+
+    function renderEmails(rows){
+      if (!rows.length){
+        tbodyEmails.innerHTML = `<tr><td colspan="9" class="text-white/60">No email logs found.</td></tr>`;
+        return;
+      }
+
+      tbodyEmails.innerHTML = rows.map(e => {
+        return `
+          <tr>
+            <td class="text-white/70 font-semibold">#${esc(e.id)}</td>
+            <td>${pillStatus(e.status)}</td>
+            <td class="text-white/70">${e.user_id ? esc(e.user_id) : "—"}</td>
+            <td class="text-white/60">${e.user_email ? esc(e.user_email) : "—"}</td>
+            <td class="text-white/80">${esc(e.to_email || "—")}</td>
+            <td class="font-extrabold">${esc(e.subject || "")}</td>
+            <td class="text-white/80">${esc(e.message || "")}</td>
+            <td class="text-white/55">${esc(e.error || "—")}</td>
+            <td class="text-white/60">${esc(fmtDate(e.created_at))}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    // ---------------- USERS DIRECTORY (GET /users) ----------------
+    function formatFiatBalances(u){
+      const main = u.main_balance ?? "0";
+      const profit = u.profit_balance ?? "0";
+      const invest = u.investment_balance ?? "0";
+      return `
+        <div class="text-xs text-white/70">
+          <div><span class="text-white/50">Main:</span> <span class="mono">${esc(main)}</span></div>
+          <div><span class="text-white/50">Profit:</span> <span class="mono">${esc(profit)}</span></div>
+          <div><span class="text-white/50">Invest:</span> <span class="mono">${esc(invest)}</span></div>
+        </div>
+      `;
+    }
+
+    function formatCryptoBalances(u){
+      const list = u.crypto_balances || u.balances || u.crypto || u.assets || null;
+      if (!list) return `<span class="text-white/55">—</span>`;
+
+      if (Array.isArray(list)){
+        if (!list.length) return `<span class="text-white/55">—</span>`;
+        const line = list.slice(0, 6).map(x => `${x.asset}:${x.balance}`).join(" • ");
+        const more = list.length > 6 ? ` <span class="text-white/45">(+${list.length - 6})</span>` : "";
+        return `<div class="text-xs text-white/80 mono">${esc(line)}${more}</div>`;
+      }
+
+      if (typeof list === "object"){
+        const keys = Object.keys(list);
+        if (!keys.length) return `<span class="text-white/55">—</span>`;
+        const line = keys.slice(0, 6).map(k => `${k}:${list[k]}`).join(" • ");
+        const more = keys.length > 6 ? ` <span class="text-white/45">(+${keys.length - 6})</span>` : "";
+        return `<div class="text-xs text-white/80 mono">${esc(line)}${more}</div>`;
+      }
+
+      return `<span class="text-white/55">—</span>`;
+    }
+
+    function pillUserStatus(u){
+      const s = String(u.account_status || u.status || "").toLowerCase();
+      if (!s) return `<span class="pill chip">—</span>`;
+      if (s.includes("active")) return `<span class="pill ok">ACTIVE</span>`;
+      if (s.includes("hold") || s.includes("pending")) return `<span class="pill warn">${esc(s.toUpperCase())}</span>`;
+      if (s.includes("ban") || s.includes("blocked") || s.includes("suspend")) return `<span class="pill bad">${esc(s.toUpperCase())}</span>`;
+      return `<span class="pill chip">${esc(s.toUpperCase())}</span>`;
+    }
+
+    function rowSelectStyle(u){
+      if (!SELECTED_USER) return "";
+      return (Number(SELECTED_USER.id) === Number(u.id)) ? "background: rgba(56,189,248,0.08);" : "";
+    }
+
+    function renderUsers(){
+      usersCount.textContent = `Users • ${USERS_VIEW.length}`;
+      metaLine.textContent = `Users • Loaded ${USERS_RAW.length} • Showing ${USERS_VIEW.length}`;
+
+      if (!USERS_VIEW.length){
+        tbodyUsers.innerHTML = `<tr><td colspan="11" class="text-white/60">No users match your search.</td></tr>`;
+        return;
+      }
+
+      tbodyUsers.innerHTML = USERS_VIEW.map(u => {
+        const name = u.full_name || "—";
+        const username = u.username || "—";
+        const email = u.email || "";
+        const phone = u.phone || "—";
+        const country = u.country || "—";
+        const role = u.role || "user";
+        const verified = !!u.is_verified;
+
+        return `
+          <tr style="${rowSelectStyle(u)}" onclick="selectUserFromRow(${Number(u.id)})">
+            <td class="text-white/70 font-semibold">#${esc(u.id)}</td>
+            <td>
+              <div class="font-extrabold">${esc(name)}</div>
+              <div class="text-xs text-white/50">${esc(username)}</div>
+            </td>
+            <td>
+              <div class="text-white/85">${email ? esc(email) : "<span class='text-white/50'>—</span>"}</div>
+              <div class="text-xs text-white/50">${esc(phone)}</div>
+            </td>
+            <td class="text-white/70">${esc(country)}</td>
+            <td><span class="pill chip">${esc(String(role).toUpperCase())}</span></td>
+            <td>${pillBool(verified)}</td>
+            <td>${pillUserStatus(u)}</td>
+            <td>${formatFiatBalances(u)}</td>
+            <td>${formatCryptoBalances(u)}</td>
+            <td class="text-white/60">${esc(fmtDate(u.created_at))}</td>
+            <td>
+              <div class="flex flex-wrap gap-2">
+                <button class="rounded-2xl btn-purple px-3 py-2 font-extrabold" onclick="useUserFor('popup', ${Number(u.id)}); event.stopPropagation();">Popup</button>
+                <button class="rounded-2xl btn-sky px-3 py-2 font-extrabold" onclick="useUserFor('notif', ${Number(u.id)}); event.stopPropagation();">In-App</button>
+                <button class="rounded-2xl btn-good px-3 py-2 font-extrabold" onclick="useUserFor('email', ${Number(u.id)}); event.stopPropagation();">Email</button>
+                <button class="rounded-2xl btn-ghost px-3 py-2 font-extrabold" onclick="copyUserEmail(${Number(u.id)}); event.stopPropagation();">Copy Email</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function applyUserSearch(){
+      const q = String(users_search.value || "").trim().toLowerCase();
+      if (!q){
+        USERS_VIEW = [...USERS_RAW];
+        renderUsers();
+        return;
+      }
+
+      USERS_VIEW = USERS_RAW.filter(u => {
+        const blob = [
+          u.id,
+          u.full_name,
+          u.username,
+          u.email,
+          u.phone,
+          u.country,
+          u.city,
+          u.address,
+          u.account_status,
+          u.role
+        ].map(x => String(x ?? "").toLowerCase()).join(" | ");
+        return blob.includes(q);
+      });
+
+      renderUsers();
+    }
+
+    async function loadUsers(){
+      alertBox.classList.add("hidden");
+      tbodyUsers.innerHTML = `<tr><td colspan="11" class="text-white/60">Loading users…</td></tr>`;
+
+      try{
+        const res = await api().get(`/users`);
+        const data = res.data || {};
+        USERS_RAW = Array.isArray(data.users) ? data.users : [];
+        USERS_VIEW = [...USERS_RAW];
+
+        users_search.value = "";
+        renderUsers();
+
+        if (!USERS_RAW.length){
+          showAlert("warn", "No users found.");
+        }
+      }catch(e){
+        const status = e?.response?.status;
+        const msg = e?.response?.data?.message || "Failed to load users.";
+        if (status === 401 || status === 403) {
+          showAlert("error", msg + " Redirecting…");
+          setTimeout(() => (window.location.href = "./index.html"), 700);
+          return;
+        }
+        showAlert("error", msg);
+        tbodyUsers.innerHTML = `<tr><td colspan="11" class="text-white/60">Error loading users.</td></tr>`;
+      }
+    }
+
+    // ✅ NEW: auto-fill recipient ids on row click
+    function autoFillRecipientsFromUser(u){
+      if (!u) return;
+
+      // Fill IDs (all 3)
+      popup_user_id.value = String(u.id);
+      notif_user_id.value = String(u.id);
+      email_user_id.value = String(u.id);
+
+      // Fill email if available (optional)
+      if (u.email) email_to.value = String(u.email);
+
+      // Optional: turn off broadcast automatically so you don’t mistakenly broadcast
+      email_broadcast.checked = false;
+
+      showAlert("success", `Selected User #${u.id} • Recipient fields auto-filled`);
+
+      // ✅ optional scroll to compose area
+      document.querySelector("#popup_title").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    window.selectUserFromRow = function(id){
+      const u = USERS_RAW.find(x => Number(x.id) === Number(id)) || null;
+      setSelectedUser(u);
+      renderUsers();
+
+      // ✅ this is the main behavior you asked for
+      autoFillRecipientsFromUser(u);
+    }
+
+    window.useUserFor = function(kind, id){
+      const u = USERS_RAW.find(x => Number(x.id) === Number(id)) || null;
+      setSelectedUser(u);
+
+      if (!u) return;
+      if (kind === "popup"){
+        popup_user_id.value = String(u.id);
+        showAlert("success", `Selected User #${u.id} for Popup`);
+        setTimeout(() => popup_title.focus(), 250);
+      } else if (kind === "notif"){
+        notif_user_id.value = String(u.id);
+        showAlert("success", `Selected User #${u.id} for In-App Notification`);
+        setTimeout(() => notif_title.focus(), 250);
+      } else if (kind === "email"){
+        email_user_id.value = String(u.id);
+        if (u.email) email_to.value = String(u.email);
+        showAlert("success", `Selected User #${u.id} for Email`);
+        setTimeout(() => email_subject.focus(), 250);
+      }
+
+      document.querySelector("#popup_title").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    window.copyUserEmail = function(id){
+      const u = USERS_RAW.find(x => Number(x.id) === Number(id)) || null;
+      if (!u) return;
+      const email = String(u.email || "").trim();
+      if (!email) return showAlert("warn", "User has no email.");
+      copyTextToClipboard(email);
+    }
+
+    // -------- SEND HANDLERS --------
+    btnSendPopup.addEventListener("click", async () => {
+      const user_id = normalizeUserId(popup_user_id.value);
+      const title = String(popup_title.value || "").trim();
+      const message = String(popup_message.value || "").trim();
+      const expires_in_minutes = popup_expires.value ? Number(popup_expires.value) : null;
+
+      if (!title) return showAlert("error", "Popup title is required");
+      if (!message) return showAlert("error", "Popup message is required");
+      if (expires_in_minutes !== null && (!Number.isFinite(expires_in_minutes) || expires_in_minutes <= 0)) {
+        return showAlert("error", "expires_in_minutes must be a positive number");
+      }
+
+      setLoading(btnSendPopup, true, "Sending…", "Send Popup");
+      try{
+        const body = { title, message };
+        if (user_id) body.user_id = user_id;
+        if (expires_in_minutes) body.expires_in_minutes = expires_in_minutes;
+
+        const res = await api().post(`/notify/popup`, body);
+        showAlert("success", res.data?.message || "Popup sent");
+        popup_title.value = "";
+        popup_message.value = "";
+        popup_expires.value = "";
+        setTab("notifs");
+      }catch(e){
+        showAlert("error", e?.response?.data?.message || "Send popup failed.");
+      }finally{
+        setLoading(btnSendPopup, false, "Sending…", "Send Popup");
+      }
+    });
+
+    btnSendNotif.addEventListener("click", async () => {
+      const user_id = normalizeUserId(notif_user_id.value);
+      const title = String(notif_title.value || "").trim();
+      const message = String(notif_message.value || "").trim();
+
+      if (!title) return showAlert("error", "Notification title is required");
+      if (!message) return showAlert("error", "Notification message is required");
+
+      setLoading(btnSendNotif, true, "Sending…", "Send Notification");
+      try{
+        const body = { title, message };
+        if (user_id) body.user_id = user_id;
+
+        const res = await api().post(`/notify/notification`, body);
+        showAlert("success", res.data?.message || "Notification sent");
+        notif_title.value = "";
+        notif_message.value = "";
+        setTab("notifs");
+      }catch(e){
+        showAlert("error", e?.response?.data?.message || "Send notification failed.");
+      }finally{
+        setLoading(btnSendNotif, false, "Sending…", "Send Notification");
+      }
+    });
+
+    btnSendEmail.addEventListener("click", async () => {
+      const user_id = normalizeUserId(email_user_id.value);
+      const to_email = String(email_to.value || "").trim();
+      const broadcast = !!email_broadcast.checked;
+      const html = !!email_html.checked;
+
+      const subject = String(email_subject.value || "").trim();
+      const message = String(email_message.value || "").trim();
+
+      if (!subject) return showAlert("error", "Email subject is required");
+      if (!message) return showAlert("error", "Email message is required");
+
+      if (!broadcast && !user_id && !to_email) {
+        return showAlert("error", "Provide user_id OR to_email OR enable broadcast");
+      }
+
+      setLoading(btnSendEmail, true, "Sending…", "Send Email");
+      try{
+        const body = { subject, message, broadcast, html };
+        if (!broadcast && user_id) body.user_id = user_id;
+        if (!broadcast && !user_id && to_email) body.to_email = to_email;
+
+        const res = await api().post(`/notify/email`, body);
+
+        const sent = res.data?.sent_count ?? 0;
+        const failed = res.data?.failed_count ?? 0;
+
+        showAlert("success", `${res.data?.message || "Email send completed"} • sent: ${sent} • failed: ${failed}`);
+
+        email_subject.value = "";
+        email_message.value = "";
+
+        setTab("emails");
+      }catch(e){
+        showAlert("error", e?.response?.data?.message || "Send email failed.");
+      }finally{
+        setLoading(btnSendEmail, false, "Sending…", "Send Email");
+      }
+    });
+
+    // pagination: Notifications
+    btnPrevN.addEventListener("click", () => {
+      const p = Math.max((parseInt(filter_page.value, 10) || 1) - 1, 1);
+      filter_page.value = String(p);
+      loadNotifications();
+    });
+    btnNextN.addEventListener("click", () => {
+      const p = (parseInt(filter_page.value, 10) || 1) + 1;
+      filter_page.value = String(p);
+      loadNotifications();
+    });
+
+    // pagination: Emails
+    btnPrevE.addEventListener("click", () => {
+      const p = Math.max((parseInt(filter_page.value, 10) || 1) - 1, 1);
+      filter_page.value = String(p);
+      loadEmailLogs();
+    });
+    btnNextE.addEventListener("click", () => {
+      const p = (parseInt(filter_page.value, 10) || 1) + 1;
+      filter_page.value = String(p);
+      loadEmailLogs();
+    });
+
+    // filters
+    btnApplyFilters.addEventListener("click", () => {
+      if (ACTIVE_TAB === "notifs") loadNotifications();
+      else if (ACTIVE_TAB === "emails") loadEmailLogs();
+      else applyUserSearch();
+    });
+
+    btnResetFilters.addEventListener("click", () => {
+      filter_type.value = "";
+      filter_user_id.value = "";
+      filter_page.value = "1";
+      filter_limit.value = "20";
+      if (ACTIVE_TAB === "notifs") loadNotifications();
+      else if (ACTIVE_TAB === "emails") loadEmailLogs();
+      else {
+        users_search.value = "";
+        USERS_VIEW = [...USERS_RAW];
+        renderUsers();
+      }
+    });
+
+    // tabs
+    tabNotifs.addEventListener("click", () => setTab("notifs"));
+    tabEmails.addEventListener("click", () => setTab("emails"));
+    tabUsers.addEventListener("click", () => setTab("users"));
+
+    // top actions
+    btnReload.addEventListener("click", () => {
+      if (ACTIVE_TAB === "notifs") loadNotifications();
+      else if (ACTIVE_TAB === "emails") loadEmailLogs();
+      else loadUsers();
+    });
+
+    btnLogout.addEventListener("click", () => {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(ADMIN_KEY);
+      showAlert("success", "Logged out. Redirecting…");
+      setTimeout(() => (window.location.href = "./index.html"), 600);
+    });
+
+    // modal compose
+    const modalBackdrop = document.getElementById("modalBackdrop");
+    const btnCloseModal = document.getElementById("btnCloseModal");
+    const jumpPopup = document.getElementById("jumpPopup");
+    const jumpNotif = document.getElementById("jumpNotif");
+    const jumpEmail = document.getElementById("jumpEmail");
+
+    function openModal(){ modalBackdrop.classList.add("modal-open"); }
+    function closeModal(){ modalBackdrop.classList.remove("modal-open"); }
+
+    btnCompose.addEventListener("click", openModal);
+    btnCloseModal.addEventListener("click", closeModal);
+    modalBackdrop.addEventListener("click", (e) => { if (e.target === modalBackdrop) closeModal(); });
+
+    function jumpTo(el){
+      closeModal();
+      setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
+      setTimeout(() => el.focus && el.focus(), 450);
+    }
+
+    jumpPopup.addEventListener("click", () => jumpTo(popup_title));
+    jumpNotif.addEventListener("click", () => jumpTo(notif_title));
+    jumpEmail.addEventListener("click", () => jumpTo(email_subject));
+
+    // users actions
+    btnLoadUsers.addEventListener("click", async () => {
+      await loadUsers();
+    });
+
+    btnApplyUserSearch.addEventListener("click", applyUserSearch);
+    btnClearUserSearch.addEventListener("click", () => {
+      users_search.value = "";
+      USERS_VIEW = [...USERS_RAW];
+      renderUsers();
+    });
+
+    users_search.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") applyUserSearch();
+    });
+
+    btnUseForPopup.addEventListener("click", () => {
+      if (!SELECTED_USER) return;
+      popup_user_id.value = String(SELECTED_USER.id);
+      showAlert("success", `Filled Popup user_id with #${SELECTED_USER.id}`);
+      setTab("notifs");
+      setTimeout(() => popup_title.scrollIntoView({ behavior: "smooth", block: "start" }), 200);
+    });
+
+    btnUseForNotif.addEventListener("click", () => {
+      if (!SELECTED_USER) return;
+      notif_user_id.value = String(SELECTED_USER.id);
+      showAlert("success", `Filled In-App user_id with #${SELECTED_USER.id}`);
+      setTab("notifs");
+      setTimeout(() => notif_title.scrollIntoView({ behavior: "smooth", block: "start" }), 200);
+    });
+
+    btnUseForEmail.addEventListener("click", () => {
+      if (!SELECTED_USER) return;
+      email_user_id.value = String(SELECTED_USER.id);
+      if (SELECTED_USER.email) email_to.value = String(SELECTED_USER.email);
+      showAlert("success", `Filled Email recipient with #${SELECTED_USER.id}`);
+      setTab("emails");
+      setTimeout(() => email_subject.scrollIntoView({ behavior: "smooth", block: "start" }), 200);
+    });
+
+    btnCopyEmail.addEventListener("click", () => {
+      if (!SELECTED_USER) return;
+      if (!SELECTED_USER.email) return showAlert("warn", "Selected user has no email.");
+      copyTextToClipboard(SELECTED_USER.email);
+    });
+
+    btnScrollCompose.addEventListener("click", () => {
+      document.querySelector("#popup_title").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    btnScrollTop.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      document.querySelector(".app-shell").scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    btnFillFromSelected.addEventListener("click", () => {
+      if (!SELECTED_USER) return;
+      popup_user_id.value = String(SELECTED_USER.id);
+      notif_user_id.value = String(SELECTED_USER.id);
+      email_user_id.value = String(SELECTED_USER.id);
+      if (SELECTED_USER.email) email_to.value = String(SELECTED_USER.email);
+      email_broadcast.checked = false;
+      showAlert("success", `Filled recipients with selected user #${SELECTED_USER.id}`);
+      document.querySelector("#popup_title").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    btnClearSelected.addEventListener("click", () => {
+      setSelectedUser(null);
+      renderUsers();
+      showAlert("success", "Selected user cleared");
+    });
+
+    (function init(){
+      if (!requireAuthOrRedirect()) return;
+      setSelectedUser(null);
+      setTab("notifs");
+    })();
+  </script>
+</body>
+</html>

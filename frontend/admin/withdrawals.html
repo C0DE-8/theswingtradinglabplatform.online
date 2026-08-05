@@ -1,0 +1,957 @@
+<!-- /admin/withdrawals.html ✅ Upcoinmeta Admin — Withdrawals Management (Responsive + Filters + Pagination + Approve/Decline) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Upcoinmeta — Withdrawals Management</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="../assets/js/api.js"></script>
+
+  <style>
+    * { -webkit-tap-highlight-color: transparent; }
+    :root{
+      --safe-top: env(safe-area-inset-top);
+      --safe-bottom: env(safe-area-inset-bottom);
+    }
+
+    html, body{
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #05060b;
+      overscroll-behavior: none;
+    }
+    .app-shell{
+      height: 100vh;
+      height: 100dvh;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-top: calc(14px + var(--safe-top));
+      padding-bottom: calc(14px + var(--safe-bottom));
+    }
+
+    .glass{
+      background: rgba(10,10,14,.64);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.07);
+      box-shadow: 0 18px 70px rgba(0,0,0,.62);
+    }
+    .chip{ background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); }
+    .soft-border{ border: 1px solid rgba(255,255,255,0.10); }
+    .text-muted{ color: rgba(255,255,255,0.74); }
+    .text-faint{ color: rgba(255,255,255,0.52); }
+
+    .bg-broker{
+      background:
+        radial-gradient(1000px 420px at 20% 0%, rgba(56,189,248,0.18), transparent 60%),
+        radial-gradient(900px 480px at 80% 10%, rgba(34,197,94,0.12), transparent 62%),
+        radial-gradient(900px 520px at 55% 100%, rgba(168,85,247,0.14), transparent 62%),
+        linear-gradient(180deg, #05060b 0%, #070813 45%, #05060b 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .bg-broker::before{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        linear-gradient(to right, rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,.04) 1px, transparent 1px);
+      background-size: 60px 60px;
+      opacity:.16;
+      pointer-events:none;
+    }
+    .bg-broker::after{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        radial-gradient(circle at 12% 18%, rgba(56,189,248,.45) 0 2px, transparent 3px),
+        radial-gradient(circle at 30% 30%, rgba(56,189,248,.35) 0 2px, transparent 3px),
+        radial-gradient(circle at 55% 18%, rgba(56,189,248,.35) 0 2px, transparent 3px),
+        radial-gradient(circle at 78% 34%, rgba(56,189,248,.35) 0 2px, transparent 3px),
+        radial-gradient(circle at 64% 62%, rgba(56,189,248,.25) 0 2px, transparent 3px),
+        radial-gradient(circle at 18% 68%, rgba(56,189,248,.25) 0 2px, transparent 3px);
+      opacity:.55;
+      pointer-events:none;
+      mix-blend-mode: screen;
+    }
+    .ring-glow{ box-shadow: 0 0 0 1px rgba(255,255,255,.06), 0 18px 70px rgba(56,189,248,.10); }
+
+    .btn-primary{ background: linear-gradient(90deg, rgba(56,189,248,0.95), rgba(168,85,247,0.92)); }
+    .btn-primary:hover{ filter: brightness(1.05); }
+    .btn-primary:active{ transform: scale(0.99); }
+
+    .btn-ghost{ background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10); }
+    .btn-ghost:hover{ background: rgba(255,255,255,0.08); }
+    .btn-ghost:active{ transform: scale(0.99); }
+
+    .btn-good{
+      background: rgba(34,197,94,0.10);
+      border: 1px solid rgba(34,197,94,0.28);
+      color: rgba(187,247,208,0.95);
+    }
+    .btn-good:hover{ background: rgba(34,197,94,0.14); }
+
+    .btn-bad{
+      background: rgba(239,68,68,0.10);
+      border: 1px solid rgba(239,68,68,0.26);
+      color: rgba(254,202,202,0.95);
+    }
+    .btn-bad:hover{ background: rgba(239,68,68,0.14); }
+
+    .input{ background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10); outline: none; }
+    .input:focus{ box-shadow: 0 0 0 3px rgba(56,189,248,0.22); border-color: rgba(56,189,248,0.28); }
+
+    .card{ background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10); }
+
+    .table-wrap{ overflow:auto; -webkit-overflow-scrolling:touch; border-radius: 18px; }
+    table{ width:100%; border-collapse: separate; border-spacing: 0; min-width: 1350px; }
+    th, td{ padding: 12px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); vertical-align: top; }
+    th{
+      position: sticky; top: 0;
+      background: rgba(10,10,14,.82);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 2;
+      text-align:left;
+      font-size: 12px;
+      color: rgba(255,255,255,0.72);
+      white-space: nowrap;
+    }
+    td{ font-size: 13px; color: rgba(255,255,255,0.84); }
+    tr:hover td{ background: rgba(255,255,255,0.03); }
+
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 900;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+      white-space: nowrap;
+    }
+    .pill.pending{ border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.12); color: rgba(253,230,138,0.95); }
+    .pill.approved{ border-color: rgba(34,197,94,0.35); background: rgba(34,197,94,0.12); color: rgba(187,247,208,0.95); }
+    .pill.declined{ border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.10); color: rgba(254,202,202,0.95); }
+    .pill.method{ border-color: rgba(168,85,247,0.28); background: rgba(168,85,247,0.10); color: rgba(233,213,255,0.95); }
+    .pill.asset{ border-color: rgba(56,189,248,0.28); background: rgba(56,189,248,0.10); color: rgba(186,230,253,0.95); }
+
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+    .modal-backdrop{
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      display:none;
+      align-items: center;
+      justify-content:center;
+      padding: 14px;
+      z-index: 50;
+    }
+    .modal-open{ display:flex; }
+
+    .modal{
+      width: 100%;
+      max-width: 1120px;
+      border-radius: 22px;
+      max-height: calc(100dvh - 28px);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-header{ padding: 14px 14px 10px; flex: 0 0 auto; }
+    .modal-body{ padding: 0 14px 14px; overflow: auto; -webkit-overflow-scrolling: touch; flex: 1 1 auto; }
+
+    @media (max-width: 640px){
+      .stack{ flex-direction: column; align-items: stretch !important; }
+      .stack > *{ width: 100%; }
+      table{ min-width: 1250px; }
+    }
+    @media (max-width: 420px){
+      input, button, select, textarea { font-size: 16px; }
+    }
+  </style>
+</head>
+
+<body class="bg-broker text-white">
+  <div class="app-shell">
+    <div class="mx-auto max-w-[1500px] px-4">
+      <div class="w-full glass ring-glow rounded-3xl p-5 sm:p-7">
+        <!-- Top -->
+        <div class="flex gap-4 sm:items-center sm:justify-between stack">
+          <div class="flex items-center gap-3">
+            <a href="./dashboard.html" class="w-11 h-11 rounded-2xl chip grid place-items-center shrink-0 hover:opacity-90" title="Back to dashboard">
+              <span class="text-lg font-black">U</span>
+            </a>
+            <div>
+              <div class="text-xl font-extrabold leading-tight">Withdrawals Management</div>
+              <div class="text-sm text-faint -mt-0.5">Admin • Review • Approve/Decline • Pagination</div>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-2 justify-end">
+            <button id="btnReload" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Reload</button>
+            <button id="btnLogout" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Logout</button>
+          </div>
+        </div>
+
+        <!-- Alert -->
+        <div id="alert" class="hidden mt-5 rounded-2xl px-4 py-3 text-sm soft-border"></div>
+
+        <!-- Controls -->
+        <div class="mt-5 grid grid-cols-1 lg:grid-cols-5 gap-4">
+          <div class="rounded-3xl card p-4">
+            <div class="text-xs text-white/55 font-semibold">Search</div>
+            <input id="q" class="mt-2 w-full rounded-2xl input px-4 py-3" placeholder="Search: email, user_id, asset, address, bank…" />
+            <div class="mt-2 text-xs text-white/45">Client-side on current page.</div>
+          </div>
+
+          <div class="rounded-3xl card p-4">
+            <div class="text-xs text-white/55 font-semibold">Status</div>
+            <select id="status" class="mt-2 w-full rounded-2xl input px-4 py-3">
+              <option value="">All</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="declined">Declined</option>
+            </select>
+            <div class="mt-2 text-xs text-white/45">Server filter: <b>?status=</b></div>
+          </div>
+
+          <div class="rounded-3xl card p-4">
+            <div class="text-xs text-white/55 font-semibold">Method</div>
+            <select id="method" class="mt-2 w-full rounded-2xl input px-4 py-3">
+              <option value="">All</option>
+              <option value="crypto">Crypto</option>
+              <option value="bank">Bank</option>
+            </select>
+            <div class="mt-2 text-xs text-white/45">Server filter: <b>?method=</b></div>
+          </div>
+
+          <div class="rounded-3xl card p-4">
+            <div class="text-xs text-white/55 font-semibold">Asset</div>
+            <input id="asset" class="mt-2 w-full rounded-2xl input px-4 py-3" placeholder="BTC / ETH / USDT…" />
+            <div class="mt-2 text-xs text-white/45">Server filter: <b>?asset=</b></div>
+          </div>
+
+          <div class="rounded-3xl card p-4">
+            <div class="text-xs text-white/55 font-semibold">Pagination</div>
+            <div class="mt-2 grid grid-cols-2 gap-2">
+              <input id="limit" class="w-full rounded-2xl input px-4 py-3" type="number" min="1" max="100" value="20" />
+              <input id="user_id" class="w-full rounded-2xl input px-4 py-3" type="number" min="1" placeholder="user_id" />
+            </div>
+            <div class="mt-2 text-xs text-white/45">Server: <b>?page</b> / <b>?limit</b> / <b>?user_id</b></div>
+          </div>
+        </div>
+
+        <!-- Actions Row -->
+        <div class="mt-4 flex items-center justify-between gap-3 flex-wrap">
+          <div class="chip rounded-xl px-3 py-2 text-xs font-extrabold" id="metaLine">—</div>
+          <div class="flex gap-2 flex-wrap">
+            <button id="btnApply" class="rounded-2xl btn-primary px-5 py-3 font-extrabold">Apply Filters</button>
+            <button id="btnClear" class="rounded-2xl btn-ghost px-5 py-3 font-extrabold">Clear</button>
+            <button id="btnExport" class="rounded-2xl btn-ghost px-5 py-3 font-extrabold">Export Page CSV</button>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="mt-5 rounded-3xl card p-0">
+          <div class="px-5 py-4 flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <div class="font-extrabold">Withdrawal Requests</div>
+              <div class="text-sm text-white/60">Approve deducts <b>main_balance</b> and reduces <b>withdraw_hold</b> (per your backend).</div>
+            </div>
+            <div class="chip rounded-xl px-3 py-2 text-xs font-extrabold" id="lastLoaded">Last loaded: —</div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>User</th>
+                  <th>Method</th>
+                  <th>Asset</th>
+                  <th>Amount</th>
+                  <th>Destination</th>
+                  <th>Status</th>
+                  <th>Admin Note</th>
+                  <th>Created</th>
+                  <th>Updated</th>
+                  <th style="min-width:290px;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="tbody">
+                <tr><td colspan="11" class="text-white/60">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pager -->
+          <div class="px-5 py-4 flex items-center justify-between gap-3 flex-wrap">
+            <button id="prevBtn" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Prev</button>
+            <div class="text-sm text-white/70" id="pageLine">—</div>
+            <button id="nextBtn" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Next</button>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="mt-7 text-center text-xs text-white/45">
+          © <span id="yr"></span> Upcoinmeta • Admin Console
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div id="detailBackdrop" class="modal-backdrop">
+    <div class="glass ring-glow modal">
+      <div class="modal-header">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div class="text-lg font-extrabold" id="modalTitle">Withdrawal</div>
+            <div class="text-sm text-white/60" id="modalSub">—</div>
+          </div>
+          <div class="flex flex-wrap gap-2 justify-end">
+            <button id="btnCloseDetail" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Close</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <!-- Info -->
+          <div class="rounded-3xl card p-4">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <div class="font-extrabold">Details</div>
+              <div class="chip rounded-xl px-3 py-1 text-xs font-extrabold" id="idChip">—</div>
+            </div>
+
+            <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              <div class="rounded-2xl chip px-3 py-3">
+                <div class="text-xs text-white/50 font-semibold">User</div>
+                <div class="font-extrabold" id="dUser">—</div>
+                <div class="text-xs text-white/45" id="dEmail">—</div>
+              </div>
+
+              <div class="rounded-2xl chip px-3 py-3">
+                <div class="text-xs text-white/50 font-semibold">Amount</div>
+                <div class="font-extrabold" id="dAmt">—</div>
+                <div class="text-xs text-white/45" id="dAsset">—</div>
+              </div>
+
+              <div class="rounded-2xl chip px-3 py-3">
+                <div class="text-xs text-white/50 font-semibold">Method</div>
+                <div class="mt-1" id="dMethod">—</div>
+              </div>
+
+              <div class="rounded-2xl chip px-3 py-3">
+                <div class="text-xs text-white/50 font-semibold">Status</div>
+                <div class="mt-1" id="dStatus">—</div>
+              </div>
+
+              <div class="sm:col-span-2 rounded-2xl chip px-3 py-3">
+                <div class="text-xs text-white/50 font-semibold">Destination</div>
+                <div class="text-sm text-white/85 mt-1" id="dDest">—</div>
+              </div>
+
+              <div class="sm:col-span-2 rounded-2xl chip px-3 py-3">
+                <div class="text-xs text-white/50 font-semibold">Created / Updated</div>
+                <div class="text-sm text-white/85 mt-1" id="dTime">—</div>
+              </div>
+
+              <div class="sm:col-span-2 rounded-2xl chip px-3 py-3">
+                <div class="text-xs text-white/50 font-semibold">Current Admin Note</div>
+                <div class="text-sm text-white/85 mt-1" id="dNote">—</div>
+              </div>
+            </div>
+
+            <div class="mt-4 rounded-3xl card p-4">
+              <div class="text-sm font-extrabold">Action Note</div>
+              <div class="text-xs text-white/50 mt-1">This note is stored in <b>withdrawals.admin_note</b>.</div>
+
+              <textarea id="admin_note" rows="3" class="mt-3 w-full rounded-2xl input px-4 py-3" placeholder="Optional note…"></textarea>
+
+              <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button id="btnApprove" class="rounded-2xl btn-good px-5 py-3 font-extrabold">Approve</button>
+                <button id="btnDecline" class="rounded-2xl btn-bad px-5 py-3 font-extrabold">Decline</button>
+              </div>
+
+              <div class="mt-3 text-xs text-white/45">
+                Approve: <b>POST /withdrawals/:id/approve</b> • Decline: <b>POST /withdrawals/:id/decline</b>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bank / Crypto view -->
+          <div class="rounded-3xl card p-4">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <div>
+                <div class="font-extrabold">Payout Details</div>
+                <div class="text-sm text-white/60">Crypto address/network or bank details.</div>
+              </div>
+              <button id="btnCopyDest" class="rounded-2xl btn-primary px-4 py-3 font-extrabold">Copy Destination</button>
+            </div>
+
+            <div class="mt-4 grid grid-cols-1 gap-3">
+              <div class="rounded-2xl chip p-3">
+                <div class="text-xs text-white/50 font-semibold">Method</div>
+                <div id="pMethod" class="mt-1">—</div>
+              </div>
+
+              <div id="cryptoBox" class="rounded-3xl card p-4 hidden">
+                <div class="text-sm font-extrabold">Crypto</div>
+                <div class="mt-3 grid grid-cols-1 gap-2 text-sm">
+                  <div class="rounded-2xl chip p-3">
+                    <div class="text-xs text-white/50 font-semibold">Address</div>
+                    <div id="pCryptoAddr" class="mt-1 mono break-all">—</div>
+                  </div>
+                  <div class="rounded-2xl chip p-3">
+                    <div class="text-xs text-white/50 font-semibold">Network</div>
+                    <div id="pCryptoNet" class="mt-1">—</div>
+                  </div>
+                </div>
+              </div>
+
+              <div id="bankBox" class="rounded-3xl card p-4 hidden">
+                <div class="text-sm font-extrabold">Bank</div>
+                <div class="mt-3 grid grid-cols-1 gap-2 text-sm">
+                  <div class="rounded-2xl chip p-3">
+                    <div class="text-xs text-white/50 font-semibold">Bank Name</div>
+                    <div id="pBankName" class="mt-1">—</div>
+                  </div>
+                  <div class="rounded-2xl chip p-3">
+                    <div class="text-xs text-white/50 font-semibold">Account Number</div>
+                    <div id="pBankNo" class="mt-1 mono">—</div>
+                  </div>
+                  <div class="rounded-2xl chip p-3">
+                    <div class="text-xs text-white/50 font-semibold">Account Name</div>
+                    <div id="pBankAcct" class="mt-1">—</div>
+                  </div>
+                  <div class="rounded-2xl chip p-3">
+                    <div class="text-xs text-white/50 font-semibold">Country</div>
+                    <div id="pBankCountry" class="mt-1">—</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="rounded-2xl chip p-3">
+                <div class="text-xs text-white/50 font-semibold">Destination (Normalized)</div>
+                <div id="pDest" class="mt-1 mono break-all">—</div>
+              </div>
+
+              <div class="text-xs text-white/45">
+                Tip: open the modal to approve/decline with admin note.
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ADMIN_BASE = window.SwayApi.adminBase;
+    const TOKEN_KEY = "upcoinmeta_admin_token";
+    const ADMIN_KEY = "upcoinmeta_admin";
+
+    const alertBox = document.getElementById("alert");
+    const tbody = document.getElementById("tbody");
+    const metaLine = document.getElementById("metaLine");
+    const lastLoaded = document.getElementById("lastLoaded");
+    const pageLine = document.getElementById("pageLine");
+
+    const qEl = document.getElementById("q");
+    const statusEl = document.getElementById("status");
+    const methodEl = document.getElementById("method");
+    const assetEl = document.getElementById("asset");
+    const userIdEl = document.getElementById("user_id");
+    const limitEl = document.getElementById("limit");
+
+    const btnApply = document.getElementById("btnApply");
+    const btnClear = document.getElementById("btnClear");
+    const btnReload = document.getElementById("btnReload");
+    const btnLogout = document.getElementById("btnLogout");
+    const btnExport = document.getElementById("btnExport");
+
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+
+    // modal refs
+    const detailBackdrop = document.getElementById("detailBackdrop");
+    const btnCloseDetail = document.getElementById("btnCloseDetail");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalSub = document.getElementById("modalSub");
+    const idChip = document.getElementById("idChip");
+
+    const dUser = document.getElementById("dUser");
+    const dEmail = document.getElementById("dEmail");
+    const dAmt = document.getElementById("dAmt");
+    const dAsset = document.getElementById("dAsset");
+    const dMethod = document.getElementById("dMethod");
+    const dStatus = document.getElementById("dStatus");
+    const dDest = document.getElementById("dDest");
+    const dTime = document.getElementById("dTime");
+    const dNote = document.getElementById("dNote");
+
+    const adminNoteEl = document.getElementById("admin_note");
+    const btnApprove = document.getElementById("btnApprove");
+    const btnDecline = document.getElementById("btnDecline");
+
+    const btnCopyDest = document.getElementById("btnCopyDest");
+    const pMethod = document.getElementById("pMethod");
+    const cryptoBox = document.getElementById("cryptoBox");
+    const bankBox = document.getElementById("bankBox");
+    const pCryptoAddr = document.getElementById("pCryptoAddr");
+    const pCryptoNet = document.getElementById("pCryptoNet");
+    const pBankName = document.getElementById("pBankName");
+    const pBankNo = document.getElementById("pBankNo");
+    const pBankAcct = document.getElementById("pBankAcct");
+    const pBankCountry = document.getElementById("pBankCountry");
+    const pDest = document.getElementById("pDest");
+
+    document.getElementById("yr").textContent = new Date().getFullYear();
+
+    // state
+    let PAGE = 1;
+    let META = { page: 1, limit: 20, total: 0, total_pages: 1 };
+    let ROWS = [];
+    let VIEW = []; // client filtered on current page
+
+    let ACTIVE_ID = null;
+    let ACTIVE = null;
+
+    function showAlert(type, msg) {
+      alertBox.classList.remove("hidden");
+      alertBox.textContent = msg;
+
+      alertBox.classList.remove("bg-red-500/10", "border-red-400/20", "text-red-200");
+      alertBox.classList.remove("bg-emerald-500/10", "border-emerald-400/20", "text-emerald-200");
+      alertBox.classList.remove("bg-amber-500/10", "border-amber-400/20", "text-amber-200");
+
+      if (type === "success") alertBox.classList.add("bg-emerald-500/10", "border", "border-emerald-400/20", "text-emerald-200");
+      else if (type === "warn") alertBox.classList.add("bg-amber-500/10", "border", "border-amber-400/20", "text-amber-200");
+      else alertBox.classList.add("bg-red-500/10", "border", "border-red-400/20", "text-red-200");
+    }
+
+    function token(){ return localStorage.getItem(TOKEN_KEY) || ""; }
+
+    function requireAuthOrRedirect(){
+      if (!token()) { window.location.href = "./index.html"; return false; }
+      return true;
+    }
+
+    function api(){
+      return window.SwayApi.adminClient({ timeout: 25000 });
+    }
+
+    function escapeHtml(s){
+      return String(s ?? "").replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+    }
+    function fmtDate(d){
+      if (!d) return "—";
+      const dt = new Date(d);
+      return Number.isNaN(dt.getTime()) ? String(d) : dt.toLocaleString();
+    }
+    function pillStatus(s){
+      const v = String(s || "").toLowerCase();
+      if (v === "approved") return `<span class="pill approved">APPROVED</span>`;
+      if (v === "declined") return `<span class="pill declined">DECLINED</span>`;
+      return `<span class="pill pending">PENDING</span>`;
+    }
+    function pillMethod(m){
+      const v = String(m || "").toLowerCase();
+      const label = v ? v.toUpperCase() : "—";
+      return `<span class="pill method">${escapeHtml(label)}</span>`;
+    }
+    function pillAsset(a){
+      const v = String(a || "").toUpperCase();
+      return `<span class="pill asset">${escapeHtml(v || "—")}</span>`;
+    }
+    function canAct(w){
+      return String(w?.status || "").toLowerCase() === "pending";
+    }
+
+    function normalizeDest(w){
+      const method = String(w.method || "").toLowerCase();
+      if (method === "crypto") {
+        const addr = w.crypto_address ? String(w.crypto_address) : "—";
+        const net = w.crypto_network ? ` (${w.crypto_network})` : "";
+        return `${addr}${net}`;
+      }
+      // bank
+      const bank = w.bank_name ? String(w.bank_name) : "—";
+      const acctNo = w.bank_account_number ? String(w.bank_account_number) : "—";
+      const acctName = w.bank_account_name ? String(w.bank_account_name) : "—";
+      const country = w.bank_country ? String(w.bank_country) : "—";
+      return `${bank} • ${acctNo} • ${acctName} • ${country}`;
+    }
+
+    function getQueryParams(){
+      const status = statusEl.value.trim();
+      const method = methodEl.value.trim();
+      const asset = assetEl.value.trim();
+      const user_id = userIdEl.value.trim();
+      const limit = Math.min(Math.max(parseInt(limitEl.value, 10) || 20, 1), 100);
+
+      const qp = new URLSearchParams();
+      qp.set("page", String(PAGE));
+      qp.set("limit", String(limit));
+      if (status) qp.set("status", status);
+      if (method) qp.set("method", method);
+      if (asset) qp.set("asset", asset.toUpperCase());
+      if (user_id) qp.set("user_id", user_id);
+
+      return { qp, limit };
+    }
+
+    async function loadWithdrawals(){
+      alertBox.classList.add("hidden");
+      tbody.innerHTML = `<tr><td colspan="11" class="text-white/60">Loading…</td></tr>`;
+
+      try{
+        const { qp, limit } = getQueryParams();
+        const res = await api().get(`/withdrawals?${qp.toString()}`);
+        const data = res.data || {};
+        META = data.meta || { page: PAGE, limit, total: 0, total_pages: 1 };
+        ROWS = Array.isArray(data.withdrawals) ? data.withdrawals : [];
+        lastLoaded.textContent = `Last loaded: ${new Date().toLocaleString()}`;
+
+        applyClientSearch();
+        updatePagerUI();
+      }catch(err){
+        const status = err?.response?.status;
+        const msg = err?.response?.data?.message || "Failed to load withdrawals.";
+        if (status === 401 || status === 403) {
+          showAlert("error", msg + " Redirecting to admin login…");
+          setTimeout(() => (window.location.href = "./index.html"), 700);
+          return;
+        }
+        showAlert("error", msg);
+        tbody.innerHTML = `<tr><td colspan="11" class="text-white/60">Error loading withdrawals.</td></tr>`;
+      }
+    }
+
+    function applyClientSearch(){
+      const q = qEl.value.trim().toLowerCase();
+      if (!q) {
+        VIEW = ROWS.slice();
+      } else {
+        VIEW = ROWS.filter(w => {
+          const blob = [
+            w.id, w.user_id, w.email, w.method, w.asset, w.amount,
+            w.crypto_address, w.crypto_network,
+            w.bank_name, w.bank_account_number, w.bank_account_name, w.bank_country,
+            w.status, w.admin_note
+          ].join(" ").toLowerCase();
+          return blob.includes(q);
+        });
+      }
+
+      renderTable();
+      metaLine.textContent = `Showing ${VIEW.length} / ${ROWS.length} on page • Total: ${META.total}`;
+    }
+
+    function renderTable(){
+      if (!VIEW.length){
+        tbody.innerHTML = `<tr><td colspan="11" class="text-white/60">No withdrawals found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = VIEW.map(w => {
+        const dest = normalizeDest(w);
+        const userBlock = `
+          <div class="font-extrabold">User #${escapeHtml(w.user_id)}</div>
+          <div class="text-xs text-white/50">${escapeHtml(w.email || "—")}</div>
+        `;
+
+        const destShort = dest.length > 46 ? (dest.slice(0, 28) + "…" + dest.slice(-14)) : dest;
+
+        const note = w.admin_note ? escapeHtml(w.admin_note) : "—";
+
+        const actions = `
+          <div class="flex flex-wrap gap-2">
+            <button class="rounded-2xl btn-primary px-4 py-2 font-extrabold" onclick="openDetail(${Number(w.id)})">View</button>
+            ${String(w.status).toLowerCase() === "pending"
+              ? `<button class="rounded-2xl btn-good px-4 py-2 font-extrabold" onclick="quickApprove(${Number(w.id)})">Approve</button>
+                 <button class="rounded-2xl btn-bad px-4 py-2 font-extrabold" onclick="quickDecline(${Number(w.id)})">Decline</button>`
+              : `<span class="chip rounded-xl px-3 py-2 text-xs font-extrabold">LOCKED</span>`
+            }
+          </div>
+        `;
+
+        return `
+          <tr>
+            <td class="text-white/70 font-semibold">#${escapeHtml(w.id)}</td>
+            <td>${userBlock}</td>
+            <td>${pillMethod(w.method)}</td>
+            <td>${pillAsset(w.asset)}</td>
+            <td class="font-extrabold">${escapeHtml(w.amount)}</td>
+            <td>
+              <div class="text-sm text-white/85">${escapeHtml(destShort)}</div>
+              <div class="text-[11px] text-white/40 mt-1 mono">${escapeHtml(dest)}</div>
+            </td>
+            <td>${pillStatus(w.status)}</td>
+            <td><div class="text-sm text-white/80">${note}</div></td>
+            <td class="text-white/60">${escapeHtml(fmtDate(w.created_at))}</td>
+            <td class="text-white/60">${escapeHtml(fmtDate(w.updated_at))}</td>
+            <td>${actions}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function updatePagerUI(){
+      const p = META.page || PAGE;
+      const tp = META.total_pages || 1;
+      pageLine.textContent = `Page ${p} of ${tp} • Limit ${META.limit || ""}`;
+      prevBtn.disabled = p <= 1;
+      nextBtn.disabled = p >= tp;
+      prevBtn.classList.toggle("opacity-70", prevBtn.disabled);
+      nextBtn.classList.toggle("opacity-70", nextBtn.disabled);
+    }
+
+    async function fetchWithdrawal(id){
+      const res = await api().get(`/withdrawals/${id}`);
+      return res.data?.withdrawal;
+    }
+
+    function setLoading(btn, isLoading, textLoading, textDefault){
+      if (isLoading) {
+        btn.disabled = true;
+        btn.textContent = textLoading;
+        btn.classList.add("opacity-70");
+      } else {
+        btn.disabled = false;
+        btn.textContent = textDefault;
+        btn.classList.remove("opacity-70");
+      }
+    }
+
+    function openModal(){ detailBackdrop.classList.add("modal-open"); }
+    function closeModal(){ detailBackdrop.classList.remove("modal-open"); }
+
+    function fillPayoutBoxes(w){
+      const method = String(w.method || "").toLowerCase();
+      pMethod.innerHTML = pillMethod(method);
+
+      const dest = normalizeDest(w);
+      pDest.textContent = dest;
+
+      if (method === "crypto") {
+        cryptoBox.classList.remove("hidden");
+        bankBox.classList.add("hidden");
+        pCryptoAddr.textContent = w.crypto_address || "—";
+        pCryptoNet.textContent = w.crypto_network || "—";
+      } else if (method === "bank") {
+        bankBox.classList.remove("hidden");
+        cryptoBox.classList.add("hidden");
+        pBankName.textContent = w.bank_name || "—";
+        pBankNo.textContent = w.bank_account_number || "—";
+        pBankAcct.textContent = w.bank_account_name || "—";
+        pBankCountry.textContent = w.bank_country || "—";
+      } else {
+        cryptoBox.classList.add("hidden");
+        bankBox.classList.add("hidden");
+      }
+    }
+
+    window.openDetail = async function(id){
+      alertBox.classList.add("hidden");
+      try{
+        const w = await fetchWithdrawal(id);
+        ACTIVE_ID = Number(w.id);
+        ACTIVE = w;
+
+        modalTitle.textContent = `Withdrawal #${w.id}`;
+        modalSub.textContent = `${String(w.method||"").toUpperCase()} • ${String(w.asset||"").toUpperCase()} • ${w.amount} • ${String(w.status||"").toUpperCase()}`;
+        idChip.textContent = `ID ${w.id}`;
+
+        dUser.textContent = `User #${w.user_id}`;
+        dEmail.textContent = w.email || "—";
+
+        dAmt.textContent = `${w.amount}`;
+        dAsset.textContent = `${String(w.asset||"").toUpperCase()}`;
+
+        dMethod.innerHTML = pillMethod(w.method);
+        dStatus.innerHTML = pillStatus(w.status);
+
+        const dest = normalizeDest(w);
+        dDest.textContent = dest;
+
+        dTime.textContent = `Created: ${fmtDate(w.created_at)} • Updated: ${fmtDate(w.updated_at)}`;
+        dNote.textContent = w.admin_note ? w.admin_note : "—";
+        adminNoteEl.value = w.admin_note ? w.admin_note : "";
+
+        fillPayoutBoxes(w);
+
+        const pending = canAct(w);
+        btnApprove.disabled = !pending;
+        btnDecline.disabled = !pending;
+        btnApprove.classList.toggle("opacity-70", !pending);
+        btnDecline.classList.toggle("opacity-70", !pending);
+
+        openModal();
+      }catch(err){
+        showAlert("error", err?.response?.data?.message || "Failed to load withdrawal.");
+      }
+    }
+
+    async function approveWithdrawal(id, note){
+      return api().post(`/withdrawals/${id}/approve`, { admin_note: note || null }, { headers: { "Content-Type":"application/json" } });
+    }
+    async function declineWithdrawal(id, note){
+      return api().post(`/withdrawals/${id}/decline`, { admin_note: note || null }, { headers: { "Content-Type":"application/json" } });
+    }
+
+    window.quickApprove = async function(id){
+      const note = prompt("Optional admin note (approve):", "Approved");
+      if (note === null) return;
+      try{
+        showAlert("warn", "Approving withdrawal…");
+        await approveWithdrawal(id, note);
+        showAlert("success", `Withdrawal #${id} approved.`);
+        await loadWithdrawals();
+      }catch(err){
+        showAlert("error", err?.response?.data?.message || "Approve failed.");
+      }
+    }
+
+    window.quickDecline = async function(id){
+      const note = prompt("Reason/admin note (decline):", "Declined");
+      if (note === null) return;
+      try{
+        showAlert("warn", "Declining withdrawal…");
+        await declineWithdrawal(id, note);
+        showAlert("success", `Withdrawal #${id} declined.`);
+        await loadWithdrawals();
+      }catch(err){
+        showAlert("error", err?.response?.data?.message || "Decline failed.");
+      }
+    }
+
+    function downloadCsv(rows){
+      const headers = [
+        "id","user_id","email","method","asset","amount","status",
+        "crypto_address","crypto_network",
+        "bank_name","bank_account_number","bank_account_name","bank_country",
+        "admin_note","approved_by","approved_at","declined_by","declined_at","created_at","updated_at"
+      ];
+      const lines = [headers.join(",")];
+      for (const w of rows) {
+        const vals = headers.map(h => {
+          const v = w?.[h];
+          const s = (v === null || v === undefined) ? "" : String(v).replace(/"/g,'""');
+          return `"${s}"`;
+        });
+        lines.push(vals.join(","));
+      }
+      const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `upcoinmeta_withdrawals_page${META.page || PAGE}_${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function clearFilters(){
+      statusEl.value = "";
+      methodEl.value = "";
+      assetEl.value = "";
+      userIdEl.value = "";
+      limitEl.value = "20";
+      qEl.value = "";
+      PAGE = 1;
+    }
+
+    // events
+    btnApply.addEventListener("click", () => { PAGE = 1; loadWithdrawals(); });
+    btnClear.addEventListener("click", () => { clearFilters(); loadWithdrawals(); });
+    btnReload.addEventListener("click", loadWithdrawals);
+
+    qEl.addEventListener("input", applyClientSearch);
+
+    prevBtn.addEventListener("click", () => { PAGE = Math.max((META.page || PAGE) - 1, 1); loadWithdrawals(); });
+    nextBtn.addEventListener("click", () => { PAGE = Math.min((META.page || PAGE) + 1, META.total_pages || 1); loadWithdrawals(); });
+
+    btnExport.addEventListener("click", () => {
+      if (!VIEW.length) return showAlert("warn", "No withdrawals to export (current page/search).");
+      downloadCsv(VIEW);
+      showAlert("success", "CSV exported (current page).");
+    });
+
+    btnLogout.addEventListener("click", () => {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(ADMIN_KEY);
+      showAlert("success", "Logged out. Redirecting…");
+      setTimeout(() => (window.location.href = "./index.html"), 600);
+    });
+
+    btnCloseDetail.addEventListener("click", closeModal);
+    detailBackdrop.addEventListener("click", (e) => { if (e.target === detailBackdrop) closeModal(); });
+
+    btnCopyDest.addEventListener("click", async () => {
+      if (!ACTIVE) return showAlert("warn", "No withdrawal selected.");
+      const text = normalizeDest(ACTIVE);
+      try{
+        await navigator.clipboard.writeText(text);
+        showAlert("success", "Destination copied.");
+      }catch(e){
+        showAlert("error", "Copy failed (browser blocked clipboard).");
+      }
+    });
+
+    btnApprove.addEventListener("click", async () => {
+      if (!ACTIVE_ID || !ACTIVE) return;
+      if (!canAct(ACTIVE)) return showAlert("warn", "This withdrawal is already processed.");
+
+      const note = adminNoteEl.value.trim() || null;
+      setLoading(btnApprove, true, "Approving…", "Approve");
+      setLoading(btnDecline, true, "Working…", "Decline");
+
+      try{
+        const res = await approveWithdrawal(ACTIVE_ID, note);
+        showAlert("success", res.data?.message || "Withdrawal approved.");
+        closeModal();
+        await loadWithdrawals();
+      }catch(err){
+        showAlert("error", err?.response?.data?.message || "Approve failed.");
+      }finally{
+        setLoading(btnApprove, false, "Approving…", "Approve");
+        setLoading(btnDecline, false, "Working…", "Decline");
+      }
+    });
+
+    btnDecline.addEventListener("click", async () => {
+      if (!ACTIVE_ID || !ACTIVE) return;
+      if (!canAct(ACTIVE)) return showAlert("warn", "This withdrawal is already processed.");
+
+      const note = adminNoteEl.value.trim() || null;
+      setLoading(btnDecline, true, "Declining…", "Decline");
+      setLoading(btnApprove, true, "Working…", "Approve");
+
+      try{
+        const res = await declineWithdrawal(ACTIVE_ID, note);
+        showAlert("success", res.data?.message || "Withdrawal declined.");
+        closeModal();
+        await loadWithdrawals();
+      }catch(err){
+        showAlert("error", err?.response?.data?.message || "Decline failed.");
+      }finally{
+        setLoading(btnDecline, false, "Declining…", "Decline");
+        setLoading(btnApprove, false, "Working…", "Approve");
+      }
+    });
+
+    // init
+    (function init(){
+      if (!requireAuthOrRedirect()) return;
+      loadWithdrawals();
+    })();
+  </script>
+</body>
+</html>

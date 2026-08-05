@@ -1,0 +1,1091 @@
+<!-- /admin/account-upgrades.html ✅ Upcoinmeta Admin — Account Upgrades (User-click selection) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Upcoinmeta — Account Upgrades</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="../assets/js/api.js"></script>
+
+  <style>
+    * { -webkit-tap-highlight-color: transparent; }
+    :root{
+      --safe-top: env(safe-area-inset-top);
+      --safe-bottom: env(safe-area-inset-bottom);
+    }
+
+    html, body{
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #05060b;
+      overscroll-behavior: none;
+    }
+    .app-shell{
+      height: 100vh;
+      height: 100dvh;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-top: calc(14px + var(--safe-top));
+      padding-bottom: calc(14px + var(--safe-bottom));
+    }
+
+    .glass{
+      background: rgba(10,10,14,.64);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.07);
+      box-shadow: 0 18px 70px rgba(0,0,0,.62);
+    }
+    .chip{ background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); }
+    .soft-border{ border: 1px solid rgba(255,255,255,0.10); }
+    .text-muted{ color: rgba(255,255,255,0.74); }
+    .text-faint{ color: rgba(255,255,255,0.52); }
+
+    .bg-broker{
+      background:
+        radial-gradient(1000px 420px at 20% 0%, rgba(56,189,248,0.18), transparent 60%),
+        radial-gradient(900px 480px at 80% 10%, rgba(34,197,94,0.12), transparent 62%),
+        radial-gradient(900px 520px at 55% 100%, rgba(168,85,247,0.14), transparent 62%),
+        linear-gradient(180deg, #05060b 0%, #070813 45%, #05060b 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .bg-broker::before{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        linear-gradient(to right, rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,.04) 1px, transparent 1px);
+      background-size: 60px 60px;
+      opacity:.16;
+      pointer-events:none;
+    }
+
+    .ring-glow{ box-shadow: 0 0 0 1px rgba(255,255,255,.06), 0 18px 70px rgba(56,189,248,.10); }
+
+    .btn-primary{ background: linear-gradient(90deg, rgba(56,189,248,0.95), rgba(168,85,247,0.92)); }
+    .btn-primary:hover{ filter: brightness(1.05); }
+    .btn-primary:active{ transform: scale(0.99); }
+
+    .btn-ghost{ background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10); }
+    .btn-ghost:hover{ background: rgba(255,255,255,0.08); }
+    .btn-ghost:active{ transform: scale(0.99); }
+
+    .btn-good{
+      background: rgba(34,197,94,0.10);
+      border: 1px solid rgba(34,197,94,0.28);
+      color: rgba(187,247,208,0.95);
+    }
+    .btn-good:hover{ background: rgba(34,197,94,0.14); }
+
+    .btn-bad{
+      background: rgba(239,68,68,0.10);
+      border: 1px solid rgba(239,68,68,0.26);
+      color: rgba(254,202,202,0.95);
+    }
+    .btn-bad:hover{ background: rgba(239,68,68,0.14); }
+
+    .btn-sky{
+      background: rgba(56,189,248,0.12);
+      border: 1px solid rgba(56,189,248,0.28);
+      color: rgba(186,230,253,0.96);
+    }
+    .btn-sky:hover{ background: rgba(56,189,248,0.16); }
+
+    .btn-purple{
+      background: rgba(168,85,247,0.12);
+      border: 1px solid rgba(168,85,247,0.28);
+      color: rgba(233,213,255,0.96);
+    }
+    .btn-purple:hover{ background: rgba(168,85,247,0.16); }
+
+    .input{ background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10); outline: none; }
+    .input:focus{ box-shadow: 0 0 0 3px rgba(56,189,248,0.22); border-color: rgba(56,189,248,0.28); }
+
+    .card{ background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10); }
+
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+    .table-wrap{ overflow:auto; -webkit-overflow-scrolling:touch; border-radius: 18px; }
+    table{ width:100%; border-collapse: separate; border-spacing: 0; min-width: 1180px; }
+    th, td{ padding: 12px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); vertical-align: top; }
+    th{
+      position: sticky; top: 0;
+      background: rgba(10,10,14,.82);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 2;
+      text-align:left;
+      font-size: 12px;
+      color: rgba(255,255,255,0.72);
+      white-space: nowrap;
+    }
+    td{ font-size: 13px; color: rgba(255,255,255,0.84); }
+    tr:hover td{ background: rgba(255,255,255,0.03); }
+
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 900;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+      white-space: nowrap;
+    }
+    .pill.ok{ border-color: rgba(34,197,94,0.35); background: rgba(34,197,94,0.10); color: rgba(187,247,208,0.95); }
+    .pill.warn{ border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.10); color: rgba(254,243,199,0.95); }
+    .pill.bad{ border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.10); color: rgba(254,202,202,0.95); }
+    .pill.chip{ border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.85); }
+
+    .modal-backdrop{
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      display:none;
+      align-items: center;
+      justify-content:center;
+      padding: 14px;
+      z-index: 50;
+    }
+    .modal-open{ display:flex; }
+    .modal{
+      width: 100%;
+      max-width: 980px;
+      border-radius: 22px;
+      max-height: calc(100dvh - 28px);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-header{ padding: 14px 14px 10px; flex: 0 0 auto; }
+    .modal-body{ padding: 0 14px 14px; overflow: auto; -webkit-overflow-scrolling: touch; flex: 1 1 auto; }
+
+    .grid-compact{ display:grid; grid-template-columns: 1fr; gap: 10px; }
+    @media (min-width: 900px){
+      .grid-compact{ grid-template-columns: 1.2fr 1fr 1fr; gap: 12px; }
+    }
+    @media (max-width: 640px){
+      .stack{ flex-direction: column; align-items: stretch !important; }
+      .stack > *{ width: 100%; }
+      table{ min-width: 1100px; }
+    }
+    @media (max-width: 420px){
+      input, button, select, textarea { font-size: 16px; }
+    }
+  </style>
+</head>
+
+<body class="bg-broker text-white">
+  <div class="app-shell">
+    <div class="mx-auto max-w-[1400px] px-4">
+      <div class="w-full glass ring-glow rounded-3xl p-5 sm:p-7">
+
+        <!-- Top -->
+        <div class="flex gap-4 sm:items-center sm:justify-between stack">
+          <div class="flex items-center gap-3">
+            <a href="./dashboard.html" class="w-11 h-11 rounded-2xl chip grid place-items-center shrink-0 hover:opacity-90" title="Back to dashboard">
+              <span class="text-lg font-black">U</span>
+            </a>
+            <div>
+              <div class="text-xl font-extrabold leading-tight">Account Upgrades</div>
+              <div class="text-sm text-faint -mt-0.5">Admin • Approve / Decline • Click user to auto-filter by user_id</div>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-2 justify-end">
+            <button id="btnReload" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Reload</button>
+            <button id="btnLogout" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Logout</button>
+          </div>
+        </div>
+
+        <!-- Alert -->
+        <div id="alert" class="hidden mt-5 rounded-2xl px-4 py-3 text-sm soft-border"></div>
+
+        <!-- Tabs -->
+        <div class="mt-5 flex flex-wrap gap-2">
+          <button id="tabUpgrades" class="rounded-2xl btn-primary px-4 py-3 font-extrabold">Upgrade Requests</button>
+          <button id="tabUsers" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Users</button>
+          <div class="ml-auto chip rounded-xl px-3 py-2 text-xs font-extrabold" id="metaLine">—</div>
+        </div>
+
+        <!-- Filters -->
+        <div class="mt-3 grid grid-cols-1 lg:grid-cols-5 gap-4">
+          <div class="rounded-3xl card p-4">
+            <div class="text-xs text-white/55 font-semibold">Status</div>
+            <select id="filter_status" class="mt-2 w-full rounded-2xl input px-4 py-3">
+              <option value="" selected>All</option>
+              <option value="pending">pending</option>
+              <option value="approved">approved</option>
+              <option value="declined">declined</option>
+            </select>
+          </div>
+
+          <div class="rounded-3xl card p-4">
+            <div class="text-xs text-white/55 font-semibold">Requested Account Type</div>
+            <input id="filter_requested_type" class="mt-2 w-full rounded-2xl input px-4 py-3" placeholder="e.g. premium" />
+          </div>
+
+          <div class="rounded-3xl card p-4">
+            <div class="text-xs text-white/55 font-semibold">User ID (auto from Users tab)</div>
+            <input id="filter_user_id" class="mt-2 w-full rounded-2xl input px-4 py-3" placeholder="Click a user to fill this" />
+          </div>
+
+          <div class="rounded-3xl card p-4">
+            <div class="text-xs text-white/55 font-semibold">Page</div>
+            <input id="filter_page" type="number" min="1" step="1" class="mt-2 w-full rounded-2xl input px-4 py-3" value="1" />
+          </div>
+
+          <div class="rounded-3xl card p-4">
+            <div class="text-xs text-white/55 font-semibold">Limit</div>
+            <input id="filter_limit" type="number" min="1" max="100" step="1" class="mt-2 w-full rounded-2xl input px-4 py-3" value="20" />
+          </div>
+        </div>
+
+        <div class="mt-3 flex flex-wrap gap-2">
+          <button id="btnApplyFilters" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Apply Filters</button>
+          <button id="btnResetFilters" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Reset</button>
+
+          <div class="ml-auto flex flex-wrap gap-2">
+            <button id="btnClearSelected" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold hidden">Clear Selected User</button>
+          </div>
+        </div>
+
+        <!-- Upgrades Panel -->
+        <div id="panelUpgrades" class="mt-5 rounded-3xl card p-0">
+          <div class="px-5 py-4 flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <div class="font-extrabold">Upgrade Requests</div>
+              <div class="text-sm text-white/60">
+                GET <span class="mono">/account-upgrades</span> • POST <span class="mono">/account-upgrades/:id/approve</span> • POST <span class="mono">/account-upgrades/:id/decline</span>
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <button id="btnPrev" class="rounded-2xl btn-ghost px-4 py-2 font-extrabold">Prev</button>
+              <button id="btnNext" class="rounded-2xl btn-ghost px-4 py-2 font-extrabold">Next</button>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Status</th>
+                  <th>User</th>
+                  <th>Current Type</th>
+                  <th>Requested Type</th>
+                  <th>Note</th>
+                  <th>Proof</th>
+                  <th>Admin Note</th>
+                  <th>Created</th>
+                  <th style="min-width:240px;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="tbodyUpgrades">
+                <tr><td colspan="10" class="text-white/60">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Users Panel -->
+        <div id="panelUsers" class="hidden mt-5 rounded-3xl card p-0">
+          <div class="px-5 py-4 flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <div class="font-extrabold">Users Directory</div>
+              <div class="text-sm text-white/60">GET <span class="mono">/users</span> • click a user to select • selection auto-fills <span class="mono">user_id</span> filter</div>
+            </div>
+            <div class="flex gap-2">
+              <button id="btnLoadUsers" class="rounded-2xl btn-ghost px-4 py-2 font-extrabold">Load Users</button>
+            </div>
+          </div>
+
+          <div class="px-5 pb-4">
+            <div class="grid-compact">
+              <div class="rounded-3xl card p-4">
+                <div class="text-xs text-white/55 font-semibold">Search</div>
+                <input id="users_search" class="mt-2 w-full rounded-2xl input px-4 py-3"
+                  placeholder="Search by id, name, username, email, phone, country…" />
+                <div class="mt-2 flex gap-2 flex-wrap">
+                  <button id="btnApplyUserSearch" class="rounded-2xl btn-ghost px-4 py-2 font-extrabold">Apply</button>
+                  <button id="btnClearUserSearch" class="rounded-2xl btn-ghost px-4 py-2 font-extrabold">Clear</button>
+                  <span id="usersCount" class="ml-auto chip rounded-xl px-3 py-2 text-xs font-extrabold">—</span>
+                </div>
+              </div>
+
+              <div class="rounded-3xl card p-4">
+                <div class="text-xs text-white/55 font-semibold">Selected User</div>
+                <div id="selectedUserBox" class="mt-2 rounded-2xl chip p-3 text-sm text-white/80">None selected</div>
+
+                <div class="mt-3 flex gap-2 flex-wrap">
+                  <button id="btnUseUserFilter" class="rounded-2xl btn-primary px-4 py-2 font-extrabold" disabled>Use as Filter (user_id)</button>
+                  <button id="btnClearSelected2" class="rounded-2xl btn-ghost px-4 py-2 font-extrabold" disabled>Clear</button>
+                </div>
+
+                <div class="mt-2 text-xs text-white/45">
+                  When you click “Use as Filter”, it switches back to Upgrade Requests and loads requests for that user.
+                </div>
+              </div>
+
+              <div class="rounded-3xl card p-4">
+                <div class="text-xs text-white/55 font-semibold">Quick Actions</div>
+                <div class="mt-2 flex gap-2 flex-wrap">
+                  <button id="btnGoUpgrades" class="rounded-2xl btn-ghost px-4 py-2 font-extrabold">Go to Requests</button>
+                  <button id="btnScrollTop" class="rounded-2xl btn-ghost px-4 py-2 font-extrabold">Top</button>
+                </div>
+                <div class="mt-3 text-xs text-white/45">Tip: just click any user row to select instantly.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table style="min-width: 1400px;">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Name / Username</th>
+                  <th>Email / Phone</th>
+                  <th>Country</th>
+                  <th>Role</th>
+                  <th>Verified</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                </tr>
+              </thead>
+              <tbody id="tbodyUsers">
+                <tr><td colspan="8" class="text-white/60">Click “Load Users” to fetch users…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="mt-7 text-center text-xs text-white/45">
+          © <span id="yr"></span> Upcoinmeta • Admin Console
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Review / Approve / Decline Modal -->
+  <div id="modalBackdrop" class="modal-backdrop">
+    <div class="glass ring-glow modal">
+      <div class="modal-header">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <div class="text-lg font-extrabold">Review Upgrade Request</div>
+            <div class="text-sm text-white/60">Approve or decline with optional admin note.</div>
+          </div>
+          <div class="flex flex-wrap gap-2 justify-end">
+            <button id="btnCloseModal" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Close</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div id="modalInfo" class="rounded-3xl card p-4">
+          <div class="text-white/60 text-sm">Loading…</div>
+        </div>
+
+        <div class="mt-4 rounded-3xl card p-4">
+          <label class="text-sm font-semibold text-muted">Admin Note (optional)</label>
+          <textarea id="admin_note" rows="4" class="mt-2 w-full rounded-2xl input px-4 py-3" placeholder="Write a note for this decision…"></textarea>
+
+          <div class="mt-3 flex flex-wrap gap-2">
+            <button id="btnApprove" class="rounded-2xl btn-good px-5 py-3 font-extrabold">Approve</button>
+            <button id="btnDecline" class="rounded-2xl btn-bad px-5 py-3 font-extrabold">Decline</button>
+            <div class="ml-auto text-xs text-white/45 self-center">
+              This will call your backend routes exactly.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ADMIN_BASE = window.SwayApi.adminBase;
+    const TOKEN_KEY = "upcoinmeta_admin_token";
+    const ADMIN_KEY = "upcoinmeta_admin";
+
+    const alertBox = document.getElementById("alert");
+    const metaLine = document.getElementById("metaLine");
+
+    // top
+    const btnReload = document.getElementById("btnReload");
+    const btnLogout = document.getElementById("btnLogout");
+
+    // tabs
+    const tabUpgrades = document.getElementById("tabUpgrades");
+    const tabUsers = document.getElementById("tabUsers");
+    const panelUpgrades = document.getElementById("panelUpgrades");
+    const panelUsers = document.getElementById("panelUsers");
+
+    // filters
+    const filter_status = document.getElementById("filter_status");
+    const filter_requested_type = document.getElementById("filter_requested_type");
+    const filter_user_id = document.getElementById("filter_user_id");
+    const filter_page = document.getElementById("filter_page");
+    const filter_limit = document.getElementById("filter_limit");
+    const btnApplyFilters = document.getElementById("btnApplyFilters");
+    const btnResetFilters = document.getElementById("btnResetFilters");
+    const btnClearSelected = document.getElementById("btnClearSelected");
+
+    // table
+    const tbodyUpgrades = document.getElementById("tbodyUpgrades");
+    const btnPrev = document.getElementById("btnPrev");
+    const btnNext = document.getElementById("btnNext");
+
+    let ACTIVE_TAB = "upgrades";
+    let META = { page: 1, total_pages: 1, total: 0, limit: 20 };
+
+    // users panel
+    const btnLoadUsers = document.getElementById("btnLoadUsers");
+    const users_search = document.getElementById("users_search");
+    const btnApplyUserSearch = document.getElementById("btnApplyUserSearch");
+    const btnClearUserSearch = document.getElementById("btnClearUserSearch");
+    const usersCount = document.getElementById("usersCount");
+    const selectedUserBox = document.getElementById("selectedUserBox");
+    const btnUseUserFilter = document.getElementById("btnUseUserFilter");
+    const btnClearSelected2 = document.getElementById("btnClearSelected2");
+    const btnGoUpgrades = document.getElementById("btnGoUpgrades");
+    const btnScrollTop = document.getElementById("btnScrollTop");
+    const tbodyUsers = document.getElementById("tbodyUsers");
+
+    let USERS_RAW = [];
+    let USERS_VIEW = [];
+    let SELECTED_USER = null;
+
+    // modal
+    const modalBackdrop = document.getElementById("modalBackdrop");
+    const btnCloseModal = document.getElementById("btnCloseModal");
+    const modalInfo = document.getElementById("modalInfo");
+    const admin_note = document.getElementById("admin_note");
+    const btnApprove = document.getElementById("btnApprove");
+    const btnDecline = document.getElementById("btnDecline");
+
+    let MODAL_UPGRADE = null;
+
+    document.getElementById("yr").textContent = new Date().getFullYear();
+
+    function showAlert(type, msg) {
+      alertBox.classList.remove("hidden");
+      alertBox.textContent = msg;
+
+      alertBox.classList.remove("bg-red-500/10", "border-red-400/20", "text-red-200");
+      alertBox.classList.remove("bg-emerald-500/10", "border-emerald-400/20", "text-emerald-200");
+      alertBox.classList.remove("bg-amber-500/10", "border-amber-400/20", "text-amber-200");
+
+      if (type === "success") alertBox.classList.add("bg-emerald-500/10", "border", "border-emerald-400/20", "text-emerald-200");
+      else if (type === "warn") alertBox.classList.add("bg-amber-500/10", "border", "border-amber-400/20", "text-amber-200");
+      else alertBox.classList.add("bg-red-500/10", "border", "border-red-400/20", "text-red-200");
+    }
+
+    function token(){ return localStorage.getItem(TOKEN_KEY) || ""; }
+    function requireAuthOrRedirect(){
+      if (!token()) { window.location.href = "./index.html"; return false; }
+      return true;
+    }
+
+    function api(){
+      return window.SwayApi.adminClient({ timeout: 45000 });
+    }
+
+    function esc(s){
+      return String(s ?? "").replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+    }
+
+    function fmtDate(d){
+      if (!d) return "—";
+      const dt = new Date(d);
+      return Number.isNaN(dt.getTime()) ? String(d) : dt.toLocaleString();
+    }
+
+    function pillStatus(s){
+      const v = String(s || "").toLowerCase();
+      if (v === "approved") return `<span class="pill ok">APPROVED</span>`;
+      if (v === "declined") return `<span class="pill bad">DECLINED</span>`;
+      if (v === "pending") return `<span class="pill warn">PENDING</span>`;
+      return `<span class="pill chip">${esc(String(s || "—").toUpperCase())}</span>`;
+    }
+
+    function setLoading(btn, on, loadingText, normalText){
+      if (on){
+        btn.disabled = true;
+        btn.classList.add("opacity-70");
+        btn.textContent = loadingText;
+      } else {
+        btn.disabled = false;
+        btn.classList.remove("opacity-70");
+        btn.textContent = normalText;
+      }
+    }
+
+    function normalizeUserId(val){
+      const s = String(val || "").trim();
+      if (!s) return null;
+      const n = Number(s);
+      return Number.isFinite(n) && n > 0 ? n : null;
+    }
+
+    function getFilters(){
+      const page = Math.max(parseInt(filter_page.value || "1", 10), 1);
+      const limit = Math.min(Math.max(parseInt(filter_limit.value || "20", 10), 1), 100);
+      const status = String(filter_status.value || "").trim();
+      const requested_account_type = String(filter_requested_type.value || "").trim();
+      const user_id = normalizeUserId(filter_user_id.value);
+      return { page, limit, status, requested_account_type, user_id };
+    }
+
+    function setTab(tab){
+      ACTIVE_TAB = tab;
+      panelUpgrades.classList.add("hidden");
+      panelUsers.classList.add("hidden");
+
+      tabUpgrades.className = "rounded-2xl btn-ghost px-4 py-3 font-extrabold";
+      tabUsers.className = "rounded-2xl btn-ghost px-4 py-3 font-extrabold";
+
+      if (tab === "upgrades"){
+        panelUpgrades.classList.remove("hidden");
+        tabUpgrades.className = "rounded-2xl btn-primary px-4 py-3 font-extrabold";
+        loadUpgrades();
+      } else {
+        panelUsers.classList.remove("hidden");
+        tabUsers.className = "rounded-2xl btn-primary px-4 py-3 font-extrabold";
+        metaLine.textContent = `Users • Loaded ${USERS_RAW.length} • Showing ${USERS_VIEW.length}`;
+      }
+    }
+
+    async function loadUpgrades(){
+      alertBox.classList.add("hidden");
+      tbodyUpgrades.innerHTML = `<tr><td colspan="10" class="text-white/60">Loading…</td></tr>`;
+
+      const { page, limit, status, requested_account_type, user_id } = getFilters();
+
+      try{
+        const params = { page, limit };
+        if (status) params.status = status;
+        if (requested_account_type) params.requested_account_type = requested_account_type;
+        if (user_id) params.user_id = user_id;
+
+        const res = await api().get(`/account-upgrades`, { params });
+        const data = res.data || {};
+        META = data.meta || { page, limit, total_pages: 1, total: 0 };
+
+        const rows = Array.isArray(data.upgrades) ? data.upgrades : [];
+        renderUpgrades(rows);
+
+        const userHint = user_id ? ` • user_id=${user_id}` : "";
+        metaLine.textContent = `Upgrades • Page ${META.page} / ${META.total_pages} • Total ${META.total}${userHint}`;
+      }catch(e){
+        const statusCode = e?.response?.status;
+        const msg = e?.response?.data?.message || "Failed to load account upgrades.";
+        if (statusCode === 401 || statusCode === 403) {
+          showAlert("error", msg + " Redirecting…");
+          setTimeout(() => (window.location.href = "./index.html"), 700);
+          return;
+        }
+        showAlert("error", msg);
+        tbodyUpgrades.innerHTML = `<tr><td colspan="10" class="text-white/60">Error loading upgrade requests.</td></tr>`;
+      }
+    }
+
+    function renderUpgrades(rows){
+      if (!rows.length){
+        tbodyUpgrades.innerHTML = `<tr><td colspan="10" class="text-white/60">No upgrade requests found.</td></tr>`;
+        return;
+      }
+
+      tbodyUpgrades.innerHTML = rows.map(u => {
+        const proof = u.proof_url
+          ? `<a class="underline text-white/80 hover:text-white" href="${esc(u.proof_url)}" target="_blank" rel="noreferrer">View proof</a>`
+          : `<span class="text-white/50">—</span>`;
+
+        const userLine = `
+          <div class="font-extrabold">#${esc(u.user_id)}</div>
+          <div class="text-xs text-white/55">${u.email ? esc(u.email) : "—"}</div>
+        `;
+
+        const note = u.note ? esc(u.note) : `<span class="text-white/50">—</span>`;
+        const adminNote = u.admin_note ? esc(u.admin_note) : `<span class="text-white/50">—</span>`;
+
+        const canAct = String(u.status).toLowerCase() === "pending";
+        const actBtns = canAct
+          ? `
+            <div class="flex flex-wrap gap-2">
+              <button class="rounded-2xl btn-sky px-4 py-2 font-extrabold" onclick="openReview(${Number(u.id)}); event.stopPropagation();">Review</button>
+              <button class="rounded-2xl btn-good px-4 py-2 font-extrabold" onclick="quickApprove(${Number(u.id)}); event.stopPropagation();">Approve</button>
+              <button class="rounded-2xl btn-bad px-4 py-2 font-extrabold" onclick="quickDecline(${Number(u.id)}); event.stopPropagation();">Decline</button>
+            </div>
+          `
+          : `
+            <div class="flex flex-wrap gap-2">
+              <button class="rounded-2xl btn-ghost px-4 py-2 font-extrabold" onclick="openReview(${Number(u.id)}); event.stopPropagation();">View</button>
+            </div>
+          `;
+
+        return `
+          <tr onclick="openReview(${Number(u.id)})">
+            <td class="text-white/70 font-semibold">#${esc(u.id)}</td>
+            <td>${pillStatus(u.status)}</td>
+            <td>${userLine}</td>
+            <td class="text-white/70">${esc(u.current_account_type || "—")}</td>
+            <td class="font-extrabold">${esc(u.requested_account_type || "—")}</td>
+            <td class="text-white/80">${note}</td>
+            <td>${proof}</td>
+            <td class="text-white/70">${adminNote}</td>
+            <td class="text-white/60">${esc(fmtDate(u.created_at))}</td>
+            <td>${actBtns}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    // --------------------- MODAL ---------------------
+    function openModal(){ modalBackdrop.classList.add("modal-open"); }
+    function closeModal(){
+      modalBackdrop.classList.remove("modal-open");
+      MODAL_UPGRADE = null;
+      admin_note.value = "";
+      modalInfo.innerHTML = `<div class="text-white/60 text-sm">Loading…</div>`;
+    }
+
+    btnCloseModal.addEventListener("click", closeModal);
+    modalBackdrop.addEventListener("click", (e) => { if (e.target === modalBackdrop) closeModal(); });
+
+    function findUpgradeInTable(id){
+      // We don't store the rows globally, so simplest is to refetch current page then find.
+      // BUT to stay fast and clean: we’ll open modal with minimal info, and rely on data in table reload.
+      return null;
+    }
+
+    function renderModal(u){
+      const proof = u.proof_url
+        ? `<a class="underline text-white/80 hover:text-white" href="${esc(u.proof_url)}" target="_blank" rel="noreferrer">Open proof</a>`
+        : `<span class="text-white/50">—</span>`;
+
+      modalInfo.innerHTML = `
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div class="text-xs text-white/55 font-semibold">Upgrade ID</div>
+            <div class="text-lg font-extrabold">#${esc(u.id)}</div>
+          </div>
+          <div>${pillStatus(u.status)}</div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="rounded-2xl chip p-3">
+            <div class="text-xs text-white/55 font-semibold">User</div>
+            <div class="font-extrabold">#${esc(u.user_id)}</div>
+            <div class="text-xs text-white/60">${u.email ? esc(u.email) : "—"}</div>
+          </div>
+
+          <div class="rounded-2xl chip p-3">
+            <div class="text-xs text-white/55 font-semibold">Requested Type</div>
+            <div class="font-extrabold">${esc(u.requested_account_type || "—")}</div>
+            <div class="text-xs text-white/60">Current: ${esc(u.current_account_type || "—")}</div>
+          </div>
+        </div>
+
+        <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="rounded-2xl chip p-3">
+            <div class="text-xs text-white/55 font-semibold">User Note</div>
+            <div class="text-sm text-white/85">${u.note ? esc(u.note) : "<span class='text-white/50'>—</span>"}</div>
+          </div>
+          <div class="rounded-2xl chip p-3">
+            <div class="text-xs text-white/55 font-semibold">Proof</div>
+            <div class="text-sm">${proof}</div>
+            <div class="text-xs text-white/50 mt-1">${u.proof_filename ? esc(u.proof_filename) : ""}</div>
+          </div>
+        </div>
+
+        <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="rounded-2xl chip p-3">
+            <div class="text-xs text-white/55 font-semibold">Created</div>
+            <div class="text-sm text-white/85">${esc(fmtDate(u.created_at))}</div>
+          </div>
+          <div class="rounded-2xl chip p-3">
+            <div class="text-xs text-white/55 font-semibold">Last Updated</div>
+            <div class="text-sm text-white/85">${esc(fmtDate(u.updated_at))}</div>
+          </div>
+        </div>
+
+        <div class="mt-3 rounded-2xl chip p-3">
+          <div class="text-xs text-white/55 font-semibold">Admin Note</div>
+          <div class="text-sm text-white/85">${u.admin_note ? esc(u.admin_note) : "<span class='text-white/50'>—</span>"}</div>
+        </div>
+      `;
+    }
+
+    async function fetchUpgradeById(id){
+      // Your backend does not show GET /account-upgrades/:id in the snippet,
+      // so we refetch list with limit 100 for that user/page and find the row.
+      // Works reliably and keeps frontend compatible with your provided routes.
+      const { status, requested_account_type, user_id } = getFilters();
+
+      // try 1: current filters, bigger limit, page 1
+      const params = { page: 1, limit: 100 };
+      if (status) params.status = status;
+      if (requested_account_type) params.requested_account_type = requested_account_type;
+      if (user_id) params.user_id = user_id;
+
+      const res = await api().get(`/account-upgrades`, { params });
+      const rows = Array.isArray(res.data?.upgrades) ? res.data.upgrades : [];
+      return rows.find(x => Number(x.id) === Number(id)) || null;
+    }
+
+    window.openReview = async function(id){
+      alertBox.classList.add("hidden");
+      openModal();
+      MODAL_UPGRADE = null;
+      admin_note.value = "";
+
+      try{
+        const u = await fetchUpgradeById(id);
+        if (!u){
+          renderModal({
+            id,
+            status: "—",
+            user_id: "—",
+            email: null,
+            current_account_type: null,
+            requested_account_type: null,
+            note: null,
+            proof_url: null,
+            proof_filename: null,
+            created_at: null,
+            updated_at: null,
+            admin_note: null
+          });
+          showAlert("warn", "Could not load the request details from the current list. Try clearing filters or reload.");
+          return;
+        }
+
+        MODAL_UPGRADE = u;
+        // prefill admin_note with existing note (optional)
+        if (u.admin_note) admin_note.value = String(u.admin_note);
+        renderModal(u);
+
+        const canAct = String(u.status).toLowerCase() === "pending";
+        btnApprove.disabled = !canAct;
+        btnDecline.disabled = !canAct;
+        btnApprove.classList.toggle("opacity-60", !canAct);
+        btnDecline.classList.toggle("opacity-60", !canAct);
+      }catch(e){
+        showAlert("error", e?.response?.data?.message || "Failed to load request details.");
+        closeModal();
+      }
+    }
+
+    async function postApprove(id, note){
+      return api().post(`/account-upgrades/${id}/approve`, note ? { admin_note: note } : {});
+    }
+    async function postDecline(id, note){
+      return api().post(`/account-upgrades/${id}/decline`, note ? { admin_note: note } : {});
+    }
+
+    window.quickApprove = async function(id){
+      const note = prompt("Admin note (optional). Leave empty to skip:");
+      try{
+        showAlert("warn", `Approving upgrade #${id}…`);
+        await postApprove(id, (note || "").trim() || null);
+        showAlert("success", `Upgrade #${id} approved.`);
+        closeModal();
+        loadUpgrades();
+      }catch(e){
+        showAlert("error", e?.response?.data?.message || "Approve failed.");
+      }
+    }
+
+    window.quickDecline = async function(id){
+      const note = prompt("Admin note (optional). Leave empty to skip:");
+      try{
+        showAlert("warn", `Declining upgrade #${id}…`);
+        await postDecline(id, (note || "").trim() || null);
+        showAlert("success", `Upgrade #${id} declined.`);
+        closeModal();
+        loadUpgrades();
+      }catch(e){
+        showAlert("error", e?.response?.data?.message || "Decline failed.");
+      }
+    }
+
+    btnApprove.addEventListener("click", async () => {
+      if (!MODAL_UPGRADE) return;
+      const id = Number(MODAL_UPGRADE.id);
+      const note = String(admin_note.value || "").trim() || null;
+
+      const ok = confirm(`Approve upgrade #${id}?`);
+      if (!ok) return;
+
+      setLoading(btnApprove, true, "Approving…", "Approve");
+      try{
+        await postApprove(id, note);
+        showAlert("success", `Upgrade #${id} approved and user account_type updated.`);
+        closeModal();
+        loadUpgrades();
+      }catch(e){
+        showAlert("error", e?.response?.data?.message || "Approve failed.");
+      }finally{
+        setLoading(btnApprove, false, "Approving…", "Approve");
+      }
+    });
+
+    btnDecline.addEventListener("click", async () => {
+      if (!MODAL_UPGRADE) return;
+      const id = Number(MODAL_UPGRADE.id);
+      const note = String(admin_note.value || "").trim() || null;
+
+      const ok = confirm(`Decline upgrade #${id}?`);
+      if (!ok) return;
+
+      setLoading(btnDecline, true, "Declining…", "Decline");
+      try{
+        await postDecline(id, note);
+        showAlert("success", `Upgrade #${id} declined.`);
+        closeModal();
+        loadUpgrades();
+      }catch(e){
+        showAlert("error", e?.response?.data?.message || "Decline failed.");
+      }finally{
+        setLoading(btnDecline, false, "Declining…", "Decline");
+      }
+    });
+
+    // ---------------- USERS DIRECTORY ----------------
+    function pillBool(val){
+      return val ? `<span class="pill ok">YES</span>` : `<span class="pill bad">NO</span>`;
+    }
+    function pillUserStatus(u){
+      const s = String(u.account_status || u.status || "").toLowerCase();
+      if (!s) return `<span class="pill chip">—</span>`;
+      if (s.includes("active")) return `<span class="pill ok">ACTIVE</span>`;
+      if (s.includes("hold") || s.includes("pending")) return `<span class="pill warn">${esc(s.toUpperCase())}</span>`;
+      if (s.includes("ban") || s.includes("blocked") || s.includes("suspend")) return `<span class="pill bad">${esc(s.toUpperCase())}</span>`;
+      return `<span class="pill chip">${esc(s.toUpperCase())}</span>`;
+    }
+
+    function rowSelectStyle(u){
+      if (!SELECTED_USER) return "";
+      return (Number(SELECTED_USER.id) === Number(u.id)) ? "background: rgba(56,189,248,0.08);" : "";
+    }
+
+    function setSelectedUser(u){
+      SELECTED_USER = u || null;
+
+      const enabled = !!SELECTED_USER;
+      btnUseUserFilter.disabled = !enabled;
+      btnClearSelected2.disabled = !enabled;
+
+      btnClearSelected.classList.toggle("hidden", !enabled);
+
+      if (!SELECTED_USER){
+        selectedUserBox.textContent = "None selected";
+        return;
+      }
+
+      selectedUserBox.innerHTML = `
+        <div class="font-extrabold">#${esc(SELECTED_USER.id)} • ${esc(SELECTED_USER.full_name || "—")}</div>
+        <div class="text-xs text-white/60">${esc(SELECTED_USER.username || "—")} • ${esc(SELECTED_USER.email || "—")} • ${esc(SELECTED_USER.phone || "—")}</div>
+      `;
+    }
+
+    function renderUsers(){
+      usersCount.textContent = `Users • ${USERS_VIEW.length}`;
+      metaLine.textContent = `Users • Loaded ${USERS_RAW.length} • Showing ${USERS_VIEW.length}`;
+
+      if (!USERS_VIEW.length){
+        tbodyUsers.innerHTML = `<tr><td colspan="8" class="text-white/60">No users match your search.</td></tr>`;
+        return;
+      }
+
+      tbodyUsers.innerHTML = USERS_VIEW.map(u => {
+        const name = u.full_name || "—";
+        const username = u.username || "—";
+        const email = u.email || "";
+        const phone = u.phone || "—";
+        const country = u.country || "—";
+        const role = u.role || "user";
+        const verified = !!u.is_verified;
+
+        return `
+          <tr style="${rowSelectStyle(u)}" onclick="selectUserFromRow(${Number(u.id)})">
+            <td class="text-white/70 font-semibold">#${esc(u.id)}</td>
+            <td>
+              <div class="font-extrabold">${esc(name)}</div>
+              <div class="text-xs text-white/50">${esc(username)}</div>
+            </td>
+            <td>
+              <div class="text-white/85">${email ? esc(email) : "<span class='text-white/50'>—</span>"}</div>
+              <div class="text-xs text-white/50">${esc(phone)}</div>
+            </td>
+            <td class="text-white/70">${esc(country)}</td>
+            <td><span class="pill chip">${esc(String(role).toUpperCase())}</span></td>
+            <td>${pillBool(verified)}</td>
+            <td>${pillUserStatus(u)}</td>
+            <td class="text-white/60">${esc(fmtDate(u.created_at))}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function applyUserSearch(){
+      const q = String(users_search.value || "").trim().toLowerCase();
+      if (!q){
+        USERS_VIEW = [...USERS_RAW];
+        renderUsers();
+        return;
+      }
+
+      USERS_VIEW = USERS_RAW.filter(u => {
+        const blob = [
+          u.id,
+          u.full_name,
+          u.username,
+          u.email,
+          u.phone,
+          u.country,
+          u.city,
+          u.address,
+          u.account_status,
+          u.role
+        ].map(x => String(x ?? "").toLowerCase()).join(" | ");
+        return blob.includes(q);
+      });
+
+      renderUsers();
+    }
+
+    async function loadUsers(){
+      alertBox.classList.add("hidden");
+      tbodyUsers.innerHTML = `<tr><td colspan="8" class="text-white/60">Loading users…</td></tr>`;
+
+      try{
+        const res = await api().get(`/users`);
+        const data = res.data || {};
+        USERS_RAW = Array.isArray(data.users) ? data.users : [];
+        USERS_VIEW = [...USERS_RAW];
+
+        users_search.value = "";
+        renderUsers();
+
+        if (!USERS_RAW.length){
+          showAlert("warn", "No users found.");
+        }
+      }catch(e){
+        const status = e?.response?.status;
+        const msg = e?.response?.data?.message || "Failed to load users.";
+        if (status === 401 || status === 403) {
+          showAlert("error", msg + " Redirecting…");
+          setTimeout(() => (window.location.href = "./index.html"), 700);
+          return;
+        }
+        showAlert("error", msg);
+        tbodyUsers.innerHTML = `<tr><td colspan="8" class="text-white/60">Error loading users.</td></tr>`;
+      }
+    }
+
+    window.selectUserFromRow = function(id){
+      const u = USERS_RAW.find(x => Number(x.id) === Number(id)) || null;
+      setSelectedUser(u);
+      renderUsers();
+    }
+
+    // ✅ THIS IS THE MAIN THING YOU ASKED:
+    // When admin clicks a user and uses it, we auto-fill user_id filter and load upgrades.
+    function useSelectedUserAsFilter(){
+      if (!SELECTED_USER) return;
+      filter_user_id.value = String(SELECTED_USER.id);
+      filter_page.value = "1";
+      showAlert("success", `Filter set to user_id #${SELECTED_USER.id}`);
+      setTab("upgrades");
+    }
+
+    btnUseUserFilter.addEventListener("click", useSelectedUserAsFilter);
+
+    btnClearSelected2.addEventListener("click", () => {
+      setSelectedUser(null);
+      renderUsers();
+      showAlert("success", "Selected user cleared");
+    });
+
+    btnGoUpgrades.addEventListener("click", () => setTab("upgrades"));
+
+    // ---------------- Pagination + Filters ----------------
+    btnPrev.addEventListener("click", () => {
+      const p = Math.max((parseInt(filter_page.value, 10) || 1) - 1, 1);
+      filter_page.value = String(p);
+      loadUpgrades();
+    });
+    btnNext.addEventListener("click", () => {
+      const p = (parseInt(filter_page.value, 10) || 1) + 1;
+      filter_page.value = String(p);
+      loadUpgrades();
+    });
+
+    btnApplyFilters.addEventListener("click", () => {
+      if (ACTIVE_TAB === "upgrades") loadUpgrades();
+      else applyUserSearch();
+    });
+
+    btnResetFilters.addEventListener("click", () => {
+      filter_status.value = "";
+      filter_requested_type.value = "";
+      filter_user_id.value = "";
+      filter_page.value = "1";
+      filter_limit.value = "20";
+      if (ACTIVE_TAB === "upgrades") loadUpgrades();
+      else {
+        users_search.value = "";
+        USERS_VIEW = [...USERS_RAW];
+        renderUsers();
+      }
+      showAlert("success", "Filters reset");
+    });
+
+    tabUpgrades.addEventListener("click", () => setTab("upgrades"));
+    tabUsers.addEventListener("click", () => setTab("users"));
+
+    // reload / logout
+    btnReload.addEventListener("click", () => {
+      if (ACTIVE_TAB === "upgrades") loadUpgrades();
+      else loadUsers();
+    });
+
+    btnLogout.addEventListener("click", () => {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(ADMIN_KEY);
+      showAlert("success", "Logged out. Redirecting…");
+      setTimeout(() => (window.location.href = "./index.html"), 600);
+    });
+
+    btnLoadUsers.addEventListener("click", loadUsers);
+    btnApplyUserSearch.addEventListener("click", applyUserSearch);
+    btnClearUserSearch.addEventListener("click", () => {
+      users_search.value = "";
+      USERS_VIEW = [...USERS_RAW];
+      renderUsers();
+    });
+    users_search.addEventListener("keydown", (e) => { if (e.key === "Enter") applyUserSearch(); });
+
+    btnScrollTop.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      document.querySelector(".app-shell").scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    btnClearSelected.addEventListener("click", () => {
+      setSelectedUser(null);
+      filter_user_id.value = "";
+      showAlert("success", "Selected user cleared + user_id filter cleared");
+      if (ACTIVE_TAB === "upgrades") loadUpgrades();
+    });
+
+    (function init(){
+      if (!requireAuthOrRedirect()) return;
+      setSelectedUser(null);
+      setTab("upgrades");
+    })();
+  </script>
+</body>
+</html>

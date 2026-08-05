@@ -1,0 +1,825 @@
+<!-- /admin/wallet-addresses.html ✅ Upcoinmeta Admin — Wallet Addresses Management (Responsive + QR upload) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Upcoinmeta — Wallet Addresses</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="../assets/js/api.js"></script>
+
+  <style>
+    * { -webkit-tap-highlight-color: transparent; }
+    :root{
+      --safe-top: env(safe-area-inset-top);
+      --safe-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* ✅ bulletproof scrolling */
+    html, body{
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #05060b;
+      overscroll-behavior: none;
+    }
+    .app-shell{
+      height: 100vh;
+      height: 100dvh;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-top: calc(14px + var(--safe-top));
+      padding-bottom: calc(14px + var(--safe-bottom));
+    }
+
+    /* ✅ shared theme */
+    .glass{
+      background: rgba(10,10,14,.64);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.07);
+      box-shadow: 0 18px 70px rgba(0,0,0,.62);
+    }
+    .chip{ background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); }
+    .soft-border{ border: 1px solid rgba(255,255,255,0.10); }
+    .text-muted{ color: rgba(255,255,255,0.74); }
+    .text-faint{ color: rgba(255,255,255,0.52); }
+
+    .bg-broker{
+      background:
+        radial-gradient(1000px 420px at 20% 0%, rgba(56,189,248,0.18), transparent 60%),
+        radial-gradient(900px 480px at 80% 10%, rgba(34,197,94,0.12), transparent 62%),
+        radial-gradient(900px 520px at 55% 100%, rgba(168,85,247,0.14), transparent 62%),
+        linear-gradient(180deg, #05060b 0%, #070813 45%, #05060b 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .bg-broker::before{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        linear-gradient(to right, rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,.04) 1px, transparent 1px);
+      background-size: 60px 60px;
+      opacity:.16;
+      pointer-events:none;
+    }
+    .bg-broker::after{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        radial-gradient(circle at 12% 18%, rgba(56,189,248,.45) 0 2px, transparent 3px),
+        radial-gradient(circle at 30% 30%, rgba(56,189,248,.35) 0 2px, transparent 3px),
+        radial-gradient(circle at 55% 18%, rgba(56,189,248,.35) 0 2px, transparent 3px),
+        radial-gradient(circle at 78% 34%, rgba(56,189,248,.35) 0 2px, transparent 3px),
+        radial-gradient(circle at 64% 62%, rgba(56,189,248,.25) 0 2px, transparent 3px),
+        radial-gradient(circle at 18% 68%, rgba(56,189,248,.25) 0 2px, transparent 3px);
+      opacity:.55;
+      pointer-events:none;
+      mix-blend-mode: screen;
+    }
+    .ring-glow{ box-shadow: 0 0 0 1px rgba(255,255,255,.06), 0 18px 70px rgba(56,189,248,.10); }
+
+    .btn-primary{ background: linear-gradient(90deg, rgba(56,189,248,0.95), rgba(168,85,247,0.92)); }
+    .btn-primary:hover{ filter: brightness(1.05); }
+    .btn-primary:active{ transform: scale(0.99); }
+
+    .btn-ghost{ background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10); }
+    .btn-ghost:hover{ background: rgba(255,255,255,0.08); }
+    .btn-ghost:active{ transform: scale(0.99); }
+
+    .btn-danger{
+      background: rgba(239,68,68,0.10);
+      border: 1px solid rgba(239,68,68,0.26);
+      color: rgba(254,202,202,0.95);
+    }
+    .btn-danger:hover{ background: rgba(239,68,68,0.14); }
+
+    .input{ background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10); outline: none; }
+    .input:focus{ box-shadow: 0 0 0 3px rgba(56,189,248,0.22); border-color: rgba(56,189,248,0.28); }
+
+    .card{ background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10); }
+
+    /* responsive table */
+    .table-wrap{ overflow:auto; -webkit-overflow-scrolling:touch; border-radius: 18px; }
+    table{ width:100%; border-collapse: separate; border-spacing: 0; min-width: 980px; }
+    th, td{ padding: 12px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); vertical-align: middle; }
+    th{
+      position: sticky; top: 0;
+      background: rgba(10,10,14,.82);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 2;
+      text-align:left;
+      font-size: 12px;
+      color: rgba(255,255,255,0.72);
+      white-space: nowrap;
+    }
+    td{ font-size: 13px; color: rgba(255,255,255,0.84); }
+    tr:hover td{ background: rgba(255,255,255,0.03); }
+
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 900;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+      white-space: nowrap;
+    }
+    .pill.asset{ border-color: rgba(56,189,248,0.28); background: rgba(56,189,248,0.10); color: rgba(186,230,253,0.95); }
+
+    /* modals */
+    .modal-backdrop{
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      display:none;
+      align-items: center;
+      justify-content:center;
+      padding: 14px;
+      z-index: 50;
+    }
+    .modal-open{ display:flex; }
+
+    .modal{
+      width: 100%;
+      max-width: 980px;
+      border-radius: 22px;
+      max-height: calc(100dvh - 28px);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-header{ padding: 14px 14px 10px; flex: 0 0 auto; }
+    .modal-body{ padding: 0 14px 14px; overflow: auto; -webkit-overflow-scrolling: touch; flex: 1 1 auto; }
+
+    .action-wrap{ display:flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; }
+    .mobile-stack{ display:flex; gap: 12px; }
+    .btn-big{ }
+
+    @media (max-width: 640px){
+      .mobile-stack{ flex-direction: column; align-items: stretch !important; }
+      .action-wrap{ justify-content: stretch; }
+      .action-wrap > button{ width: 100%; }
+      .btn-big{ width: 100%; }
+      table{ min-width: 940px; }
+    }
+
+    @media (max-width: 420px){
+      input, button, select, textarea { font-size: 16px; }
+    }
+
+    /* QR preview */
+    .qr-box{
+      background: rgba(255,255,255,0.04);
+      border: 1px dashed rgba(255,255,255,0.18);
+    }
+  </style>
+</head>
+
+<body class="bg-broker text-white">
+  <div class="app-shell">
+    <div class="mx-auto max-w-[1240px] px-4">
+      <div class="w-full glass ring-glow rounded-3xl p-5 sm:p-7">
+        <!-- Top -->
+        <div class="flex gap-4 sm:items-center sm:justify-between mobile-stack">
+          <div class="flex items-center gap-3">
+            <a href="./dashboard.html" class="w-11 h-11 rounded-2xl chip grid place-items-center shrink-0 hover:opacity-90" title="Back to dashboard">
+              <span class="text-lg font-black">U</span>
+            </a>
+            <div>
+              <div class="text-xl font-extrabold leading-tight">Wallet Addresses</div>
+              <div class="text-sm text-faint -mt-0.5">Admin • Create, update, upload QR, delete</div>
+            </div>
+          </div>
+
+          <div class="action-wrap">
+            <button id="btnReload" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold btn-big">Reload</button>
+            <button id="btnOpenCreate" class="rounded-2xl btn-primary px-4 py-3 font-extrabold btn-big">+ Create Wallet</button>
+            <button id="btnLogout" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold btn-big">Logout</button>
+          </div>
+        </div>
+
+        <!-- Alert -->
+        <div id="alert" class="hidden mt-5 rounded-2xl px-4 py-3 text-sm soft-border"></div>
+
+        <!-- Controls -->
+        <div class="mt-5 grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div class="rounded-3xl card p-4">
+            <div class="text-xs text-white/55 font-semibold">Search</div>
+            <input id="q" class="mt-2 w-full rounded-2xl input px-4 py-3" placeholder="Search by asset or address…" />
+            <div class="mt-2 text-xs text-white/45">Tip: type BTC / USDT or part of an address.</div>
+          </div>
+
+          <div class="rounded-3xl card p-4">
+            <div class="text-xs text-white/55 font-semibold">Asset Filter</div>
+            <select id="filterAsset" class="mt-2 w-full rounded-2xl input px-4 py-3">
+              <option value="all">All assets</option>
+            </select>
+            <div class="mt-2 text-xs text-white/45">Matches <b>wallet_addresses.asset</b>.</div>
+          </div>
+
+          <div class="rounded-3xl card p-4">
+            <div class="text-xs text-white/55 font-semibold">Overview</div>
+            <div class="mt-2 text-lg font-extrabold" id="countText">0 wallets</div>
+            <div class="mt-1 text-xs text-white/45" id="metaText">—</div>
+            <div class="mt-3">
+              <button id="btnExport" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold w-full">Export CSV</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="mt-5 rounded-3xl card p-0">
+          <div class="px-5 py-4 flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <div class="font-extrabold">Wallet Records</div>
+              <div class="text-sm text-white/60">Create a wallet per asset. Upload QR if available.</div>
+            </div>
+            <div class="chip rounded-xl px-3 py-2 text-xs font-extrabold" id="lastLoaded">Last loaded: —</div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Asset</th>
+                  <th>Address</th>
+                  <th>QR</th>
+                  <th>Created</th>
+                  <th>Updated</th>
+                  <th style="min-width:220px;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="tbody">
+                <tr><td colspan="7" class="text-white/60">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="mt-7 text-center text-xs text-white/45">
+          © <span id="yr"></span> Upcoinmeta • Admin Console
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create/Edit Modal -->
+  <div id="editBackdrop" class="modal-backdrop">
+    <div class="glass ring-glow modal">
+      <div class="modal-header">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div class="text-lg font-extrabold" id="modalTitle">Create Wallet</div>
+            <div class="text-sm text-white/60" id="modalSub">Add or update deposit address + optional QR image.</div>
+          </div>
+          <div class="action-wrap">
+            <button id="btnCloseEdit" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Close</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <!-- Form -->
+          <div class="rounded-3xl card p-4">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <div class="font-extrabold">Wallet Info</div>
+              <div class="chip rounded-xl px-3 py-1 text-xs font-extrabold" id="idChip">NEW</div>
+            </div>
+
+            <form id="walletForm" class="mt-4 space-y-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="text-sm font-semibold text-muted">Asset</label>
+                  <select id="asset" class="mt-2 w-full rounded-2xl input px-4 py-3" required>
+                    <option value="">Select asset</option>
+                    <option>BTC</option><option>ETH</option><option>USDT</option><option>BNB</option>
+                    <option>LTC</option><option>DOGE</option><option>XRP</option><option>SHIB</option><option>SOL</option>
+                  </select>
+                  <div class="mt-1 text-xs text-white/45">Your backend uses <b>safeAsset()</b>.</div>
+                </div>
+
+                <div>
+                  <label class="text-sm font-semibold text-muted">QR Image (optional)</label>
+                  <input id="qr" type="file" accept="image/*" class="mt-2 w-full rounded-2xl input px-4 py-3" />
+                  <div class="mt-1 text-xs text-white/45">Uploads via <b>multipart/form-data</b>.</div>
+                </div>
+              </div>
+
+              <div>
+                <label class="text-sm font-semibold text-muted">Address</label>
+                <textarea id="address" rows="3"
+                  class="mt-2 w-full rounded-2xl input px-4 py-3"
+                  placeholder="Paste wallet address…" required></textarea>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button id="btnSave" type="submit" class="rounded-2xl btn-primary px-5 py-3 font-extrabold">Save</button>
+                <button id="btnReset" type="button" class="rounded-2xl btn-ghost px-5 py-3 font-extrabold">Reset</button>
+              </div>
+
+              <div class="text-xs text-white/45">
+                Create: <b>POST /wallet-addresses</b> • Update: <b>PUT /wallet-addresses/:id</b>
+              </div>
+            </form>
+          </div>
+
+          <!-- Preview -->
+          <div class="rounded-3xl card p-4">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <div>
+                <div class="font-extrabold">Preview</div>
+                <div class="text-sm text-white/60">QR and full address view.</div>
+              </div>
+              <span class="chip rounded-xl px-3 py-1 text-xs font-extrabold">LIVE</span>
+            </div>
+
+            <div class="mt-4 grid grid-cols-1 gap-3">
+              <div class="rounded-3xl qr-box p-4">
+                <div class="text-xs text-white/55 font-semibold">QR Preview</div>
+                <div class="mt-3 grid place-items-center">
+                  <img id="qrPreview" src="" alt="QR preview" class="hidden max-h-[260px] rounded-2xl soft-border" />
+                  <div id="qrEmpty" class="text-sm text-white/50">No QR selected</div>
+                </div>
+              </div>
+
+              <div class="rounded-3xl qr-box p-4">
+                <div class="text-xs text-white/55 font-semibold">Address Preview</div>
+                <div id="addrPreview" class="mt-2 text-sm text-white/80 break-all">—</div>
+                <button id="btnCopyAddress" class="mt-3 rounded-2xl btn-ghost px-4 py-3 font-extrabold w-full">
+                  Copy Address
+                </button>
+              </div>
+
+              <div class="rounded-3xl qr-box p-4">
+                <div class="text-xs text-white/55 font-semibold">QR URL (if stored)</div>
+                <div id="qrUrlPreview" class="mt-2 text-sm text-white/70 break-all">—</div>
+                <div class="mt-2 text-xs text-white/45">
+                  Returned by backend as <b>wallet.qr_url</b>.
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirm Modal -->
+  <div id="delBackdrop" class="modal-backdrop">
+    <div class="glass ring-glow modal" style="max-width:620px;">
+      <div class="modal-header">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <div class="text-lg font-extrabold">Delete Wallet</div>
+            <div class="text-sm text-white/60" id="delSub">—</div>
+          </div>
+          <button id="btnCloseDel" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Close</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div class="rounded-3xl card p-4">
+          <div class="text-sm text-white/70 leading-relaxed">
+            This will permanently delete the wallet record. If a QR file exists, your backend will delete it from disk.
+          </div>
+
+          <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button id="btnConfirmDel" class="rounded-2xl btn-danger px-5 py-3 font-extrabold">Yes, Delete</button>
+            <button id="btnCancelDel" class="rounded-2xl btn-ghost px-5 py-3 font-extrabold">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ✅ Admin API base
+    const ADMIN_BASE = window.SwayApi.adminBase;
+
+    // ✅ Auth keys
+    const TOKEN_KEY = "upcoinmeta_admin_token";
+    const ADMIN_KEY = "upcoinmeta_admin";
+
+    // UI refs
+    const alertBox = document.getElementById("alert");
+    const tbody = document.getElementById("tbody");
+    const qEl = document.getElementById("q");
+    const filterAsset = document.getElementById("filterAsset");
+    const countText = document.getElementById("countText");
+    const metaText = document.getElementById("metaText");
+    const lastLoaded = document.getElementById("lastLoaded");
+
+    const btnReload = document.getElementById("btnReload");
+    const btnOpenCreate = document.getElementById("btnOpenCreate");
+    const btnLogout = document.getElementById("btnLogout");
+    const btnExport = document.getElementById("btnExport");
+
+    // Edit modal
+    const editBackdrop = document.getElementById("editBackdrop");
+    const btnCloseEdit = document.getElementById("btnCloseEdit");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalSub = document.getElementById("modalSub");
+    const idChip = document.getElementById("idChip");
+
+    const walletForm = document.getElementById("walletForm");
+    const assetEl = document.getElementById("asset");
+    const addressEl = document.getElementById("address");
+    const qrEl = document.getElementById("qr");
+    const btnReset = document.getElementById("btnReset");
+    const btnSave = document.getElementById("btnSave");
+
+    // Preview
+    const qrPreview = document.getElementById("qrPreview");
+    const qrEmpty = document.getElementById("qrEmpty");
+    const addrPreview = document.getElementById("addrPreview");
+    const btnCopyAddress = document.getElementById("btnCopyAddress");
+    const qrUrlPreview = document.getElementById("qrUrlPreview");
+
+    // Delete modal
+    const delBackdrop = document.getElementById("delBackdrop");
+    const delSub = document.getElementById("delSub");
+    const btnCloseDel = document.getElementById("btnCloseDel");
+    const btnCancelDel = document.getElementById("btnCancelDel");
+    const btnConfirmDel = document.getElementById("btnConfirmDel");
+
+    document.getElementById("yr").textContent = new Date().getFullYear();
+
+    // state
+    let ALL = [];
+    let FILTERED = [];
+    let EDIT_ID = null;         // null => create
+    let DELETE_ID = null;
+
+    function escapeHtml(s){
+      return String(s ?? "").replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+    }
+
+    function showAlert(type, msg) {
+      alertBox.classList.remove("hidden");
+      alertBox.textContent = msg;
+
+      alertBox.classList.remove("bg-red-500/10", "border-red-400/20", "text-red-200");
+      alertBox.classList.remove("bg-emerald-500/10", "border-emerald-400/20", "text-emerald-200");
+      alertBox.classList.remove("bg-amber-500/10", "border-amber-400/20", "text-amber-200");
+
+      if (type === "success") alertBox.classList.add("bg-emerald-500/10", "border", "border-emerald-400/20", "text-emerald-200");
+      else if (type === "warn") alertBox.classList.add("bg-amber-500/10", "border", "border-amber-400/20", "text-amber-200");
+      else alertBox.classList.add("bg-red-500/10", "border", "border-red-400/20", "text-red-200");
+    }
+
+    function token(){ return localStorage.getItem(TOKEN_KEY) || ""; }
+
+    function requireAuthOrRedirect(){
+      if (!token()) { window.location.href = "./index.html"; return false; }
+      return true;
+    }
+
+    function api(){
+      return window.SwayApi.adminClient({ timeout: 25000 });
+    }
+
+    function openModal(el){ el.classList.add("modal-open"); }
+    function closeModal(el){ el.classList.remove("modal-open"); }
+
+    function fmtDate(d){
+      if (!d) return "—";
+      const dt = new Date(d);
+      return Number.isNaN(dt.getTime()) ? String(d) : dt.toLocaleString();
+    }
+
+    function shortAddr(a){
+      const s = String(a || "");
+      if (s.length <= 18) return s || "—";
+      return s.slice(0,10) + "…" + s.slice(-8);
+    }
+
+    function applyFilters(){
+      const q = qEl.value.trim().toLowerCase();
+      const fa = filterAsset.value;
+
+      FILTERED = (ALL || []).filter(w => {
+        const blob = [w.asset, w.address].join(" ").toLowerCase();
+        if (q && !blob.includes(q)) return false;
+        if (fa !== "all" && String(w.asset || "").toUpperCase() !== fa) return false;
+        return true;
+      });
+
+      renderTable();
+      countText.textContent = `${FILTERED.length} wallet${FILTERED.length === 1 ? "" : "s"}`;
+      metaText.textContent = `Showing ${FILTERED.length} / ${ALL.length}`;
+    }
+
+    function rebuildAssetFilter(){
+      const assets = Array.from(new Set((ALL || []).map(w => String(w.asset||"").toUpperCase()).filter(Boolean))).sort();
+      filterAsset.innerHTML = `<option value="all">All assets</option>` + assets.map(a => `<option value="${a}">${a}</option>`).join("");
+    }
+
+    function renderTable(){
+      if (!FILTERED.length) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-white/60">No wallet records found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = FILTERED.map(w => {
+        const qr = w.qr_url ? `<a class="underline text-sky-200" href="${escapeHtml(w.qr_url)}" target="_blank" rel="noreferrer">Open</a>` : `<span class="text-white/45">—</span>`;
+        return `
+          <tr>
+            <td class="text-white/70 font-semibold">${escapeHtml(w.id)}</td>
+            <td><span class="pill asset">${escapeHtml(w.asset || "—")}</span></td>
+            <td class="text-white/80">
+              <div class="font-semibold">${escapeHtml(shortAddr(w.address))}</div>
+              <div class="text-xs text-white/45 break-all">${escapeHtml(w.address || "")}</div>
+            </td>
+            <td>${qr}</td>
+            <td class="text-white/60">${escapeHtml(fmtDate(w.created_at))}</td>
+            <td class="text-white/60">${escapeHtml(fmtDate(w.updated_at))}</td>
+            <td>
+              <div class="flex flex-wrap gap-2">
+                <button class="rounded-2xl btn-primary px-4 py-2 font-extrabold" onclick="openEdit(${Number(w.id)})">Edit</button>
+                <button class="rounded-2xl btn-danger px-4 py-2 font-extrabold" onclick="openDelete(${Number(w.id)})">Delete</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    async function loadWallets(){
+      alertBox.classList.add("hidden");
+      tbody.innerHTML = `<tr><td colspan="7" class="text-white/60">Loading…</td></tr>`;
+
+      try {
+        const res = await api().get("/wallet-addresses");
+        const data = res.data || {};
+        ALL = Array.isArray(data.wallets) ? data.wallets : [];
+        lastLoaded.textContent = `Last loaded: ${new Date().toLocaleString()}`;
+        rebuildAssetFilter();
+        applyFilters();
+      } catch (err) {
+        const status = err?.response?.status;
+        const msg = err?.response?.data?.message || "Failed to load wallet addresses.";
+        if (status === 401 || status === 403) {
+          showAlert("error", msg + " Redirecting to admin login…");
+          setTimeout(() => (window.location.href = "./index.html"), 700);
+          return;
+        }
+        showAlert("error", msg);
+        tbody.innerHTML = `<tr><td colspan="7" class="text-white/60">Error loading wallet addresses.</td></tr>`;
+      }
+    }
+
+    function setCreateMode(){
+      EDIT_ID = null;
+      modalTitle.textContent = "Create Wallet";
+      modalSub.textContent = "Add deposit address + optional QR image.";
+      idChip.textContent = "NEW";
+
+      assetEl.value = "";
+      addressEl.value = "";
+      qrEl.value = "";
+      qrUrlPreview.textContent = "—";
+      addrPreview.textContent = "—";
+      clearQrPreview();
+    }
+
+    function clearQrPreview(){
+      qrPreview.src = "";
+      qrPreview.classList.add("hidden");
+      qrEmpty.classList.remove("hidden");
+    }
+
+    function setQrPreviewFromFile(file){
+      if (!file) return clearQrPreview();
+      const url = URL.createObjectURL(file);
+      qrPreview.src = url;
+      qrPreview.classList.remove("hidden");
+      qrEmpty.classList.add("hidden");
+    }
+
+    function updateAddressPreview(){
+      const v = addressEl.value.trim();
+      addrPreview.textContent = v ? v : "—";
+    }
+
+    async function loadSingle(id){
+      const res = await api().get(`/wallet-addresses/${id}`);
+      return res.data?.wallet;
+    }
+
+    // expose
+    window.openEdit = async function(id){
+      openModal(editBackdrop);
+      alertBox.classList.add("hidden");
+
+      try {
+        const w = await loadSingle(id);
+        EDIT_ID = Number(w.id);
+        modalTitle.textContent = "Edit Wallet";
+        modalSub.textContent = `${w.asset} • Update address or upload new QR`;
+        idChip.textContent = `ID ${EDIT_ID}`;
+
+        assetEl.value = String(w.asset || "").toUpperCase();
+        addressEl.value = String(w.address || "");
+        qrEl.value = "";
+        updateAddressPreview();
+
+        qrUrlPreview.textContent = w.qr_url ? w.qr_url : "—";
+
+        // If server has QR, show it as preview too
+        if (w.qr_url) {
+          qrPreview.src = w.qr_url;
+          qrPreview.classList.remove("hidden");
+          qrEmpty.classList.add("hidden");
+        } else {
+          clearQrPreview();
+        }
+      } catch (err) {
+        showAlert("error", err?.response?.data?.message || "Failed to load wallet record.");
+        closeModal(editBackdrop);
+      }
+    }
+
+    window.openDelete = function(id){
+      DELETE_ID = Number(id);
+      const w = (ALL || []).find(x => Number(x.id) === DELETE_ID);
+      delSub.textContent = w ? `${w.asset} • ${shortAddr(w.address)}` : `Wallet ID ${DELETE_ID}`;
+      openModal(delBackdrop);
+    }
+
+    function buildMultipartPayload(){
+      const fd = new FormData();
+      fd.append("asset", assetEl.value);
+      fd.append("address", addressEl.value.trim());
+      const file = qrEl.files && qrEl.files[0] ? qrEl.files[0] : null;
+      if (file) fd.append("qr", file);
+      return fd;
+    }
+
+    async function createWallet(){
+      const fd = buildMultipartPayload();
+      const headers = { "Authorization": `Bearer ${token()}` };
+      return axios.post(`${ADMIN_BASE}/wallet-addresses`, fd, { headers, timeout: 25000 });
+    }
+
+    async function updateWallet(){
+      const fd = buildMultipartPayload();
+      const headers = { "Authorization": `Bearer ${token()}` };
+      return axios.put(`${ADMIN_BASE}/wallet-addresses/${EDIT_ID}`, fd, { headers, timeout: 25000 });
+    }
+
+    async function deleteWallet(id){
+      return api().delete(`/wallet-addresses/${id}`);
+    }
+
+    function setLoading(btn, isLoading, textLoading, textDefault){
+      if (isLoading) {
+        btn.disabled = true;
+        btn.textContent = textLoading;
+        btn.classList.add("opacity-70");
+      } else {
+        btn.disabled = false;
+        btn.textContent = textDefault;
+        btn.classList.remove("opacity-70");
+      }
+    }
+
+    function downloadCsv(rows){
+      const headers = ["id","asset","address","qr_filename","qr_url","created_at","updated_at"];
+      const lines = [headers.join(",")];
+      for (const w of rows) {
+        const vals = headers.map(h => {
+          const v = w?.[h];
+          const s = (v === null || v === undefined) ? "" : String(v).replace(/"/g,'""');
+          return `"${s}"`;
+        });
+        lines.push(vals.join(","));
+      }
+      const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `upcoinmeta_wallet_addresses_${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    // events
+    btnReload.addEventListener("click", loadWallets);
+
+    btnOpenCreate.addEventListener("click", () => {
+      setCreateMode();
+      openModal(editBackdrop);
+    });
+
+    btnLogout.addEventListener("click", () => {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(ADMIN_KEY);
+      showAlert("success", "Logged out. Redirecting…");
+      setTimeout(() => (window.location.href = "./index.html"), 600);
+    });
+
+    qEl.addEventListener("input", applyFilters);
+    filterAsset.addEventListener("change", applyFilters);
+
+    btnExport.addEventListener("click", () => {
+      if (!FILTERED.length) return showAlert("warn", "No wallet records to export (current filter).");
+      downloadCsv(FILTERED);
+      showAlert("success", "CSV exported.");
+    });
+
+    btnCloseEdit.addEventListener("click", () => closeModal(editBackdrop));
+    editBackdrop.addEventListener("click", (e) => { if (e.target === editBackdrop) closeModal(editBackdrop); });
+
+    btnReset.addEventListener("click", () => {
+      if (EDIT_ID) window.openEdit(EDIT_ID);
+      else setCreateMode();
+    });
+
+    addressEl.addEventListener("input", updateAddressPreview);
+    qrEl.addEventListener("change", () => setQrPreviewFromFile(qrEl.files?.[0] || null));
+
+    btnCopyAddress.addEventListener("click", async () => {
+      const addr = addressEl.value.trim();
+      if (!addr) return showAlert("warn", "No address to copy.");
+      try {
+        await navigator.clipboard.writeText(addr);
+        showAlert("success", "Address copied.");
+      } catch (e) {
+        showAlert("error", "Copy failed (browser blocked clipboard).");
+      }
+    });
+
+    walletForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      alertBox.classList.add("hidden");
+
+      const asset = String(assetEl.value || "").trim();
+      const address = String(addressEl.value || "").trim();
+      if (!asset || !address) return showAlert("error", "asset and address are required.");
+
+      setLoading(btnSave, true, EDIT_ID ? "Updating…" : "Creating…", "Save");
+
+      try {
+        const res = EDIT_ID ? await updateWallet() : await createWallet();
+        const msg = res.data?.message || (EDIT_ID ? "Wallet updated." : "Wallet created.");
+        showAlert("success", msg);
+
+        // update QR URL preview if returned
+        const w = res.data?.wallet;
+        if (w?.qr_url) {
+          qrUrlPreview.textContent = w.qr_url;
+          qrPreview.src = w.qr_url;
+          qrPreview.classList.remove("hidden");
+          qrEmpty.classList.add("hidden");
+        }
+
+        closeModal(editBackdrop);
+        await loadWallets();
+      } catch (err) {
+        const status = err?.response?.status;
+        const msg = err?.response?.data?.message || "Save failed.";
+
+        if (status === 409) showAlert("warn", msg);
+        else showAlert("error", msg);
+      } finally {
+        setLoading(btnSave, false, "Saving…", "Save");
+      }
+    });
+
+    btnCloseDel.addEventListener("click", () => closeModal(delBackdrop));
+    btnCancelDel.addEventListener("click", () => closeModal(delBackdrop));
+    delBackdrop.addEventListener("click", (e) => { if (e.target === delBackdrop) closeModal(delBackdrop); });
+
+    btnConfirmDel.addEventListener("click", async () => {
+      if (!DELETE_ID) return;
+      btnConfirmDel.disabled = true; btnConfirmDel.classList.add("opacity-70");
+      try {
+        const res = await deleteWallet(DELETE_ID);
+        showAlert("success", res.data?.message || "Wallet deleted.");
+        closeModal(delBackdrop);
+        await loadWallets();
+      } catch (err) {
+        showAlert("error", err?.response?.data?.message || "Delete failed.");
+      } finally {
+        btnConfirmDel.disabled = false; btnConfirmDel.classList.remove("opacity-70");
+        DELETE_ID = null;
+      }
+    });
+
+    // init
+    (function init(){
+      if (!requireAuthOrRedirect()) return;
+      loadWallets();
+      setCreateMode();
+    })();
+  </script>
+</body>
+</html>

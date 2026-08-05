@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Upcoinmeta — Withdraw</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="../assets/js/api.js"></script>
+
+  <style>
+    :root{
+      --safe-top: env(safe-area-inset-top);
+      --safe-bottom: env(safe-area-inset-bottom);
+      --nav-h: 82px;
+
+      --bg: #07080c83;
+      --card: rgba(18, 18, 22, .62);
+      --card2: rgba(18, 18, 22, .46);
+      --line: rgba(255,255,255,.10);
+      --line2: rgba(255,255,255,.07);
+      --text-dim: rgba(255,255,255,.60);
+
+      --active: rgba(56,189,248,.18);
+      --activeLine: rgba(56,189,248,.25);
+    }
+
+    html,body{
+      height:100%;
+      width:100%;
+      margin:0;
+      padding:0;
+      overflow:hidden;
+      background: var(--bg);
+      color:#fff;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{ -webkit-tap-highlight-color: transparent; }
+
+    /* ✅ BACKGROUND */
+    .bg-stack{
+      position: fixed;
+      inset: 0;
+      z-index: -10;
+      pointer-events: none;
+      overflow: hidden;
+      background: var(--bg);
+    }
+    .bg-map{
+      position:absolute;
+      inset:0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      opacity: 1;
+      filter: contrast(1.12) brightness(1.05);
+      user-select:none;
+    }
+    .bg-film{
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(900px 520px at 20% 0%, rgba(255,255,255,0.06), transparent 60%),
+        radial-gradient(900px 520px at 80% 10%, rgba(255,255,255,0.05), transparent 60%),
+        linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.52));
+    }
+
+    .scroll-shell{
+      height:100vh;
+      height:100dvh;
+      overflow-y:auto;
+      overflow-x:hidden;
+      -webkit-overflow-scrolling:touch;
+      padding-top: calc(12px + var(--safe-top));
+      padding-bottom: calc(18px + var(--safe-bottom));
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ✅ PREMIUM CARD GLOW */
+    .glass{
+      background: var(--card);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid var(--line2);
+      box-shadow:
+        0 18px 70px rgba(0,0,0,.55),
+        0 0 0 1px rgba(255,255,255,.04),
+        0 0 46px rgba(56,189,248,.06);
+      position: relative;
+      overflow: hidden;
+      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    }
+    .glass::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      border-radius: inherit;
+      background:
+        radial-gradient(700px 260px at 15% 0%, rgba(56,189,248,.14), transparent 58%),
+        radial-gradient(720px 260px at 85% 12%, rgba(168,85,247,.10), transparent 60%);
+      opacity: .65;
+      pointer-events:none;
+      mix-blend-mode: screen;
+    }
+
+    .glass-soft{
+      background: var(--card2);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--line2);
+      box-shadow:
+        0 14px 44px rgba(0,0,0,.35),
+        0 0 34px rgba(56,189,248,.05);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .pill{
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--line);
+    }
+    .t-dim{ color: var(--text-dim); }
+    .txt-h1{ font-size: clamp(18px, 4.8vw, 22px); font-weight: 900; }
+    .txt-h2{ font-size: clamp(16px, 4.2vw, 18px); font-weight: 900; }
+    .txt-sm{ font-size: 13px; }
+
+    .skeleton{
+      background: rgba(255,255,255,.08);
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes pulse{
+      0%,100%{opacity:.55}
+      50%{opacity:.85}
+    }
+
+    .avatar{
+      width: 42px; height: 42px;
+      border-radius: 999px;
+      display:grid;
+      place-items:center;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.18);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
+      font-weight: 900;
+      font-size: 15px;
+      cursor: pointer;
+      user-select:none;
+    }
+
+    .field{
+      width:100%;
+      border-radius: 18px;
+      padding: 12px 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+      color: #fff;
+      outline: none;
+      transition: .18s ease;
+    }
+    .field:focus{
+      border-color: rgba(56,189,248,.35);
+      box-shadow: 0 0 0 4px rgba(56,189,248,.12);
+    }
+    .field::placeholder{ color: rgba(255,255,255,.45); }
+
+    .btn{
+      border-radius: 18px;
+      padding: 12px 14px;
+      font-weight: 900;
+      font-size: 13px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      transition: .18s ease;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      user-select:none;
+      cursor:pointer;
+    }
+    .btn.primary{
+      border-color: rgba(56,189,248,.26);
+      background: rgba(56,189,248,.14);
+    }
+    .btn.danger{
+      border-color: rgba(244,63,94,.25);
+      background: rgba(244,63,94,.10);
+    }
+    .btn:disabled{ opacity:.6; pointer-events:none; }
+
+    .seg{
+      display:flex;
+      gap:10px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.10);
+      padding: 8px;
+      border-radius: 20px;
+    }
+    .seg button{
+      flex:1;
+      border-radius: 16px;
+      padding: 10px 10px;
+      font-weight: 900;
+      font-size: 12px;
+      border: 1px solid transparent;
+      color: rgba(255,255,255,.70);
+      background: transparent;
+      cursor:pointer;
+      transition:.18s ease;
+    }
+    .seg button.active{
+      color:#fff;
+      background: rgba(56,189,248,.14);
+      border-color: rgba(56,189,248,.25);
+      box-shadow: 0 0 0 1px rgba(56,189,248,.06), 0 16px 60px rgba(56,189,248,.06);
+    }
+
+    .row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      font-size: 13px;
+    }
+
+    .status-pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+      white-space: nowrap;
+    }
+    .st-pending{ color: rgb(252 211 77); border-color: rgba(252,211,77,.25); background: rgba(252,211,77,.08); }
+    .st-approved{ color: rgb(110 231 183); border-color: rgba(110,231,183,.25); background: rgba(110,231,183,.08); }
+    .st-declined{ color: rgb(252 165 165); border-color: rgba(252,165,165,.25); background: rgba(252,165,165,.08); }
+
+    /* ✅ Preloader */
+    .preloader{
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(1200px 600px at 20% 0%, rgba(56,189,248,.10), transparent 55%),
+        radial-gradient(1100px 650px at 80% 15%, rgba(168,85,247,.08), transparent 60%),
+        rgba(0,0,0,.55);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      transition: opacity .35s ease, transform .35s ease;
+    }
+    .preloader.hidden{
+      opacity: 0;
+      transform: scale(1.01);
+      pointer-events: none;
+    }
+    .loader-card{
+      width: min(420px, calc(100vw - 32px));
+      border-radius: 26px;
+      padding: 22px 18px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(18,18,22,.62);
+      box-shadow: 0 20px 80px rgba(0,0,0,.65);
+      text-align:center;
+    }
+    .loader-logo{
+      width: 62px;
+      height: 62px;
+      border-radius: 999px;
+      display:grid;
+      place-items:center;
+      margin: 0 auto 12px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 0 60px rgba(56,189,248,.14);
+    }
+    .loader-logo img{
+      width: 34px;
+      height: 34px;
+      opacity: .95;
+      animation: spinSoft 2.6s linear infinite;
+    }
+    @keyframes spinSoft{ 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
+
+    /* ✅ Bottom navbar */
+  </style>
+</head>
+
+<body>
+  <!-- ✅ PRELOADER -->
+  <div id="preloader" class="preloader">
+    <div class="loader-card">
+      <div class="loader-logo">
+        <img src="assets/icon/favicon.svg" alt="">
+      </div>
+      <div class="font-black text-[18px]">Withdraw</div>
+      <div class="text-[13px] text-white/65 mt-2" id="preloaderText">Loading balances…</div>
+    </div>
+  </div>
+
+  <!-- ✅ BACKGROUND -->
+  <div class="bg-stack" aria-hidden="true">
+    <img src="assets/icon/mask_group.svg" alt="" class="bg-map" />
+    <div class="bg-film"></div>
+  </div>
+
+  <div class="scroll-shell">
+    <main class="mx-auto max-w-[560px] px-4">
+
+      <!-- ✅ HEADER -->
+      <header class="glass rounded-[26px] px-4 py-4 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="avatar" id="btnBack" title="Back">←</div>
+          <div class="min-w-0">
+            <div class="txt-h1 leading-[1.05] truncate">Withdraw</div>
+            <div class="txt-sm t-dim truncate">Choose method • Submit request</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 shrink-0">
+          <div id="hdrName" class="txt-h2 skeleton rounded-xl px-3 py-2">&nbsp;&nbsp;&nbsp;</div>
+          <div class="avatar" id="hdrInitial">U</div>
+        </div>
+      </header>
+
+      <div id="alert" class="hidden mt-4 glass-soft rounded-2xl px-4 py-3 text-sm"></div>
+
+      <!-- ✅ BALANCE SUMMARY -->
+      <section class="mt-5 glass rounded-[26px] p-5">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <div class="txt-h1">Available Balance</div>
+            <div class="txt-sm t-dim">Withdrawals reserve funds in hold</div>
+          </div>
+          <span class="pill rounded-2xl px-3 py-2 text-[12px] font-black">
+            Method: <span id="methodBadge">CRYPTO</span>
+          </span>
+        </div>
+
+        <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="glass-soft rounded-[22px] p-4">
+            <div class="txt-sm t-dim">Main Balance</div>
+            <div id="mainBal" class="mt-2 text-[26px] font-black">
+              <span class="inline-block skeleton rounded-xl w-28 h-8"></span>
+            </div>
+          </div>
+          <div class="glass-soft rounded-[22px] p-4">
+            <div class="txt-sm t-dim">Profit Balance</div>
+            <div id="profitBal" class="mt-2 text-[26px] font-black">
+              <span class="inline-block skeleton rounded-xl w-28 h-8"></span>
+            </div>
+          </div>
+          <div class="glass-soft rounded-[22px] p-4">
+            <div class="txt-sm t-dim">Investment</div>
+            <div id="investBal" class="mt-2 text-[26px] font-black">
+              <span class="inline-block skeleton rounded-xl w-28 h-8"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-3 text-[12px] t-dim" id="availNote">
+          Note: API does not return withdraw_hold on /balances yet, so “available” uses main_balance.
+        </div>
+      </section>
+
+      <!-- ✅ METHOD + FORM -->
+      <section class="mt-5 glass rounded-[26px] p-5">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <div class="txt-h1">Withdrawal Method</div>
+            <div class="txt-sm t-dim">Crypto or Bank transfer</div>
+          </div>
+        </div>
+
+        <div class="mt-4 seg">
+          <button id="btnCrypto" class="active" type="button">Crypto</button>
+          <button id="btnBank" type="button">Bank</button>
+        </div>
+
+        <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="txt-sm t-dim">Amount (USD)</label>
+            <input id="amount" class="field mt-2" type="number" min="1" step="0.01" placeholder="Enter amount" />
+          </div>
+          <div>
+            <label class="txt-sm t-dim">PIN (4–6 digits)</label>
+            <input id="pin" class="field mt-2" inputmode="numeric" placeholder="Enter PIN" />
+          </div>
+        </div>
+
+        <!-- ✅ CRYPTO FIELDS -->
+        <div id="cryptoBox" class="mt-4 glass-soft rounded-[22px] p-4">
+          <div class="row">
+            <div class="font-black">Crypto Details</div>
+            <span class="status-pill st-pending">On-chain</span>
+          </div>
+
+          <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="txt-sm t-dim">Asset</label>
+              <select id="asset" class="field mt-2">
+                <option value="BTC">BTC</option>
+                <option value="ETH">ETH</option>
+                <option value="USDT">USDT</option>
+                <option value="BNB">BNB</option>
+                <option value="LTC">LTC</option>
+                <option value="DOGE">DOGE</option>
+                <option value="XRP">XRP</option>
+                <option value="SHIB">SHIB</option>
+                <option value="SOL">SOL</option>
+              </select>
+            </div>
+            <div>
+              <label class="txt-sm t-dim">Network (optional)</label>
+              <input id="crypto_network" class="field mt-2" placeholder="e.g. ERC20, TRC20, BEP20" />
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <label class="txt-sm t-dim">Wallet Address</label>
+            <input id="crypto_address" class="field mt-2" placeholder="Enter destination address" />
+          </div>
+
+          <div class="mt-3 text-[12px] t-dim">
+            Make sure the address matches the selected asset network.
+          </div>
+        </div>
+
+        <!-- ✅ BANK FIELDS -->
+        <div id="bankBox" class="mt-4 glass-soft rounded-[22px] p-4 hidden">
+          <div class="row">
+            <div class="font-black">Bank Details</div>
+            <span class="status-pill st-pending">Bank</span>
+          </div>
+
+          <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="txt-sm t-dim">Bank Name</label>
+              <input id="bank_name" class="field mt-2" placeholder="e.g. U.SBank" />
+            </div>
+            <div>
+              <label class="txt-sm t-dim">Bank Country (optional)</label>
+              <input id="bank_country" class="field mt-2" placeholder="e.g. USA" />
+            </div>
+          </div>
+
+          <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="txt-sm t-dim">Account Number</label>
+              <input id="bank_account_number" class="field mt-2" placeholder="Enter account number" />
+            </div>
+            <div>
+              <label class="txt-sm t-dim">Account Name</label>
+              <input id="bank_account_name" class="field mt-2" placeholder="Enter account name" />
+            </div>
+          </div>
+
+          <div class="mt-3 text-[12px] t-dim">
+            Ensure the details are correct. Pending withdrawals reserve funds from main balance.
+          </div>
+        </div>
+
+        <div class="mt-5 flex gap-3">
+          <button id="btnSubmit" class="btn primary flex-1" type="button">Submit Withdrawal</button>
+          <button id="btnReset" class="btn flex-1" type="button">Reset</button>
+        </div>
+
+        <div class="mt-3 text-[12px] t-dim" id="submitNote">
+          Status starts as <b>pending</b> until admin approval.
+        </div>
+      </section>
+
+      <!-- ✅ HISTORY -->
+      <section class="mt-5">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <div class="txt-h1">Withdrawal History</div>
+            <div class="txt-sm t-dim">Your recent requests</div>
+          </div>
+          <button id="btnRefresh" class="btn" type="button">Refresh</button>
+        </div>
+
+        <div id="historyWrap" class="mt-4 grid grid-cols-1 gap-4">
+          <!-- skeleton fallback -->
+          <div class="glass rounded-[26px] p-4">
+            <div class="skeleton rounded-2xl h-16 w-full"></div>
+          </div>
+          <div class="glass rounded-[26px] p-4">
+            <div class="skeleton rounded-2xl h-16 w-full"></div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="mt-8 text-center text-xs t-dim pb-10">
+        © <span id="yr"></span> Upcoinmeta • Investment Services
+      </footer>
+
+    </main>
+  </div>
+
+  <!-- ✅ Bottom Navbar (same style) -->
+
+  <script>
+    const API_BASE = window.SwayApi.userBase;
+    const TOKEN_KEY = "upcoinmeta_token";
+    const USER_KEY  = "upcoinmeta_user";
+    const ALLOWED_ASSETS = ["BTC","ETH","USDT","BNB","LTC","DOGE","XRP","SHIB","SOL"];
+
+    document.getElementById("yr").textContent = new Date().getFullYear();
+
+    const preloader = document.getElementById("preloader");
+    const preloaderText = document.getElementById("preloaderText");
+    const alertBox = document.getElementById("alert");
+
+    function showPreloader(msg="Loading…"){
+      preloader.style.display = "grid";
+      preloader.classList.remove("hidden");
+      preloaderText.textContent = msg;
+    }
+    function hidePreloader(){
+      preloader.classList.add("hidden");
+      setTimeout(() => { preloader.style.display = "none"; }, 420);
+    }
+
+    function getToken() {
+      return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY) || "";
+    }
+    function authHeaders() {
+      const token = getToken();
+      return { Authorization: `Bearer ${token}` };
+    }
+
+    function showAlert(type, msg) {
+      alertBox.classList.remove("hidden");
+      alertBox.textContent = msg;
+
+      alertBox.classList.remove("bg-red-500/10","border-red-400/20","text-red-200");
+      alertBox.classList.remove("bg-emerald-500/10","border-emerald-400/20","text-emerald-200");
+      alertBox.classList.remove("bg-amber-500/10","border-amber-400/20","text-amber-200");
+
+      if (type === "success") alertBox.classList.add("bg-emerald-500/10","border","border-emerald-400/20","text-emerald-200");
+      else if (type === "warn") alertBox.classList.add("bg-amber-500/10","border","border-amber-400/20","text-amber-200");
+      else alertBox.classList.add("bg-red-500/10","border","border-red-400/20","text-red-200");
+    }
+
+    function safeStr(v, fallback="—") {
+      const s = String(v ?? "").trim();
+      return s ? s : fallback;
+    }
+
+    function fmtMoney(n) {
+      const num = Number(n || 0);
+      return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    function fmtDate(v){
+      try{
+        const d = new Date(v);
+        return d.toLocaleString();
+      }catch{ return safeStr(v); }
+    }
+
+    async function fetchMe() {
+      const token = getToken();
+      if (!token) {
+        showAlert("warn", "Session expired. Please login again.");
+        setTimeout(() => window.location.href = "../auth/login.html", 900);
+        throw new Error("No token");
+      }
+      const res = await axios.get(`${API_BASE}/me`, { headers: authHeaders(), timeout: 20000 });
+      return res.data?.user;
+    }
+
+    async function fetchBalances(){
+      const res = await axios.get(`${API_BASE}/balances`, { headers: authHeaders(), timeout: 20000 });
+      return res.data?.balances;
+    }
+
+    async function fetchWithdrawals(){
+      const res = await axios.get(`${API_BASE}/withdrawals`, { headers: authHeaders(), timeout: 20000 });
+      return res.data?.withdrawals || [];
+    }
+
+    async function createWithdrawal(payload){
+      const res = await axios.post(`${API_BASE}/withdrawals`, payload, { headers: authHeaders(), timeout: 30000 });
+      return res.data;
+    }
+
+    function renderUserHeader(user) {
+      const name = user?.username || user?.full_name || "Upcoinmeta";
+      const hdrName = document.getElementById("hdrName");
+      const hdrInitial = document.getElementById("hdrInitial");
+      hdrName.classList.remove("skeleton");
+      hdrName.textContent = name;
+      hdrInitial.textContent = (String(name).trim().slice(0,1).toUpperCase() || "U");
+    }
+
+    // ✅ UI refs
+    const mainBalEl = document.getElementById("mainBal");
+    const profitBalEl = document.getElementById("profitBal");
+    const investBalEl = document.getElementById("investBal");
+    const availNoteEl = document.getElementById("availNote");
+
+    const btnCrypto = document.getElementById("btnCrypto");
+    const btnBank = document.getElementById("btnBank");
+    const cryptoBox = document.getElementById("cryptoBox");
+    const bankBox = document.getElementById("bankBox");
+    const methodBadge = document.getElementById("methodBadge");
+
+    const amountEl = document.getElementById("amount");
+    const pinEl = document.getElementById("pin");
+
+    const assetEl = document.getElementById("asset");
+    const cryptoAddrEl = document.getElementById("crypto_address");
+    const cryptoNetEl = document.getElementById("crypto_network");
+
+    const bankNameEl = document.getElementById("bank_name");
+    const bankAccNumEl = document.getElementById("bank_account_number");
+    const bankAccNameEl = document.getElementById("bank_account_name");
+    const bankCountryEl = document.getElementById("bank_country");
+
+    const btnSubmit = document.getElementById("btnSubmit");
+    const btnReset = document.getElementById("btnReset");
+    const btnRefresh = document.getElementById("btnRefresh");
+
+    const historyWrap = document.getElementById("historyWrap");
+
+    let currentMethod = "crypto";
+
+    function setMethod(m){
+      currentMethod = m;
+      btnCrypto.classList.toggle("active", m === "crypto");
+      btnBank.classList.toggle("active", m === "bank");
+
+      cryptoBox.classList.toggle("hidden", m !== "crypto");
+      bankBox.classList.toggle("hidden", m !== "bank");
+
+      methodBadge.textContent = m.toUpperCase();
+    }
+
+    btnCrypto.addEventListener("click", () => setMethod("crypto"));
+    btnBank.addEventListener("click", () => setMethod("bank"));
+
+    document.getElementById("btnBack").addEventListener("click", () => {
+      if (history.length > 1) history.back();
+      else window.location.href = "../pages/dashboard.html";
+    });
+
+    function statusClass(s){
+      const v = String(s||"").toLowerCase();
+      if (v === "approved") return "st-approved";
+      if (v === "declined" || v === "rejected") return "st-declined";
+      return "st-pending";
+    }
+
+    function renderHistory(list){
+      historyWrap.innerHTML = "";
+      if (!list.length){
+        historyWrap.innerHTML = `
+          <div class="glass rounded-[26px] p-5">
+            <div class="txt-h2">No withdrawals yet</div>
+            <div class="txt-sm t-dim mt-1">Submit your first withdrawal above.</div>
+          </div>
+        `;
+        return;
+      }
+
+      list.forEach(w => {
+        const card = document.createElement("div");
+        card.className = "glass rounded-[26px] p-5";
+        const method = String(w.method||"").toUpperCase();
+        const status = String(w.status||"pending").toUpperCase();
+
+        const topRight = `<span class="status-pill ${statusClass(w.status)}">${status}</span>`;
+
+        let details = "";
+        if (String(w.method).toLowerCase() === "crypto"){
+          details = `
+            <div class="row"><span class="t-dim">Asset</span><span class="font-black">${safeStr(w.asset)}</span></div>
+            <div class="row"><span class="t-dim">Network</span><span class="font-black">${safeStr(w.crypto_network)}</span></div>
+            <div class="mt-2 text-[12px] t-dim" style="word-break:break-all;">
+              <span class="t-dim">Address:</span> <span class="text-white/90">${safeStr(w.crypto_address)}</span>
+            </div>
+          `;
+        } else {
+          details = `
+            <div class="row"><span class="t-dim">Bank</span><span class="font-black">${safeStr(w.bank_name)}</span></div>
+            <div class="row"><span class="t-dim">Account</span><span class="font-black">${safeStr(w.bank_account_number)}</span></div>
+            <div class="row"><span class="t-dim">Name</span><span class="font-black">${safeStr(w.bank_account_name)}</span></div>
+            <div class="row"><span class="t-dim">Country</span><span class="font-black">${safeStr(w.bank_country)}</span></div>
+          `;
+        }
+
+        const note = w.admin_note ? `
+          <div class="mt-3 glass-soft rounded-2xl p-3 text-[12px]">
+            <div class="font-black">Admin Note</div>
+            <div class="t-dim mt-1">${String(w.admin_note)}</div>
+          </div>
+        ` : "";
+
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="txt-h2">${method} Withdrawal</div>
+              <div class="txt-sm t-dim">#${safeStr(w.id)} • ${fmtDate(w.created_at)}</div>
+            </div>
+            ${topRight}
+          </div>
+
+          <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="glass-soft rounded-2xl p-3">
+              <div class="txt-sm t-dim">Amount</div>
+              <div class="mt-1 text-[18px] font-black">$${fmtMoney(w.amount)}</div>
+            </div>
+            <div class="glass-soft rounded-2xl p-3">
+              <div class="txt-sm t-dim">Status</div>
+              <div class="mt-1 text-[18px] font-black">${status}</div>
+            </div>
+          </div>
+
+          <div class="mt-4 space-y-2 text-[13px]">
+            ${details}
+          </div>
+
+          ${note}
+        `;
+        historyWrap.appendChild(card);
+      });
+    }
+
+    function validatePin(pin){
+      return /^\d{4,6}$/.test(String(pin||"").trim());
+    }
+
+    function resetForm(){
+      amountEl.value = "";
+      pinEl.value = "";
+      assetEl.value = "BTC";
+      cryptoAddrEl.value = "";
+      cryptoNetEl.value = "";
+      bankNameEl.value = "";
+      bankAccNumEl.value = "";
+      bankAccNameEl.value = "";
+      bankCountryEl.value = "";
+      setMethod("crypto");
+      showAlert("success","Form reset.");
+      setTimeout(() => alertBox.classList.add("hidden"), 1200);
+    }
+
+    btnReset.addEventListener("click", resetForm);
+
+    btnSubmit.addEventListener("click", async () => {
+      try{
+        alertBox.classList.add("hidden");
+
+        const amount = Number(amountEl.value);
+        const pin = String(pinEl.value||"").trim();
+        if (!amount || Number.isNaN(amount) || amount <= 0) return showAlert("warn","Enter a valid amount.");
+        if (!validatePin(pin)) return showAlert("warn","PIN must be 4 to 6 digits.");
+
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = "Submitting…";
+
+        let payload = { amount, pin, method: currentMethod };
+
+        if (currentMethod === "crypto"){
+          const asset = String(assetEl.value||"").toUpperCase();
+          const crypto_address = String(cryptoAddrEl.value||"").trim();
+          const crypto_network = String(cryptoNetEl.value||"").trim().toUpperCase() || null;
+
+          if (!asset || !ALLOWED_ASSETS.includes(asset)) throw new Error("Invalid asset selected.");
+          if (!crypto_address || crypto_address.length < 10) return showAlert("warn","Crypto address is required.");
+
+          payload.asset = asset;
+          payload.crypto_address = crypto_address;
+          payload.crypto_network = crypto_network;
+        } else {
+          const bank_name = String(bankNameEl.value||"").trim();
+          const bank_account_number = String(bankAccNumEl.value||"").trim();
+          const bank_account_name = String(bankAccNameEl.value||"").trim();
+          const bank_country = String(bankCountryEl.value||"").trim() || null;
+
+          if (!bank_name || !bank_account_number || !bank_account_name) {
+            return showAlert("warn","Bank name, account number, and account name are required.");
+          }
+
+          payload.bank_name = bank_name;
+          payload.bank_account_number = bank_account_number;
+          payload.bank_account_name = bank_account_name;
+          payload.bank_country = bank_country;
+        }
+
+        const res = await createWithdrawal(payload);
+        showAlert("success", res?.message || "Withdrawal submitted.");
+
+        // refresh history + balances
+        await Promise.all([loadBalances(), loadHistory()]);
+      }catch(err){
+        const msg = err?.response?.data?.message || err?.message || "Failed to submit withdrawal.";
+        showAlert("error", msg);
+
+        const status = err?.response?.status;
+        if (status === 401 || status === 403) setTimeout(() => window.location.href = "../auth/login.html", 900);
+      } finally {
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = "Submit Withdrawal";
+      }
+    });
+
+    btnRefresh.addEventListener("click", () => {
+      loadHistory().catch(e => showAlert("error", e?.message || "Failed to refresh"));
+    });
+
+    async function loadBalances(){
+      const b = await fetchBalances();
+
+      mainBalEl.textContent = "$" + fmtMoney(b?.main_balance);
+      profitBalEl.textContent = "$" + fmtMoney(b?.profit_balance);
+      investBalEl.textContent = "$" + fmtMoney(b?.investment_balance);
+
+      // NOTE: /balances currently does NOT return withdraw_hold
+      // If you add b.withdraw_hold in your route later, UI will compute available.
+      if (typeof b?.withdraw_hold !== "undefined"){
+        const main = Number(b?.main_balance)||0;
+        const hold = Number(b?.withdraw_hold)||0;
+        const avail = main - hold;
+        availNoteEl.textContent = `Available: $${fmtMoney(avail)} (Main $${fmtMoney(main)} − Hold $${fmtMoney(hold)})`;
+      } else {
+        availNoteEl.textContent = "Note: API does not return withdraw_hold on /balances yet, so “available” uses main_balance.";
+      }
+    }
+
+    async function loadHistory(){
+      historyWrap.innerHTML = `
+        <div class="glass rounded-[26px] p-4"><div class="skeleton rounded-2xl h-16 w-full"></div></div>
+        <div class="glass rounded-[26px] p-4"><div class="skeleton rounded-2xl h-16 w-full"></div></div>
+      `;
+      const list = await fetchWithdrawals();
+      renderHistory(list);
+    }
+
+    async function init(){
+      showPreloader("Loading balances & history…");
+      try{
+        const me = await fetchMe();
+        renderUserHeader(me);
+
+        try{
+          const storage = localStorage.getItem(TOKEN_KEY) ? localStorage : sessionStorage;
+          storage.setItem(USER_KEY, JSON.stringify(me || {}));
+        }catch{}
+
+        await Promise.all([loadBalances(), loadHistory()]);
+        hidePreloader();
+      }catch(err){
+        hidePreloader();
+        const msg = err?.response?.data?.message || err?.message || "Failed to load withdraw page.";
+        showAlert("error", msg);
+
+        const status = err?.response?.status;
+        if (status === 401 || status === 403) setTimeout(() => window.location.href = "../auth/login.html", 900);
+      }
+    }
+
+    // defaults
+    setMethod("crypto");
+    init();
+  </script>
+</body>
+</html>

@@ -1,0 +1,806 @@
+<!-- /admin/deposits.html ✅ Upcoinmeta Admin — Deposits Management (Responsive + Approve/Decline + Proof Viewer) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Upcoinmeta — Deposits Management</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="../assets/js/api.js"></script>
+
+  <style>
+    * { -webkit-tap-highlight-color: transparent; }
+    :root{
+      --safe-top: env(safe-area-inset-top);
+      --safe-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* ✅ bulletproof scroll */
+    html, body{
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #05060b;
+      overscroll-behavior: none;
+    }
+    .app-shell{
+      height: 100vh;
+      height: 100dvh;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-top: calc(14px + var(--safe-top));
+      padding-bottom: calc(14px + var(--safe-bottom));
+    }
+
+    /* ✅ theme */
+    .glass{
+      background: rgba(10,10,14,.64);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.07);
+      box-shadow: 0 18px 70px rgba(0,0,0,.62);
+    }
+    .chip{ background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); }
+    .soft-border{ border: 1px solid rgba(255,255,255,0.10); }
+    .text-muted{ color: rgba(255,255,255,0.74); }
+    .text-faint{ color: rgba(255,255,255,0.52); }
+
+    .bg-broker{
+      background:
+        radial-gradient(1000px 420px at 20% 0%, rgba(56,189,248,0.18), transparent 60%),
+        radial-gradient(900px 480px at 80% 10%, rgba(34,197,94,0.12), transparent 62%),
+        radial-gradient(900px 520px at 55% 100%, rgba(168,85,247,0.14), transparent 62%),
+        linear-gradient(180deg, #05060b 0%, #070813 45%, #05060b 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .bg-broker::before{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        linear-gradient(to right, rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,.04) 1px, transparent 1px);
+      background-size: 60px 60px;
+      opacity:.16;
+      pointer-events:none;
+    }
+    .bg-broker::after{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        radial-gradient(circle at 12% 18%, rgba(56,189,248,.45) 0 2px, transparent 3px),
+        radial-gradient(circle at 30% 30%, rgba(56,189,248,.35) 0 2px, transparent 3px),
+        radial-gradient(circle at 55% 18%, rgba(56,189,248,.35) 0 2px, transparent 3px),
+        radial-gradient(circle at 78% 34%, rgba(56,189,248,.35) 0 2px, transparent 3px),
+        radial-gradient(circle at 64% 62%, rgba(56,189,248,.25) 0 2px, transparent 3px),
+        radial-gradient(circle at 18% 68%, rgba(56,189,248,.25) 0 2px, transparent 3px);
+      opacity:.55;
+      pointer-events:none;
+      mix-blend-mode: screen;
+    }
+    .ring-glow{ box-shadow: 0 0 0 1px rgba(255,255,255,.06), 0 18px 70px rgba(56,189,248,.10); }
+
+    .btn-primary{ background: linear-gradient(90deg, rgba(56,189,248,0.95), rgba(168,85,247,0.92)); }
+    .btn-primary:hover{ filter: brightness(1.05); }
+    .btn-primary:active{ transform: scale(0.99); }
+
+    .btn-ghost{ background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10); }
+    .btn-ghost:hover{ background: rgba(255,255,255,0.08); }
+    .btn-ghost:active{ transform: scale(0.99); }
+
+    .btn-good{
+      background: rgba(34,197,94,0.10);
+      border: 1px solid rgba(34,197,94,0.28);
+      color: rgba(187,247,208,0.95);
+    }
+    .btn-good:hover{ background: rgba(34,197,94,0.14); }
+
+    .btn-bad{
+      background: rgba(239,68,68,0.10);
+      border: 1px solid rgba(239,68,68,0.26);
+      color: rgba(254,202,202,0.95);
+    }
+    .btn-bad:hover{ background: rgba(239,68,68,0.14); }
+
+    .input{ background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10); outline: none; }
+    .input:focus{ box-shadow: 0 0 0 3px rgba(56,189,248,0.22); border-color: rgba(56,189,248,0.28); }
+
+    .card{ background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10); }
+
+    /* table */
+    .table-wrap{ overflow:auto; -webkit-overflow-scrolling:touch; border-radius: 18px; }
+    table{ width:100%; border-collapse: separate; border-spacing: 0; min-width: 1200px; }
+    th, td{ padding: 12px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); vertical-align: top; }
+    th{
+      position: sticky; top: 0;
+      background: rgba(10,10,14,.82);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 2;
+      text-align:left;
+      font-size: 12px;
+      color: rgba(255,255,255,0.72);
+      white-space: nowrap;
+    }
+    td{ font-size: 13px; color: rgba(255,255,255,0.84); }
+    tr:hover td{ background: rgba(255,255,255,0.03); }
+
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 900;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+      white-space: nowrap;
+    }
+    .pill.pending{ border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.12); color: rgba(253,230,138,0.95); }
+    .pill.approved{ border-color: rgba(34,197,94,0.35); background: rgba(34,197,94,0.12); color: rgba(187,247,208,0.95); }
+    .pill.declined{ border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.10); color: rgba(254,202,202,0.95); }
+    .pill.asset{ border-color: rgba(56,189,248,0.28); background: rgba(56,189,248,0.10); color: rgba(186,230,253,0.95); }
+
+    /* modals */
+    .modal-backdrop{
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      display:none;
+      align-items: center;
+      justify-content:center;
+      padding: 14px;
+      z-index: 50;
+    }
+    .modal-open{ display:flex; }
+
+    .modal{
+      width: 100%;
+      max-width: 1080px;
+      border-radius: 22px;
+      max-height: calc(100dvh - 28px);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-header{ padding: 14px 14px 10px; flex: 0 0 auto; }
+    .modal-body{ padding: 0 14px 14px; overflow: auto; -webkit-overflow-scrolling: touch; flex: 1 1 auto; }
+
+    @media (max-width: 640px){
+      .stack{ flex-direction: column; align-items: stretch !important; }
+      .stack > *{ width: 100%; }
+      table{ min-width: 1100px; }
+    }
+    @media (max-width: 420px){
+      input, button, select, textarea { font-size: 16px; }
+    }
+  </style>
+</head>
+
+<body class="bg-broker text-white">
+  <div class="app-shell">
+    <div class="mx-auto max-w-[1400px] px-4">
+      <div class="w-full glass ring-glow rounded-3xl p-5 sm:p-7">
+        <!-- Top -->
+        <div class="flex gap-4 sm:items-center sm:justify-between stack">
+          <div class="flex items-center gap-3">
+            <a href="./dashboard.html" class="w-11 h-11 rounded-2xl chip grid place-items-center shrink-0 hover:opacity-90" title="Back to dashboard">
+              <span class="text-lg font-black">U</span>
+            </a>
+            <div>
+              <div class="text-xl font-extrabold leading-tight">Deposits Management</div>
+              <div class="text-sm text-faint -mt-0.5">Admin • Review proof • Approve/Decline • Add note</div>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-2 justify-end">
+            <button id="btnReload" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Reload</button>
+            <button id="btnLogout" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Logout</button>
+          </div>
+        </div>
+
+        <!-- Alert -->
+        <div id="alert" class="hidden mt-5 rounded-2xl px-4 py-3 text-sm soft-border"></div>
+
+        <!-- Controls -->
+        <div class="mt-5 grid grid-cols-1 lg:grid-cols-4 gap-4">
+          <div class="rounded-3xl card p-4">
+            <div class="text-xs text-white/55 font-semibold">Search</div>
+            <input id="q" class="mt-2 w-full rounded-2xl input px-4 py-3" placeholder="Search name, username, email, asset…" />
+            <div class="mt-2 text-xs text-white/45">Works on loaded results.</div>
+          </div>
+
+          <div class="rounded-3xl card p-4">
+            <div class="text-xs text-white/55 font-semibold">Status Filter</div>
+            <select id="status" class="mt-2 w-full rounded-2xl input px-4 py-3">
+              <option value="all">All</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="declined">Declined</option>
+            </select>
+            <div class="mt-2 text-xs text-white/45">Also calls backend with <b>?status=</b> when not “All”.</div>
+          </div>
+
+          <div class="rounded-3xl card p-4">
+            <div class="text-xs text-white/55 font-semibold">Asset Filter</div>
+            <select id="assetFilter" class="mt-2 w-full rounded-2xl input px-4 py-3">
+              <option value="all">All assets</option>
+            </select>
+            <div class="mt-2 text-xs text-white/45">Auto-filled from results.</div>
+          </div>
+
+          <div class="rounded-3xl card p-4">
+            <div class="text-xs text-white/55 font-semibold">Overview</div>
+            <div class="mt-2 text-lg font-extrabold" id="countText">0 deposits</div>
+            <div class="mt-1 text-xs text-white/45" id="metaText">—</div>
+            <div class="mt-3">
+              <button id="btnExport" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold w-full">Export CSV</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="mt-5 rounded-3xl card p-0">
+          <div class="px-5 py-4 flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <div class="font-extrabold">Deposit Records</div>
+              <div class="text-sm text-white/60">Approve credits <b>users.main_balance</b> (per your backend).</div>
+            </div>
+            <div class="chip rounded-xl px-3 py-2 text-xs font-extrabold" id="lastLoaded">Last loaded: —</div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>User</th>
+                  <th>Asset</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Proof</th>
+                  <th>Admin Note</th>
+                  <th>Created</th>
+                  <th>Updated</th>
+                  <th style="min-width:280px;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="tbody">
+                <tr><td colspan="10" class="text-white/60">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="mt-7 text-center text-xs text-white/45">
+          © <span id="yr"></span> Upcoinmeta • Admin Console
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Details / Action Modal -->
+  <div id="detailBackdrop" class="modal-backdrop">
+    <div class="glass ring-glow modal">
+      <div class="modal-header">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div class="text-lg font-extrabold" id="modalTitle">Deposit</div>
+            <div class="text-sm text-white/60" id="modalSub">—</div>
+          </div>
+          <div class="flex flex-wrap gap-2 justify-end">
+            <button id="btnCloseDetail" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Close</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <!-- Left: Info -->
+          <div class="rounded-3xl card p-4">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <div class="font-extrabold">Details</div>
+              <div class="chip rounded-xl px-3 py-1 text-xs font-extrabold" id="idChip">—</div>
+            </div>
+
+            <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              <div class="rounded-2xl chip px-3 py-3">
+                <div class="text-xs text-white/50 font-semibold">User</div>
+                <div class="font-extrabold" id="dUser">—</div>
+                <div class="text-xs text-white/45" id="dEmail">—</div>
+              </div>
+
+              <div class="rounded-2xl chip px-3 py-3">
+                <div class="text-xs text-white/50 font-semibold">Asset / Amount</div>
+                <div class="font-extrabold" id="dAmt">—</div>
+                <div class="text-xs text-white/45" id="dAsset">—</div>
+              </div>
+
+              <div class="rounded-2xl chip px-3 py-3">
+                <div class="text-xs text-white/50 font-semibold">Status</div>
+                <div id="dStatus" class="mt-1">—</div>
+              </div>
+
+              <div class="rounded-2xl chip px-3 py-3">
+                <div class="text-xs text-white/50 font-semibold">Created</div>
+                <div class="font-extrabold" id="dCreated">—</div>
+                <div class="text-xs text-white/45" id="dUpdated">—</div>
+              </div>
+
+              <div class="sm:col-span-2 rounded-2xl chip px-3 py-3">
+                <div class="text-xs text-white/50 font-semibold">Current Admin Note</div>
+                <div class="text-sm text-white/80 mt-1" id="dNote">—</div>
+              </div>
+            </div>
+
+            <div class="mt-4 rounded-3xl card p-4">
+              <div class="text-sm font-extrabold">Action Note</div>
+              <div class="text-xs text-white/50 mt-1">This note is stored in <b>deposits.admin_note</b>.</div>
+              <textarea id="admin_note" rows="3" class="mt-3 w-full rounded-2xl input px-4 py-3" placeholder="Optional note…"></textarea>
+
+              <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button id="btnApprove" class="rounded-2xl btn-good px-5 py-3 font-extrabold">Approve & Credit</button>
+                <button id="btnDecline" class="rounded-2xl btn-bad px-5 py-3 font-extrabold">Decline</button>
+              </div>
+
+              <div class="mt-3 text-xs text-white/45">
+                Approve: <b>POST /deposits/:id/approve</b> • Decline: <b>POST /deposits/:id/decline</b>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Proof -->
+          <div class="rounded-3xl card p-4">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <div>
+                <div class="font-extrabold">Proof</div>
+                <div class="text-sm text-white/60">Opens proof_url from API.</div>
+              </div>
+              <button id="btnOpenProof" class="rounded-2xl btn-primary px-4 py-3 font-extrabold">Open Proof</button>
+            </div>
+
+            <div class="mt-4 rounded-3xl chip p-3">
+              <div class="text-xs text-white/50 font-semibold">Proof URL</div>
+              <div id="proofUrl" class="mt-1 text-xs text-white/75 break-all">—</div>
+            </div>
+
+            <div class="mt-4 rounded-3xl chip p-3">
+              <div class="text-xs text-white/50 font-semibold">Preview</div>
+              <div class="mt-3 grid place-items-center">
+                <img id="proofImg" src="" alt="Proof preview" class="hidden max-h-[520px] rounded-2xl soft-border" />
+                <div id="proofEmpty" class="text-sm text-white/50">No proof preview available</div>
+              </div>
+              <div class="mt-2 text-xs text-white/45">
+                If proof is PDF, use “Open Proof” to view.
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ✅ Admin API base
+    const ADMIN_BASE = window.SwayApi.adminBase;
+    const TOKEN_KEY = "upcoinmeta_admin_token";
+    const ADMIN_KEY = "upcoinmeta_admin";
+
+    // refs
+    const alertBox = document.getElementById("alert");
+    const tbody = document.getElementById("tbody");
+    const qEl = document.getElementById("q");
+    const statusEl = document.getElementById("status");
+    const assetFilter = document.getElementById("assetFilter");
+    const countText = document.getElementById("countText");
+    const metaText = document.getElementById("metaText");
+    const lastLoaded = document.getElementById("lastLoaded");
+
+    const btnReload = document.getElementById("btnReload");
+    const btnLogout = document.getElementById("btnLogout");
+    const btnExport = document.getElementById("btnExport");
+
+    // modal refs
+    const detailBackdrop = document.getElementById("detailBackdrop");
+    const btnCloseDetail = document.getElementById("btnCloseDetail");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalSub = document.getElementById("modalSub");
+    const idChip = document.getElementById("idChip");
+
+    const dUser = document.getElementById("dUser");
+    const dEmail = document.getElementById("dEmail");
+    const dAmt = document.getElementById("dAmt");
+    const dAsset = document.getElementById("dAsset");
+    const dStatus = document.getElementById("dStatus");
+    const dCreated = document.getElementById("dCreated");
+    const dUpdated = document.getElementById("dUpdated");
+    const dNote = document.getElementById("dNote");
+
+    const adminNoteEl = document.getElementById("admin_note");
+    const btnApprove = document.getElementById("btnApprove");
+    const btnDecline = document.getElementById("btnDecline");
+
+    const btnOpenProof = document.getElementById("btnOpenProof");
+    const proofUrlEl = document.getElementById("proofUrl");
+    const proofImg = document.getElementById("proofImg");
+    const proofEmpty = document.getElementById("proofEmpty");
+
+    document.getElementById("yr").textContent = new Date().getFullYear();
+
+    // state
+    let ALL = [];
+    let FILTERED = [];
+    let ACTIVE_ID = null;
+    let ACTIVE = null;
+
+    function showAlert(type, msg) {
+      alertBox.classList.remove("hidden");
+      alertBox.textContent = msg;
+
+      alertBox.classList.remove("bg-red-500/10", "border-red-400/20", "text-red-200");
+      alertBox.classList.remove("bg-emerald-500/10", "border-emerald-400/20", "text-emerald-200");
+      alertBox.classList.remove("bg-amber-500/10", "border-amber-400/20", "text-amber-200");
+
+      if (type === "success") alertBox.classList.add("bg-emerald-500/10", "border", "border-emerald-400/20", "text-emerald-200");
+      else if (type === "warn") alertBox.classList.add("bg-amber-500/10", "border", "border-amber-400/20", "text-amber-200");
+      else alertBox.classList.add("bg-red-500/10", "border", "border-red-400/20", "text-red-200");
+    }
+
+    function token(){ return localStorage.getItem(TOKEN_KEY) || ""; }
+
+    function requireAuthOrRedirect(){
+      if (!token()) { window.location.href = "./index.html"; return false; }
+      return true;
+    }
+
+    function api(){
+      return window.SwayApi.adminClient({ timeout: 25000 });
+    }
+
+    function openModal(){ detailBackdrop.classList.add("modal-open"); }
+    function closeModal(){ detailBackdrop.classList.remove("modal-open"); }
+
+    function escapeHtml(s){
+      return String(s ?? "").replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+    }
+    function fmtDate(d){
+      if (!d) return "—";
+      const dt = new Date(d);
+      return Number.isNaN(dt.getTime()) ? String(d) : dt.toLocaleString();
+    }
+    function pillStatus(s){
+      const v = String(s || "").toLowerCase();
+      if (v === "approved") return `<span class="pill approved">APPROVED</span>`;
+      if (v === "declined") return `<span class="pill declined">DECLINED</span>`;
+      return `<span class="pill pending">PENDING</span>`;
+    }
+    function shortText(s, n=18){
+      const v = String(s || "");
+      if (v.length <= n) return v;
+      return v.slice(0, Math.max(6, n-8)) + "…" + v.slice(-8);
+    }
+
+    async function loadDeposits(){
+      alertBox.classList.add("hidden");
+      tbody.innerHTML = `<tr><td colspan="10" class="text-white/60">Loading…</td></tr>`;
+
+      const st = statusEl.value;
+      const qs = st && st !== "all" ? `?status=${encodeURIComponent(st)}` : "";
+
+      try{
+        const res = await api().get(`/deposits${qs}`);
+        const data = res.data || {};
+        ALL = Array.isArray(data.deposits) ? data.deposits : [];
+        lastLoaded.textContent = `Last loaded: ${new Date().toLocaleString()}`;
+
+        rebuildAssetFilter();
+        applyFilters();
+      }catch(err){
+        const status = err?.response?.status;
+        const msg = err?.response?.data?.message || "Failed to load deposits.";
+        if (status === 401 || status === 403) {
+          showAlert("error", msg + " Redirecting to admin login…");
+          setTimeout(() => (window.location.href = "./index.html"), 700);
+          return;
+        }
+        showAlert("error", msg);
+        tbody.innerHTML = `<tr><td colspan="10" class="text-white/60">Error loading deposits.</td></tr>`;
+      }
+    }
+
+    function rebuildAssetFilter(){
+      const assets = Array.from(new Set((ALL||[]).map(d => String(d.asset||"").toUpperCase()).filter(Boolean))).sort();
+      assetFilter.innerHTML = `<option value="all">All assets</option>` + assets.map(a => `<option value="${a}">${a}</option>`).join("");
+    }
+
+    function applyFilters(){
+      const q = qEl.value.trim().toLowerCase();
+      const af = assetFilter.value;
+
+      FILTERED = (ALL || []).filter(d => {
+        const blob = [
+          d.id, d.user_id, d.full_name, d.username, d.email, d.asset, d.amount, d.status
+        ].join(" ").toLowerCase();
+
+        if (q && !blob.includes(q)) return false;
+        if (af !== "all" && String(d.asset||"").toUpperCase() !== af) return false;
+        return true;
+      });
+
+      renderTable();
+      countText.textContent = `${FILTERED.length} deposit${FILTERED.length === 1 ? "" : "s"}`;
+      metaText.textContent = `Showing ${FILTERED.length} / ${ALL.length}`;
+    }
+
+    function renderTable(){
+      if (!FILTERED.length) {
+        tbody.innerHTML = `<tr><td colspan="10" class="text-white/60">No deposits found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = FILTERED.map(d => {
+        const proof = d.proof_url
+          ? `<a class="underline text-sky-200" href="${escapeHtml(d.proof_url)}" target="_blank" rel="noreferrer">Open</a>`
+          : `<span class="text-white/45">—</span>`;
+
+        const note = d.admin_note ? escapeHtml(d.admin_note) : "—";
+
+        const userBlock = `
+          <div class="font-extrabold">${escapeHtml(d.full_name || "—")}</div>
+          <div class="text-xs text-white/50">@${escapeHtml(d.username || "—")}</div>
+          <div class="text-xs text-white/45">${escapeHtml(d.email || "—")}</div>
+          <div class="text-[11px] text-white/40">User ID: ${escapeHtml(d.user_id)}</div>
+        `;
+
+        const actions = `
+          <div class="flex flex-wrap gap-2">
+            <button class="rounded-2xl btn-primary px-4 py-2 font-extrabold" onclick="openDetail(${Number(d.id)})">View</button>
+            ${String(d.status).toLowerCase() === "pending"
+              ? `<button class="rounded-2xl btn-good px-4 py-2 font-extrabold" onclick="quickApprove(${Number(d.id)})">Approve</button>
+                 <button class="rounded-2xl btn-bad px-4 py-2 font-extrabold" onclick="quickDecline(${Number(d.id)})">Decline</button>`
+              : `<span class="chip rounded-xl px-3 py-2 text-xs font-extrabold">LOCKED</span>`
+            }
+          </div>
+        `;
+
+        return `
+          <tr>
+            <td class="text-white/70 font-semibold">#${escapeHtml(d.id)}</td>
+            <td>${userBlock}</td>
+            <td><span class="pill asset">${escapeHtml(String(d.asset||"").toUpperCase())}</span></td>
+            <td class="font-extrabold">${escapeHtml(d.amount)}</td>
+            <td>${pillStatus(d.status)}</td>
+            <td>${proof}</td>
+            <td>
+              <div class="text-sm text-white/80">${note}</div>
+              ${d.status !== "pending" ? `<div class="text-[11px] text-white/45 mt-1">${escapeHtml(d.status)} at ${escapeHtml(fmtDate(d.updated_at))}</div>` : ``}
+            </td>
+            <td class="text-white/60">${escapeHtml(fmtDate(d.created_at))}</td>
+            <td class="text-white/60">${escapeHtml(fmtDate(d.updated_at))}</td>
+            <td>${actions}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    async function fetchDeposit(id){
+      const res = await api().get(`/deposits/${id}`);
+      return res.data?.deposit;
+    }
+
+    function setLoading(btn, isLoading, textLoading, textDefault){
+      if (isLoading) {
+        btn.disabled = true;
+        btn.textContent = textLoading;
+        btn.classList.add("opacity-70");
+      } else {
+        btn.disabled = false;
+        btn.textContent = textDefault;
+        btn.classList.remove("opacity-70");
+      }
+    }
+
+    function canAct(d){
+      return String(d?.status || "").toLowerCase() === "pending";
+    }
+
+    function showProofPreview(url){
+      proofUrlEl.textContent = url || "—";
+
+      if (!url) {
+        proofImg.src = "";
+        proofImg.classList.add("hidden");
+        proofEmpty.classList.remove("hidden");
+        return;
+      }
+
+      const lower = url.toLowerCase();
+      const isImg = lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".webp") || lower.includes("image");
+      if (isImg) {
+        proofImg.src = url;
+        proofImg.classList.remove("hidden");
+        proofEmpty.classList.add("hidden");
+      } else {
+        proofImg.src = "";
+        proofImg.classList.add("hidden");
+        proofEmpty.classList.remove("hidden");
+      }
+    }
+
+    window.openDetail = async function(id){
+      alertBox.classList.add("hidden");
+      try{
+        const d = await fetchDeposit(id);
+        ACTIVE_ID = Number(d.id);
+        ACTIVE = d;
+
+        modalTitle.textContent = `Deposit #${d.id}`;
+        modalSub.textContent = `${String(d.asset||"").toUpperCase()} • ${d.amount} • ${String(d.status||"").toUpperCase()}`;
+        idChip.textContent = `ID ${d.id}`;
+
+        dUser.textContent = d.full_name || "—";
+        dEmail.textContent = `${d.email || "—"} • @${d.username || "—"} • user_id: ${d.user_id}`;
+
+        dAmt.textContent = `${d.amount}`;
+        dAsset.textContent = `${String(d.asset||"").toUpperCase()}`;
+
+        dStatus.innerHTML = pillStatus(d.status);
+        dCreated.textContent = fmtDate(d.created_at);
+        dUpdated.textContent = `Updated: ${fmtDate(d.updated_at)}`;
+
+        dNote.textContent = d.admin_note ? d.admin_note : "—";
+        adminNoteEl.value = d.admin_note ? d.admin_note : "";
+
+        const proofUrl = d.proof_url || null;
+        showProofPreview(proofUrl);
+
+        // lock buttons if not pending
+        const pending = canAct(d);
+        btnApprove.disabled = !pending;
+        btnDecline.disabled = !pending;
+        btnApprove.classList.toggle("opacity-70", !pending);
+        btnDecline.classList.toggle("opacity-70", !pending);
+
+        openModal();
+      }catch(err){
+        showAlert("error", err?.response?.data?.message || "Failed to load deposit.");
+      }
+    }
+
+    async function approveDeposit(id, note){
+      return api().post(`/deposits/${id}/approve`, { admin_note: note || null }, { headers: { "Content-Type":"application/json" } });
+    }
+    async function declineDeposit(id, note){
+      return api().post(`/deposits/${id}/decline`, { admin_note: note || "Declined" }, { headers: { "Content-Type":"application/json" } });
+    }
+
+    window.quickApprove = async function(id){
+      const note = prompt("Optional admin note (approve):", "Approved");
+      if (note === null) return;
+      try{
+        showAlert("warn", "Approving deposit…");
+        await approveDeposit(id, note);
+        showAlert("success", `Deposit #${id} approved and credited.`);
+        await loadDeposits();
+      }catch(err){
+        showAlert("error", err?.response?.data?.message || "Approve failed.");
+      }
+    }
+
+    window.quickDecline = async function(id){
+      const note = prompt("Reason/admin note (decline):", "Declined");
+      if (note === null) return;
+      try{
+        showAlert("warn", "Declining deposit…");
+        await declineDeposit(id, note);
+        showAlert("success", `Deposit #${id} declined.`);
+        await loadDeposits();
+      }catch(err){
+        showAlert("error", err?.response?.data?.message || "Decline failed.");
+      }
+    }
+
+    function downloadCsv(rows){
+      const headers = [
+        "id","user_id","full_name","username","email","asset","amount","status","admin_note",
+        "proof_filename","proof_url","approved_by","approved_at","declined_by","declined_at","created_at","updated_at"
+      ];
+      const lines = [headers.join(",")];
+      for (const d of rows) {
+        const vals = headers.map(h => {
+          const v = d?.[h];
+          const s = (v === null || v === undefined) ? "" : String(v).replace(/"/g,'""');
+          return `"${s}"`;
+        });
+        lines.push(vals.join(","));
+      }
+      const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `upcoinmeta_deposits_${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    // events
+    btnReload.addEventListener("click", loadDeposits);
+    statusEl.addEventListener("change", loadDeposits);
+
+    qEl.addEventListener("input", applyFilters);
+    assetFilter.addEventListener("change", applyFilters);
+
+    btnExport.addEventListener("click", () => {
+      if (!FILTERED.length) return showAlert("warn", "No deposits to export (current filter).");
+      downloadCsv(FILTERED);
+      showAlert("success", "CSV exported.");
+    });
+
+    btnLogout.addEventListener("click", () => {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(ADMIN_KEY);
+      showAlert("success", "Logged out. Redirecting…");
+      setTimeout(() => (window.location.href = "./index.html"), 600);
+    });
+
+    btnCloseDetail.addEventListener("click", closeModal);
+    detailBackdrop.addEventListener("click", (e) => { if (e.target === detailBackdrop) closeModal(); });
+
+    btnOpenProof.addEventListener("click", () => {
+      const url = (ACTIVE && ACTIVE.proof_url) ? ACTIVE.proof_url : null;
+      if (!url) return showAlert("warn", "No proof URL for this deposit.");
+      window.open(url, "_blank", "noopener,noreferrer");
+    });
+
+    btnApprove.addEventListener("click", async () => {
+      if (!ACTIVE_ID || !ACTIVE) return;
+      if (!canAct(ACTIVE)) return showAlert("warn", "This deposit is already processed.");
+
+      const note = adminNoteEl.value.trim() || null;
+      setLoading(btnApprove, true, "Approving…", "Approve & Credit");
+      setLoading(btnDecline, true, "Working…", "Decline");
+
+      try{
+        const res = await approveDeposit(ACTIVE_ID, note);
+        showAlert("success", res.data?.message || "Deposit approved.");
+        closeModal();
+        await loadDeposits();
+      }catch(err){
+        showAlert("error", err?.response?.data?.message || "Approve failed.");
+      }finally{
+        setLoading(btnApprove, false, "Approving…", "Approve & Credit");
+        setLoading(btnDecline, false, "Working…", "Decline");
+      }
+    });
+
+    btnDecline.addEventListener("click", async () => {
+      if (!ACTIVE_ID || !ACTIVE) return;
+      if (!canAct(ACTIVE)) return showAlert("warn", "This deposit is already processed.");
+
+      const note = adminNoteEl.value.trim() || "Declined";
+      setLoading(btnDecline, true, "Declining…", "Decline");
+      setLoading(btnApprove, true, "Working…", "Approve & Credit");
+
+      try{
+        const res = await declineDeposit(ACTIVE_ID, note);
+        showAlert("success", res.data?.message || "Deposit declined.");
+        closeModal();
+        await loadDeposits();
+      }catch(err){
+        showAlert("error", err?.response?.data?.message || "Decline failed.");
+      }finally{
+        setLoading(btnDecline, false, "Declining…", "Decline");
+        setLoading(btnApprove, false, "Working…", "Approve & Credit");
+      }
+    });
+
+    // init
+    (function init(){
+      if (!requireAuthOrRedirect()) return;
+      loadDeposits();
+    })();
+  </script>
+</body>
+</html>

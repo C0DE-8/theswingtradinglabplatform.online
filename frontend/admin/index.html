@@ -1,0 +1,495 @@
+<!-- /admin/index.html ✅ Upcoinmeta Admin Portal (Login + Secure Register) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Upcoinmeta — Admin Portal</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="../assets/js/api.js"></script>
+
+  <style>
+    * { -webkit-tap-highlight-color: transparent; }
+    :root{
+      --safe-top: env(safe-area-inset-top);
+      --safe-bottom: env(safe-area-inset-bottom);
+    }
+
+    html, body{
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #05060b;
+      overscroll-behavior: none;
+    }
+    .app-shell{
+      height: 100vh;
+      height: 100dvh;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-top: calc(16px + var(--safe-top));
+      padding-bottom: calc(16px + var(--safe-bottom));
+    }
+
+    .glass{
+      background: rgba(10,10,14,.64);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.07);
+      box-shadow: 0 18px 70px rgba(0,0,0,.62);
+    }
+    .chip{ background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); }
+    .soft-border{ border: 1px solid rgba(255,255,255,0.10); }
+    .text-muted{ color: rgba(255,255,255,0.74); }
+    .text-faint{ color: rgba(255,255,255,0.52); }
+
+    .bg-broker{
+      background:
+        radial-gradient(1000px 420px at 20% 0%, rgba(56,189,248,0.18), transparent 60%),
+        radial-gradient(900px 480px at 80% 10%, rgba(34,197,94,0.12), transparent 62%),
+        radial-gradient(900px 520px at 55% 100%, rgba(168,85,247,0.14), transparent 62%),
+        linear-gradient(180deg, #05060b 0%, #070813 45%, #05060b 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .bg-broker::before{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        linear-gradient(to right, rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,.04) 1px, transparent 1px);
+      background-size: 60px 60px;
+      opacity:.16;
+      pointer-events:none;
+    }
+    .bg-broker::after{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        radial-gradient(circle at 12% 18%, rgba(56,189,248,.45) 0 2px, transparent 3px),
+        radial-gradient(circle at 30% 30%, rgba(56,189,248,.35) 0 2px, transparent 3px),
+        radial-gradient(circle at 55% 18%, rgba(56,189,248,.35) 0 2px, transparent 3px),
+        radial-gradient(circle at 78% 34%, rgba(56,189,248,.35) 0 2px, transparent 3px),
+        radial-gradient(circle at 64% 62%, rgba(56,189,248,.25) 0 2px, transparent 3px),
+        radial-gradient(circle at 18% 68%, rgba(56,189,248,.25) 0 2px, transparent 3px);
+      opacity:.55;
+      pointer-events:none;
+      mix-blend-mode: screen;
+    }
+    .ring-glow{ box-shadow: 0 0 0 1px rgba(255,255,255,.06), 0 18px 70px rgba(56,189,248,.10); }
+
+    .badge-admin{
+      background: rgba(245,158,11,0.10);
+      border: 1px solid rgba(245,158,11,0.24);
+      color: rgba(253,230,138,0.95);
+    }
+
+    .btn-primary{ background: linear-gradient(90deg, rgba(56,189,248,0.95), rgba(168,85,247,0.92)); }
+    .btn-primary:hover{ filter: brightness(1.05); }
+    .btn-primary:active{ transform: scale(0.99); }
+
+    .btn-ghost{
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.10);
+    }
+    .btn-ghost:hover{ background: rgba(255,255,255,0.08); }
+    .btn-ghost:active{ transform: scale(0.99); }
+
+    .input{
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.10);
+      outline: none;
+    }
+    .input:focus{
+      box-shadow: 0 0 0 3px rgba(56,189,248,0.22);
+      border-color: rgba(56,189,248,0.28);
+    }
+
+    @media (max-width: 420px){
+      input, button { font-size: 16px; }
+    }
+  </style>
+</head>
+
+<body class="bg-broker text-white">
+  <div class="app-shell">
+    <div class="mx-auto max-w-[980px] px-4">
+      <div class="w-full glass ring-glow rounded-3xl p-5 sm:p-7">
+        <!-- Header -->
+        <div class="flex items-start justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <div class="w-11 h-11 rounded-2xl chip grid place-items-center shrink-0">
+              <span class="text-lg font-black">U</span>
+            </div>
+            <div>
+              <div class="text-xl font-extrabold leading-tight">Upcoinmeta</div>
+              <div class="text-sm text-faint -mt-0.5">Admin Portal • Secure access</div>
+            </div>
+          </div>
+
+          <span class="badge-admin rounded-xl px-3 py-1 text-xs font-extrabold whitespace-nowrap">
+            ADMIN CONSOLE
+          </span>
+        </div>
+
+        <div class="mt-4 text-sm text-white/70 leading-relaxed">
+          Login to manage platform operations. Admin creation is protected by <b>ADMIN_REGISTER_SECRET</b>.
+        </div>
+
+        <!-- Alert -->
+        <div id="alert" class="hidden mt-5 rounded-2xl px-4 py-3 text-sm soft-border"></div>
+
+        <!-- Tabs -->
+        <div class="mt-5 grid grid-cols-2 gap-3">
+          <button id="tabLogin" class="rounded-2xl py-3 font-extrabold btn-primary">Admin Login</button>
+          <button id="tabRegister" class="rounded-2xl py-3 font-extrabold btn-ghost">Create Admin</button>
+        </div>
+
+        <!-- Panels -->
+        <div class="mt-5 grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <!-- Login -->
+          <div id="panelLogin" class="rounded-3xl soft-border bg-white/5 p-5">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-lg font-extrabold">Sign in</div>
+                <div class="text-sm text-white/60">Access the admin console</div>
+              </div>
+              <span class="chip rounded-xl px-3 py-1 text-xs font-extrabold">LOGIN</span>
+            </div>
+
+            <form id="loginForm" class="mt-4 space-y-4">
+              <div>
+                <label class="text-sm font-semibold text-muted">Email</label>
+                <input id="login_email" type="email" placeholder="admin@email.com"
+                  class="mt-2 w-full rounded-2xl input px-4 py-3" required />
+              </div>
+
+              <div>
+                <label class="text-sm font-semibold text-muted">Password</label>
+                <div class="mt-2 relative">
+                  <input id="login_password" type="password" autocomplete="current-password"
+                    placeholder="Enter password" class="w-full rounded-2xl input px-4 py-3 pr-14" required />
+                  <button type="button" id="toggleLoginPass"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 chip rounded-xl px-3 py-2 text-xs font-extrabold">
+                    SHOW
+                  </button>
+                </div>
+              </div>
+
+              <button id="loginBtn" type="submit"
+                class="w-full rounded-2xl btn-primary transition font-extrabold py-3">
+                Login
+              </button>
+
+              <div class="text-[12px] text-white/55 leading-relaxed">
+                After login, you will be redirected to the admin dashboard.
+              </div>
+            </form>
+          </div>
+
+          <!-- Register -->
+          <div id="panelRegister" class="rounded-3xl soft-border bg-white/5 p-5 hidden">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-lg font-extrabold">Create admin</div>
+                <div class="text-sm text-white/60">Protected by admin secret</div>
+              </div>
+              <span class="chip rounded-xl px-3 py-1 text-xs font-extrabold">REGISTER</span>
+            </div>
+
+            <form id="registerForm" class="mt-4 space-y-4">
+              <div>
+                <label class="text-sm font-semibold text-muted">Name</label>
+                <input id="reg_name" type="text" placeholder="Admin name"
+                  class="mt-2 w-full rounded-2xl input px-4 py-3" required />
+              </div>
+
+              <div>
+                <label class="text-sm font-semibold text-muted">Email</label>
+                <input id="reg_email" type="email" placeholder="admin@email.com"
+                  class="mt-2 w-full rounded-2xl input px-4 py-3" required />
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="text-sm font-semibold text-muted">Password</label>
+                  <div class="mt-2 relative">
+                    <input id="reg_password" type="password" autocomplete="new-password"
+                      placeholder="Create password" class="w-full rounded-2xl input px-4 py-3 pr-14" required />
+                    <button type="button" id="toggleRegPass"
+                      class="absolute right-2 top-1/2 -translate-y-1/2 chip rounded-xl px-3 py-2 text-xs font-extrabold">
+                      SHOW
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="text-sm font-semibold text-muted">Admin Secret</label>
+                  <input id="reg_secret" type="password" placeholder="ADMIN_REGISTER_SECRET"
+                    class="mt-2 w-full rounded-2xl input px-4 py-3" required />
+                </div>
+              </div>
+
+              <button id="registerBtn" type="submit"
+                class="w-full rounded-2xl btn-primary transition font-extrabold py-3">
+                Create Admin Account
+              </button>
+
+              <div class="text-[12px] text-white/55 leading-relaxed">
+                If the secret is wrong, you’ll get <b>403 Invalid admin secret</b>.
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Session box -->
+        <div class="mt-5 rounded-3xl soft-border bg-white/5 p-5">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="text-sm text-white/60 font-semibold">Admin Session</div>
+              <div id="sessionStatus" class="text-base font-extrabold">Not logged in</div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button id="logoutBtn" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Logout</button>
+              <button id="copyTokenBtn" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Copy Token</button>
+            </div>
+          </div>
+          <div class="mt-3 text-xs text-white/45">
+            Storage key: <span class="font-semibold">upcoinmeta_admin_token</span>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="mt-6 text-center text-xs text-white/45">
+          © <span id="yr"></span> Upcoinmeta • Admin Console
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ✅ Working admin base URL:
+    const ADMIN_BASE = window.SwayApi.adminBase;
+
+    // ✅ Redirect target after login/register
+    const ADMIN_DASHBOARD_URL = "../admin/dashboard.html";
+
+    const TOKEN_KEY = "upcoinmeta_admin_token";
+    const ADMIN_KEY = "upcoinmeta_admin";
+
+    const alertBox = document.getElementById("alert");
+    const tabLogin = document.getElementById("tabLogin");
+    const tabRegister = document.getElementById("tabRegister");
+    const panelLogin = document.getElementById("panelLogin");
+    const panelRegister = document.getElementById("panelRegister");
+
+    const loginForm = document.getElementById("loginForm");
+    const registerForm = document.getElementById("registerForm");
+
+    const loginBtn = document.getElementById("loginBtn");
+    const registerBtn = document.getElementById("registerBtn");
+
+    const sessionStatus = document.getElementById("sessionStatus");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const copyTokenBtn = document.getElementById("copyTokenBtn");
+
+    document.getElementById("yr").textContent = new Date().getFullYear();
+
+    function showAlert(type, msg) {
+      alertBox.classList.remove("hidden");
+      alertBox.textContent = msg;
+
+      alertBox.classList.remove("bg-red-500/10", "border-red-400/20", "text-red-200");
+      alertBox.classList.remove("bg-emerald-500/10", "border-emerald-400/20", "text-emerald-200");
+      alertBox.classList.remove("bg-amber-500/10", "border-amber-400/20", "text-amber-200");
+
+      if (type === "success") {
+        alertBox.classList.add("bg-emerald-500/10", "border", "border-emerald-400/20", "text-emerald-200");
+      } else if (type === "warn") {
+        alertBox.classList.add("bg-amber-500/10", "border", "border-amber-400/20", "text-amber-200");
+      } else {
+        alertBox.classList.add("bg-red-500/10", "border", "border-red-400/20", "text-red-200");
+      }
+    }
+
+    function setTab(which) {
+      const isLogin = which === "login";
+      panelLogin.classList.toggle("hidden", !isLogin);
+      panelRegister.classList.toggle("hidden", isLogin);
+
+      tabLogin.className = isLogin
+        ? "rounded-2xl py-3 font-extrabold btn-primary"
+        : "rounded-2xl py-3 font-extrabold btn-ghost";
+
+      tabRegister.className = !isLogin
+        ? "rounded-2xl py-3 font-extrabold btn-primary"
+        : "rounded-2xl py-3 font-extrabold btn-ghost";
+    }
+
+    function setLoading(btn, isLoading, textLoading, textDefault) {
+      if (isLoading) {
+        btn.disabled = true;
+        btn.textContent = textLoading;
+        btn.classList.add("opacity-70");
+      } else {
+        btn.disabled = false;
+        btn.textContent = textDefault;
+        btn.classList.remove("opacity-70");
+      }
+    }
+
+    function attachToggle(btnId, inputId) {
+      const btn = document.getElementById(btnId);
+      btn.addEventListener("click", () => {
+        const input = document.getElementById(inputId);
+        const hidden = input.type === "password";
+        input.type = hidden ? "text" : "password";
+        btn.textContent = hidden ? "HIDE" : "SHOW";
+      });
+    }
+    attachToggle("toggleLoginPass", "login_password");
+    attachToggle("toggleRegPass", "reg_password");
+
+    function refreshSessionUI() {
+      const tok = localStorage.getItem(TOKEN_KEY);
+      const adm = localStorage.getItem(ADMIN_KEY);
+      if (tok) {
+        let name = "Admin";
+        try { name = JSON.parse(adm || "{}")?.name || name; } catch(e) {}
+        sessionStatus.textContent = `Logged in (${name})`;
+      } else {
+        sessionStatus.textContent = "Not logged in";
+      }
+    }
+
+    tabLogin.addEventListener("click", () => setTab("login"));
+    tabRegister.addEventListener("click", () => setTab("register"));
+
+    setTab("login");
+    refreshSessionUI();
+
+    // ✅ If already logged in, go straight to dashboard
+    (function autoRedirectIfLoggedIn(){
+      const tok = localStorage.getItem(TOKEN_KEY);
+      if (tok) {
+        // keep UX clean: small delay so page doesn't flash
+        setTimeout(() => {
+          window.location.href = ADMIN_DASHBOARD_URL;
+        }, 150);
+      }
+    })();
+
+    // Login
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      alertBox.classList.add("hidden");
+
+      const email = document.getElementById("login_email").value.trim().toLowerCase();
+      const password = document.getElementById("login_password").value;
+
+      if (!email || !password) return showAlert("error", "Email and password are required.");
+
+      setLoading(loginBtn, true, "Logging in…", "Login");
+
+      try {
+        const res = await axios.post(`${ADMIN_BASE}/login`, { email, password }, {
+          headers: { "Content-Type": "application/json" },
+          timeout: 20000,
+        });
+
+        const data = res.data || {};
+        if (!data.token) return showAlert("error", "Login failed: token missing.");
+
+        localStorage.setItem(TOKEN_KEY, data.token);
+        localStorage.setItem(ADMIN_KEY, JSON.stringify(data.admin || {}));
+
+        showAlert("success", "Admin login successful. Redirecting…");
+        refreshSessionUI();
+
+        setTimeout(() => {
+          window.location.href = ADMIN_DASHBOARD_URL;
+        }, 700);
+
+      } catch (err) {
+        const status = err?.response?.status;
+        const msg = err?.response?.data?.message || "Login failed. Please try again.";
+        if (status === 401) showAlert("error", "Invalid credentials.");
+        else showAlert("error", msg);
+      } finally {
+        setLoading(loginBtn, false, "Logging in…", "Login");
+      }
+    });
+
+    // Register
+    registerForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      alertBox.classList.add("hidden");
+
+      const name = document.getElementById("reg_name").value.trim();
+      const email = document.getElementById("reg_email").value.trim().toLowerCase();
+      const password = document.getElementById("reg_password").value;
+      const admin_secret = document.getElementById("reg_secret").value;
+
+      if (!name || !email || !password || !admin_secret) {
+        return showAlert("error", "Name, email, password, and admin secret are required.");
+      }
+
+      setLoading(registerBtn, true, "Creating admin…", "Create Admin Account");
+
+      try {
+        const res = await axios.post(`${ADMIN_BASE}/register`, { name, email, password, admin_secret }, {
+          headers: { "Content-Type": "application/json" },
+          timeout: 20000,
+        });
+
+        const data = res.data || {};
+        if (data.token) {
+          localStorage.setItem(TOKEN_KEY, data.token);
+          localStorage.setItem(ADMIN_KEY, JSON.stringify({ name, email }));
+        }
+
+        showAlert("success", "Admin registered successfully. Redirecting…");
+        refreshSessionUI();
+
+        setTimeout(() => {
+          window.location.href = ADMIN_DASHBOARD_URL;
+        }, 700);
+
+      } catch (err) {
+        const status = err?.response?.status;
+        const msg = err?.response?.data?.message || "Admin registration failed.";
+
+        if (status === 403) showAlert("error", "Invalid admin secret.");
+        else if (status === 409) showAlert("warn", "Admin already exists.");
+        else showAlert("error", msg);
+
+      } finally {
+        setLoading(registerBtn, false, "Creating admin…", "Create Admin Account");
+      }
+    });
+
+    // Logout
+    logoutBtn.addEventListener("click", () => {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(ADMIN_KEY);
+      showAlert("success", "Logged out.");
+      refreshSessionUI();
+    });
+
+    // Copy token
+    copyTokenBtn.addEventListener("click", async () => {
+      const tok = localStorage.getItem(TOKEN_KEY);
+      if (!tok) return showAlert("warn", "No token found. Login first.");
+      try {
+        await navigator.clipboard.writeText(tok);
+        showAlert("success", "Token copied to clipboard.");
+      } catch (e) {
+        showAlert("error", "Copy failed (browser blocked clipboard).");
+      }
+    });
+  </script>
+</body>
+</html>

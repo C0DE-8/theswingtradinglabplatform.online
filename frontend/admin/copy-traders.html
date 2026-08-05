@@ -1,0 +1,864 @@
+<!-- /admin/copy-traders.html ✅ Upcoinmeta Admin — Copy Traders Management (CRUD + Image Upload, Responsive) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Upcoinmeta — Copy Traders</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="../assets/js/api.js"></script>
+
+  <style>
+    * { -webkit-tap-highlight-color: transparent; }
+    :root{
+      --safe-top: env(safe-area-inset-top);
+      --safe-bottom: env(safe-area-inset-bottom);
+    }
+
+    html, body{
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #05060b;
+      overscroll-behavior: none;
+    }
+    .app-shell{
+      height: 100vh;
+      height: 100dvh;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-top: calc(14px + var(--safe-top));
+      padding-bottom: calc(14px + var(--safe-bottom));
+    }
+
+    .glass{
+      background: rgba(10,10,14,.64);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.07);
+      box-shadow: 0 18px 70px rgba(0,0,0,.62);
+    }
+    .chip{ background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); }
+    .soft-border{ border: 1px solid rgba(255,255,255,0.10); }
+    .text-muted{ color: rgba(255,255,255,0.74); }
+    .text-faint{ color: rgba(255,255,255,0.52); }
+
+    .bg-broker{
+      background:
+        radial-gradient(1000px 420px at 20% 0%, rgba(56,189,248,0.18), transparent 60%),
+        radial-gradient(900px 480px at 80% 10%, rgba(34,197,94,0.12), transparent 62%),
+        radial-gradient(900px 520px at 55% 100%, rgba(168,85,247,0.14), transparent 62%),
+        linear-gradient(180deg, #05060b 0%, #070813 45%, #05060b 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .bg-broker::before{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        linear-gradient(to right, rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,.04) 1px, transparent 1px);
+      background-size: 60px 60px;
+      opacity:.16;
+      pointer-events:none;
+    }
+    .bg-broker::after{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        radial-gradient(circle at 12% 18%, rgba(56,189,248,.45) 0 2px, transparent 3px),
+        radial-gradient(circle at 30% 30%, rgba(56,189,248,.35) 0 2px, transparent 3px),
+        radial-gradient(circle at 55% 18%, rgba(56,189,248,.35) 0 2px, transparent 3px),
+        radial-gradient(circle at 78% 34%, rgba(56,189,248,.35) 0 2px, transparent 3px),
+        radial-gradient(circle at 64% 62%, rgba(56,189,248,.25) 0 2px, transparent 3px),
+        radial-gradient(circle at 18% 68%, rgba(56,189,248,.25) 0 2px, transparent 3px);
+      opacity:.55;
+      pointer-events:none;
+      mix-blend-mode: screen;
+    }
+    .ring-glow{ box-shadow: 0 0 0 1px rgba(255,255,255,.06), 0 18px 70px rgba(56,189,248,.10); }
+
+    .btn-primary{ background: linear-gradient(90deg, rgba(56,189,248,0.95), rgba(168,85,247,0.92)); }
+    .btn-primary:hover{ filter: brightness(1.05); }
+    .btn-primary:active{ transform: scale(0.99); }
+
+    .btn-ghost{ background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10); }
+    .btn-ghost:hover{ background: rgba(255,255,255,0.08); }
+    .btn-ghost:active{ transform: scale(0.99); }
+
+    .btn-good{
+      background: rgba(34,197,94,0.10);
+      border: 1px solid rgba(34,197,94,0.28);
+      color: rgba(187,247,208,0.95);
+    }
+    .btn-good:hover{ background: rgba(34,197,94,0.14); }
+
+    .btn-bad{
+      background: rgba(239,68,68,0.10);
+      border: 1px solid rgba(239,68,68,0.26);
+      color: rgba(254,202,202,0.95);
+    }
+    .btn-bad:hover{ background: rgba(239,68,68,0.14); }
+
+    .input{ background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10); outline: none; }
+    .input:focus{ box-shadow: 0 0 0 3px rgba(56,189,248,0.22); border-color: rgba(56,189,248,0.28); }
+
+    .card{ background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10); }
+
+    .table-wrap{ overflow:auto; -webkit-overflow-scrolling:touch; border-radius: 18px; }
+    table{ width:100%; border-collapse: separate; border-spacing: 0; min-width: 1040px; }
+    th, td{ padding: 12px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); vertical-align: top; }
+    th{
+      position: sticky; top: 0;
+      background: rgba(10,10,14,.82);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 2;
+      text-align:left;
+      font-size: 12px;
+      color: rgba(255,255,255,0.72);
+      white-space: nowrap;
+    }
+    td{ font-size: 13px; color: rgba(255,255,255,0.84); }
+    tr:hover td{ background: rgba(255,255,255,0.03); }
+
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 900;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+      white-space: nowrap;
+    }
+    .pill.on{ border-color: rgba(34,197,94,0.35); background: rgba(34,197,94,0.12); color: rgba(187,247,208,0.95); }
+    .pill.off{ border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.10); color: rgba(254,202,202,0.95); }
+
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+    /* Avatar */
+    .avatar{
+      width: 44px; height: 44px; border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.06);
+      display: grid; place-items: center;
+      flex: 0 0 auto;
+    }
+    .avatar img{ width:100%; height:100%; object-fit: cover; display:block; }
+    .avatar-fallback{ font-weight: 900; font-size: 12px; color: rgba(255,255,255,0.75); }
+
+    /* Modal */
+    .modal-backdrop{
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      display:none;
+      align-items: center;
+      justify-content:center;
+      padding: 14px;
+      z-index: 50;
+    }
+    .modal-open{ display:flex; }
+
+    .modal{
+      width: 100%;
+      max-width: 1024px;
+      border-radius: 22px;
+      max-height: calc(100dvh - 28px);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-header{ padding: 14px 14px 10px; flex: 0 0 auto; }
+    .modal-body{ padding: 0 14px 14px; overflow: auto; -webkit-overflow-scrolling: touch; flex: 1 1 auto; }
+
+    @media (max-width: 640px){
+      .stack{ flex-direction: column; align-items: stretch !important; }
+      .stack > *{ width: 100%; }
+      table{ min-width: 980px; }
+    }
+    @media (max-width: 420px){
+      input, button, select, textarea { font-size: 16px; }
+    }
+  </style>
+</head>
+
+<body class="bg-broker text-white">
+  <div class="app-shell">
+    <div class="mx-auto max-w-[1400px] px-4">
+      <div class="w-full glass ring-glow rounded-3xl p-5 sm:p-7">
+
+        <!-- Top -->
+        <div class="flex gap-4 sm:items-center sm:justify-between stack">
+          <div class="flex items-center gap-3">
+            <a href="./dashboard.html" class="w-11 h-11 rounded-2xl chip grid place-items-center shrink-0 hover:opacity-90" title="Back to dashboard">
+              <span class="text-lg font-black">U</span>
+            </a>
+            <div>
+              <div class="text-xl font-extrabold leading-tight">Copy Trader Management</div>
+              <div class="text-sm text-faint -mt-0.5">Admin • CRUD • Upload trader image</div>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-2 justify-end">
+            <button id="btnNew" class="rounded-2xl btn-primary px-4 py-3 font-extrabold">New Trader</button>
+            <button id="btnReload" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Reload</button>
+            <button id="btnLogout" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Logout</button>
+          </div>
+        </div>
+
+        <!-- Alert -->
+        <div id="alert" class="hidden mt-5 rounded-2xl px-4 py-3 text-sm soft-border"></div>
+
+        <!-- Controls -->
+        <div class="mt-5 grid grid-cols-1 lg:grid-cols-4 gap-4">
+          <div class="rounded-3xl card p-4 lg:col-span-2">
+            <div class="text-xs text-white/55 font-semibold">Search</div>
+            <input id="q" class="mt-2 w-full rounded-2xl input px-4 py-3" placeholder="Search trader name…" />
+            <div class="mt-2 text-xs text-white/45">Client-side filter.</div>
+          </div>
+
+          <div class="rounded-3xl card p-4">
+            <div class="text-xs text-white/55 font-semibold">Status Filter</div>
+            <select id="statusFilter" class="mt-2 w-full rounded-2xl input px-4 py-3">
+              <option value="all" selected>All</option>
+              <option value="active">Active only</option>
+              <option value="inactive">Inactive only</option>
+            </select>
+            <div class="mt-2 text-xs text-white/45">Filters the table view.</div>
+          </div>
+
+          <div class="rounded-3xl card p-4">
+            <div class="text-xs text-white/55 font-semibold">Export</div>
+            <button id="btnExport" class="mt-2 w-full rounded-2xl btn-ghost px-4 py-3 font-extrabold">Export CSV</button>
+            <div class="mt-2 text-xs text-white/45">Exports current filtered list.</div>
+          </div>
+        </div>
+
+        <!-- Meta -->
+        <div class="mt-4 flex items-center justify-between gap-3 flex-wrap">
+          <div class="chip rounded-xl px-3 py-2 text-xs font-extrabold" id="metaLine">—</div>
+          <div class="chip rounded-xl px-3 py-2 text-xs font-extrabold" id="lastLoaded">Last loaded: —</div>
+        </div>
+
+        <!-- Table -->
+        <div class="mt-5 rounded-3xl card p-0">
+          <div class="px-5 py-4 flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <div class="font-extrabold">Copy Traders</div>
+              <div class="text-sm text-white/60">CRUD uses: <span class="mono">/copy-traders</span> endpoints.</div>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Trader</th>
+                  <th>ID</th>
+                  <th>Win Rate %</th>
+                  <th>Profit %</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                  <th>Updated</th>
+                  <th style="min-width:330px;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="tbody">
+                <tr><td colspan="8" class="text-white/60">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="mt-7 text-center text-xs text-white/45">
+          © <span id="yr"></span> Upcoinmeta • Admin Console
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Create/Edit -->
+  <div id="modalBackdrop" class="modal-backdrop">
+    <div class="glass ring-glow modal">
+      <div class="modal-header">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <div class="text-lg font-extrabold" id="modalTitle">New Trader</div>
+            <div class="text-sm text-white/60" id="modalSub">Create a trader profile.</div>
+          </div>
+          <div class="flex flex-wrap gap-2 justify-end">
+            <button id="btnClose" class="rounded-2xl btn-ghost px-4 py-3 font-extrabold">Close</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+          <!-- Left: Form -->
+          <div class="rounded-3xl card p-4">
+            <div class="font-extrabold">Trader Details</div>
+            <div class="text-xs text-white/50 mt-1">Image upload uses <span class="mono">multipart/form-data</span>.</div>
+
+            <div class="mt-4 space-y-3">
+              <div>
+                <label class="text-sm font-semibold text-muted">Trader Name</label>
+                <input id="trader_name" class="mt-2 w-full rounded-2xl input px-4 py-3" placeholder="e.g. Atlas Pro" />
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="text-sm font-semibold text-muted">Win Rate % (0 - 100)</label>
+                  <input id="win_rate_percent" type="number" step="0.01" min="0" max="100" class="mt-2 w-full rounded-2xl input px-4 py-3" placeholder="e.g. 82" />
+                </div>
+                <div>
+                  <label class="text-sm font-semibold text-muted">Profit %</label>
+                  <input id="profit_percent" type="number" step="0.01" class="mt-2 w-full rounded-2xl input px-4 py-3" placeholder="e.g. 34.5" />
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between gap-3 rounded-2xl chip px-3 py-3">
+                <div>
+                  <div class="text-sm font-extrabold">Active</div>
+                  <div class="text-xs text-white/50">If off, trader is hidden on user side.</div>
+                </div>
+                <label class="flex items-center gap-2">
+                  <input id="is_active" type="checkbox" class="w-5 h-5 accent-sky-400" checked />
+                  <span class="text-sm font-extrabold">Enabled</span>
+                </label>
+              </div>
+
+              <div class="rounded-2xl chip px-3 py-3">
+                <div class="text-sm font-extrabold">Trader Image (optional)</div>
+                <div class="text-xs text-white/50">Upload/replace the trader photo.</div>
+                <input id="image" type="file" accept="image/*" class="mt-3 block w-full text-sm text-white/75 file:mr-3 file:rounded-xl file:border-0 file:bg-white/10 file:px-4 file:py-2 file:font-extrabold file:text-white hover:file:bg-white/15" />
+                <div class="mt-2 text-xs text-white/45">Field name must be: <span class="mono">image</span></div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button id="btnSave" class="rounded-2xl btn-good px-5 py-3 font-extrabold">Save</button>
+                <button id="btnSaveClose" class="rounded-2xl btn-primary px-5 py-3 font-extrabold">Save & Close</button>
+              </div>
+
+              <div class="text-xs text-white/45">
+                Save uses <span class="mono">POST /copy-traders</span> or <span class="mono">PUT /copy-traders/:id</span>.
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Preview + Danger -->
+          <div class="rounded-3xl card p-4">
+            <div class="font-extrabold">Preview</div>
+            <div class="text-xs text-white/50 mt-1">Shows current image (if any) or selected upload.</div>
+
+            <div class="mt-4 flex items-center gap-3">
+              <div class="avatar" id="previewAvatar">
+                <div class="avatar-fallback">NO IMAGE</div>
+              </div>
+              <div class="min-w-0">
+                <div class="font-extrabold truncate" id="previewName">—</div>
+                <div class="text-xs text-white/55" id="previewStats">Win: — • Profit: —</div>
+                <div class="text-xs text-white/45" id="previewActive">Status: —</div>
+              </div>
+            </div>
+
+            <div class="mt-4 rounded-2xl chip p-3">
+              <div class="text-xs text-white/50 font-semibold">Editing Trader ID</div>
+              <div class="font-extrabold" id="editId">—</div>
+            </div>
+
+            <div class="mt-4">
+              <div class="font-extrabold">Danger Zone</div>
+              <div class="text-xs text-white/50 mt-1">Delete is permanent.</div>
+
+              <button id="btnDelete" class="mt-3 w-full rounded-2xl btn-bad px-5 py-3 font-extrabold opacity-70" disabled>
+                Delete Trader
+              </button>
+
+              <div class="mt-3 text-xs text-white/45">
+                Delete uses <span class="mono">DELETE /copy-traders/:id</span>
+              </div>
+            </div>
+
+            <div class="mt-4 rounded-2xl chip p-3">
+              <div class="text-xs text-white/50 font-semibold">Notes</div>
+              <ul class="mt-2 text-xs text-white/60 list-disc ml-4 space-y-1">
+                <li>Win rate must be 0–100.</li>
+                <li>Profit can be any finite number (negative allowed by backend).</li>
+                <li>Uploading an image replaces the old image (handled by your middleware/storage).</li>
+              </ul>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ADMIN_BASE = window.SwayApi.adminBase;
+    const TOKEN_KEY = "upcoinmeta_admin_token";
+    const ADMIN_KEY = "upcoinmeta_admin";
+
+    const alertBox = document.getElementById("alert");
+    const tbody = document.getElementById("tbody");
+    const metaLine = document.getElementById("metaLine");
+    const lastLoaded = document.getElementById("lastLoaded");
+
+    const qEl = document.getElementById("q");
+    const statusFilterEl = document.getElementById("statusFilter");
+    const btnExport = document.getElementById("btnExport");
+
+    const btnNew = document.getElementById("btnNew");
+    const btnReload = document.getElementById("btnReload");
+    const btnLogout = document.getElementById("btnLogout");
+
+    // modal
+    const modalBackdrop = document.getElementById("modalBackdrop");
+    const btnClose = document.getElementById("btnClose");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalSub = document.getElementById("modalSub");
+    const editIdEl = document.getElementById("editId");
+
+    const traderNameEl = document.getElementById("trader_name");
+    const winEl = document.getElementById("win_rate_percent");
+    const profitEl = document.getElementById("profit_percent");
+    const activeEl = document.getElementById("is_active");
+    const imageEl = document.getElementById("image");
+
+    const btnSave = document.getElementById("btnSave");
+    const btnSaveClose = document.getElementById("btnSaveClose");
+    const btnDelete = document.getElementById("btnDelete");
+
+    // preview
+    const previewAvatar = document.getElementById("previewAvatar");
+    const previewName = document.getElementById("previewName");
+    const previewStats = document.getElementById("previewStats");
+    const previewActive = document.getElementById("previewActive");
+
+    document.getElementById("yr").textContent = new Date().getFullYear();
+
+    let TRADERS = [];
+    let VIEW = [];
+    let EDIT_ID = null;
+    let EXISTING_IMAGE_URL = null;
+
+    function showAlert(type, msg) {
+      alertBox.classList.remove("hidden");
+      alertBox.textContent = msg;
+
+      alertBox.classList.remove("bg-red-500/10", "border-red-400/20", "text-red-200");
+      alertBox.classList.remove("bg-emerald-500/10", "border-emerald-400/20", "text-emerald-200");
+      alertBox.classList.remove("bg-amber-500/10", "border-amber-400/20", "text-amber-200");
+
+      if (type === "success") alertBox.classList.add("bg-emerald-500/10", "border", "border-emerald-400/20", "text-emerald-200");
+      else if (type === "warn") alertBox.classList.add("bg-amber-500/10", "border", "border-amber-400/20", "text-amber-200");
+      else alertBox.classList.add("bg-red-500/10", "border", "border-red-400/20", "text-red-200");
+    }
+
+    function token(){ return localStorage.getItem(TOKEN_KEY) || ""; }
+
+    function requireAuthOrRedirect(){
+      if (!token()) { window.location.href = "./index.html"; return false; }
+      return true;
+    }
+
+    function api(){
+      return window.SwayApi.adminClient({ timeout: 30000 });
+    }
+
+    function esc(s){
+      return String(s ?? "").replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+    }
+
+    function fmtDate(d){
+      if (!d) return "—";
+      const dt = new Date(d);
+      return Number.isNaN(dt.getTime()) ? String(d) : dt.toLocaleString();
+    }
+
+    function pillActive(v){
+      return v ? `<span class="pill on">ACTIVE</span>` : `<span class="pill off">INACTIVE</span>`;
+    }
+
+    function openModal(){ modalBackdrop.classList.add("modal-open"); }
+    function closeModal(){ modalBackdrop.classList.remove("modal-open"); }
+
+    function setLoading(btn, isLoading, textLoading, textDefault){
+      if (isLoading) {
+        btn.disabled = true;
+        btn.textContent = textLoading;
+        btn.classList.add("opacity-70");
+      } else {
+        btn.disabled = false;
+        btn.textContent = textDefault;
+        btn.classList.remove("opacity-70");
+      }
+    }
+
+    function resetForm(){
+      EDIT_ID = null;
+      EXISTING_IMAGE_URL = null;
+
+      modalTitle.textContent = "New Trader";
+      modalSub.textContent = "Create a trader profile.";
+      editIdEl.textContent = "—";
+
+      traderNameEl.value = "";
+      winEl.value = "";
+      profitEl.value = "";
+      activeEl.checked = true;
+      imageEl.value = "";
+
+      btnDelete.disabled = true;
+      btnDelete.classList.add("opacity-70");
+
+      setPreview({ trader_name: "", win_rate_percent: "", profit_percent: "", is_active: true, image_url: null }, true);
+    }
+
+    function setPreview(t, preferSelectedFile=false){
+      const name = String(t?.trader_name || "").trim();
+      const win = t?.win_rate_percent ?? "—";
+      const prof = t?.profit_percent ?? "—";
+      const act = !!t?.is_active;
+
+      previewName.textContent = name || "—";
+      previewStats.textContent = `Win: ${win} • Profit: ${prof}`;
+      previewActive.textContent = `Status: ${act ? "Active" : "Inactive"}`;
+
+      // Avatar: selected file > existing image url > fallback
+      const file = imageEl.files && imageEl.files[0] ? imageEl.files[0] : null;
+      let src = null;
+
+      if (preferSelectedFile && file) {
+        src = URL.createObjectURL(file);
+      } else if (t?.image_url) {
+        src = t.image_url;
+      }
+
+      previewAvatar.innerHTML = "";
+      if (src) {
+        const img = document.createElement("img");
+        img.src = src;
+        img.alt = "Trader";
+        img.onerror = () => {
+          previewAvatar.innerHTML = `<div class="avatar-fallback">NO IMAGE</div>`;
+        };
+        previewAvatar.appendChild(img);
+      } else {
+        previewAvatar.innerHTML = `<div class="avatar-fallback">NO IMAGE</div>`;
+      }
+    }
+
+    function fillForm(t){
+      EDIT_ID = Number(t.id);
+      EXISTING_IMAGE_URL = t.image_url || null;
+
+      modalTitle.textContent = `Edit Trader #${t.id}`;
+      modalSub.textContent = "Update fields and save.";
+      editIdEl.textContent = `#${t.id}`;
+
+      traderNameEl.value = t.trader_name ?? "";
+      winEl.value = t.win_rate_percent ?? "";
+      profitEl.value = t.profit_percent ?? "";
+      activeEl.checked = !!t.is_active;
+      imageEl.value = "";
+
+      btnDelete.disabled = false;
+      btnDelete.classList.remove("opacity-70");
+
+      setPreview(t, false);
+    }
+
+    function getFormValues(){
+      const trader_name = String(traderNameEl.value || "").trim();
+      const win_rate_percent = winEl.value === "" ? "" : Number(winEl.value);
+      const profit_percent = profitEl.value === "" ? "" : Number(profitEl.value);
+      const is_active = !!activeEl.checked;
+      const image = imageEl.files && imageEl.files[0] ? imageEl.files[0] : null;
+      return { trader_name, win_rate_percent, profit_percent, is_active, image };
+    }
+
+    function validateCreate(v){
+      if (!v.trader_name) return "trader_name is required";
+      if (!Number.isFinite(v.win_rate_percent) || v.win_rate_percent < 0 || v.win_rate_percent > 100) return "win_rate_percent must be 0 - 100";
+      if (!Number.isFinite(v.profit_percent)) return "Invalid profit_percent";
+      return null;
+    }
+
+    function validateUpdate(v){
+      // We send all fields for update (safe), so validate same as create
+      return validateCreate(v);
+    }
+
+    function formDataFromValues(v){
+      const fd = new FormData();
+      fd.append("trader_name", v.trader_name);
+      fd.append("win_rate_percent", String(v.win_rate_percent));
+      fd.append("profit_percent", String(v.profit_percent));
+      fd.append("is_active", v.is_active ? "1" : "0");
+      if (v.image) fd.append("image", v.image);
+      return fd;
+    }
+
+    async function loadTraders(){
+      alertBox.classList.add("hidden");
+      tbody.innerHTML = `<tr><td colspan="8" class="text-white/60">Loading…</td></tr>`;
+
+      try{
+        const res = await api().get(`/copy-traders`);
+        const data = res.data || {};
+        TRADERS = Array.isArray(data.traders) ? data.traders : [];
+        lastLoaded.textContent = `Last loaded: ${new Date().toLocaleString()}`;
+        applyFilters();
+      }catch(err){
+        const status = err?.response?.status;
+        const msg = err?.response?.data?.message || "Failed to load traders.";
+        if (status === 401 || status === 403) {
+          showAlert("error", msg + " Redirecting…");
+          setTimeout(() => (window.location.href = "./index.html"), 700);
+          return;
+        }
+        showAlert("error", msg);
+        tbody.innerHTML = `<tr><td colspan="8" class="text-white/60">Error loading traders.</td></tr>`;
+      }
+    }
+
+    function applyFilters(){
+      const q = qEl.value.trim().toLowerCase();
+      const f = statusFilterEl.value;
+
+      VIEW = TRADERS.filter(t => {
+        const nameOk = !q ? true : String(t.trader_name || "").toLowerCase().includes(q);
+        const statusOk =
+          (f === "all") ? true :
+          (f === "active") ? !!t.is_active :
+          (f === "inactive") ? !t.is_active :
+          true;
+        return nameOk && statusOk;
+      });
+
+      renderTable();
+      metaLine.textContent = `Showing ${VIEW.length} / ${TRADERS.length}`;
+    }
+
+    function renderTable(){
+      if (!VIEW.length){
+        tbody.innerHTML = `<tr><td colspan="8" class="text-white/60">No traders found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = VIEW.map(t => {
+        const initials = (String(t.trader_name || "TR").trim().slice(0,2).toUpperCase()) || "TR";
+        const imageCell = t.image_url
+          ? `<img src="${esc(t.image_url)}" alt="Trader" class="w-full h-full object-cover" onerror="this.remove(); this.parentElement.innerHTML='<div class=\\'avatar-fallback\\'>${esc(initials)}</div>'" />`
+          : `<div class="avatar-fallback">${esc(initials)}</div>`;
+
+        const traderCell = `
+          <div class="flex items-center gap-3">
+            <div class="avatar">${imageCell}</div>
+            <div class="min-w-0">
+              <div class="font-extrabold truncate">${esc(t.trader_name)}</div>
+              <div class="text-xs text-white/50 mono">image: ${t.image_url ? "yes" : "no"}</div>
+            </div>
+          </div>
+        `;
+
+        const actions = `
+          <div class="flex flex-wrap gap-2">
+            <button class="rounded-2xl btn-primary px-4 py-2 font-extrabold" onclick="editTrader(${Number(t.id)})">Edit</button>
+            <button class="rounded-2xl btn-ghost px-4 py-2 font-extrabold" onclick="toggleActive(${Number(t.id)})">
+              ${t.is_active ? "Deactivate" : "Activate"}
+            </button>
+            <button class="rounded-2xl btn-bad px-4 py-2 font-extrabold" onclick="deleteTrader(${Number(t.id)})">Delete</button>
+          </div>
+        `;
+
+        return `
+          <tr>
+            <td>${traderCell}</td>
+            <td class="text-white/70 font-semibold">#${esc(t.id)}</td>
+            <td class="font-extrabold">${esc(t.win_rate_percent)}</td>
+            <td>${esc(t.profit_percent)}</td>
+            <td>${pillActive(!!t.is_active)}</td>
+            <td class="text-white/60">${esc(fmtDate(t.created_at))}</td>
+            <td class="text-white/60">${esc(fmtDate(t.updated_at))}</td>
+            <td>${actions}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    window.editTrader = function(id){
+      const t = TRADERS.find(x => Number(x.id) === Number(id));
+      if (!t) return showAlert("warn", "Trader not found in list.");
+      fillForm(t);
+      openModal();
+    }
+
+    async function createTrader(fd){
+      return api().post(`/copy-traders`, fd, { headers: { "Content-Type":"multipart/form-data" } });
+    }
+    async function updateTrader(id, fd){
+      return api().put(`/copy-traders/${id}`, fd, { headers: { "Content-Type":"multipart/form-data" } });
+    }
+    async function removeTrader(id){
+      return api().delete(`/copy-traders/${id}`);
+    }
+
+    window.toggleActive = async function(id){
+      const t = TRADERS.find(x => Number(x.id) === Number(id));
+      if (!t) return showAlert("warn", "Trader not found.");
+      const next = t.is_active ? 0 : 1;
+
+      try{
+        showAlert("warn", `${next ? "Activating" : "Deactivating"} trader #${id}…`);
+        // Update supports text + is_active, and image optional
+        const fd = new FormData();
+        fd.append("is_active", next ? "1" : "0");
+        await updateTrader(id, fd);
+        showAlert("success", `Trader #${id} ${next ? "activated" : "deactivated"}.`);
+        await loadTraders();
+      }catch(e){
+        showAlert("error", e?.response?.data?.message || "Toggle failed.");
+      }
+    }
+
+    window.deleteTrader = async function(id){
+      const ok = confirm(`Delete trader #${id}? This cannot be undone.`);
+      if (!ok) return;
+
+      try{
+        showAlert("warn", `Deleting trader #${id}…`);
+        await removeTrader(id);
+        showAlert("success", `Trader #${id} deleted.`);
+        await loadTraders();
+      }catch(e){
+        showAlert("error", e?.response?.data?.message || "Delete failed.");
+      }
+    }
+
+    async function save(closeAfter=false){
+      alertBox.classList.add("hidden");
+
+      const v = getFormValues();
+      const err = EDIT_ID ? validateUpdate(v) : validateCreate(v);
+      if (err) return showAlert("error", err);
+
+      const fd = formDataFromValues(v);
+
+      setLoading(btnSave, true, "Saving…", "Save");
+      setLoading(btnSaveClose, true, "Saving…", "Save & Close");
+
+      try{
+        if (!EDIT_ID) {
+          const res = await createTrader(fd);
+          showAlert("success", res.data?.message || "Trader created.");
+          await loadTraders();
+          if (closeAfter) closeModal();
+          else resetForm();
+        } else {
+          const res = await updateTrader(EDIT_ID, fd);
+          showAlert("success", res.data?.message || "Trader updated.");
+          await loadTraders();
+          if (closeAfter) closeModal();
+        }
+      }catch(e){
+        showAlert("error", e?.response?.data?.message || "Save failed.");
+      }finally{
+        setLoading(btnSave, false, "Saving…", "Save");
+        setLoading(btnSaveClose, false, "Saving…", "Save & Close");
+      }
+    }
+
+    btnNew.addEventListener("click", () => { resetForm(); openModal(); });
+    btnReload.addEventListener("click", loadTraders);
+
+    btnLogout.addEventListener("click", () => {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(ADMIN_KEY);
+      showAlert("success", "Logged out. Redirecting…");
+      setTimeout(() => (window.location.href = "./index.html"), 600);
+    });
+
+    btnClose.addEventListener("click", closeModal);
+    modalBackdrop.addEventListener("click", (e) => { if (e.target === modalBackdrop) closeModal(); });
+
+    btnSave.addEventListener("click", () => save(false));
+    btnSaveClose.addEventListener("click", () => save(true));
+
+    btnDelete.addEventListener("click", async () => {
+      if (!EDIT_ID) return;
+      const ok = confirm(`Delete trader #${EDIT_ID}? This cannot be undone.`);
+      if (!ok) return;
+
+      try{
+        showAlert("warn", `Deleting trader #${EDIT_ID}…`);
+        await removeTrader(EDIT_ID);
+        showAlert("success", `Trader #${EDIT_ID} deleted.`);
+        closeModal();
+        await loadTraders();
+      }catch(e){
+        showAlert("error", e?.response?.data?.message || "Delete failed.");
+      }
+    });
+
+    // Live preview updates
+    function updatePreviewFromInputs(){
+      const t = {
+        trader_name: traderNameEl.value,
+        win_rate_percent: winEl.value,
+        profit_percent: profitEl.value,
+        is_active: activeEl.checked,
+        image_url: EXISTING_IMAGE_URL
+      };
+      setPreview(t, true);
+    }
+    traderNameEl.addEventListener("input", updatePreviewFromInputs);
+    winEl.addEventListener("input", updatePreviewFromInputs);
+    profitEl.addEventListener("input", updatePreviewFromInputs);
+    activeEl.addEventListener("change", updatePreviewFromInputs);
+    imageEl.addEventListener("change", updatePreviewFromInputs);
+
+    qEl.addEventListener("input", applyFilters);
+    statusFilterEl.addEventListener("change", applyFilters);
+
+    btnExport.addEventListener("click", () => {
+      if (!VIEW.length) return showAlert("warn", "No traders to export.");
+      downloadCsv(VIEW);
+      showAlert("success", "CSV exported.");
+    });
+
+    function downloadCsv(rows){
+      const headers = ["id","trader_name","win_rate_percent","profit_percent","image_url","is_active","created_at","updated_at"];
+      const lines = [headers.join(",")];
+      for (const t of rows){
+        const vals = headers.map(h => {
+          const v = t?.[h];
+          const s = (v === null || v === undefined) ? "" : String(v).replace(/"/g,'""');
+          return `"${s}"`;
+        });
+        lines.push(vals.join(","));
+      }
+      const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `upcoinmeta_copy_traders_${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    (function init(){
+      if (!requireAuthOrRedirect()) return;
+      resetForm();
+      loadTraders();
+    })();
+  </script>
+</body>
+</html>

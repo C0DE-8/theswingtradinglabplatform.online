@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Upcoinmeta — Copy Trader</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="../assets/js/api.js"></script>
+
+  <style>
+    :root{
+      --safe-top: env(safe-area-inset-top);
+      --safe-bottom: env(safe-area-inset-bottom);
+      --nav-h: 82px;
+
+      --bg: #07080c83;
+      --card: rgba(18, 18, 22, .62);
+      --card2: rgba(18, 18, 22, .46);
+      --line: rgba(255,255,255,.10);
+      --line2: rgba(255,255,255,.07);
+      --text-dim: rgba(255,255,255,.60);
+
+      --active: rgba(56,189,248,.18);
+      --activeLine: rgba(56,189,248,.25);
+    }
+
+    html,body{
+      height:100%;
+      width:100%;
+      margin:0;
+      padding:0;
+      overflow:hidden;
+      background: var(--bg);
+      color:#fff;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{ -webkit-tap-highlight-color: transparent; }
+
+    /* ✅ BACKGROUND */
+    .bg-stack{
+      position: fixed;
+      inset: 0;
+      z-index: -10;
+      pointer-events: none;
+      overflow: hidden;
+      background: var(--bg);
+    }
+    .bg-map{
+      position:absolute;
+      inset:0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      opacity: 1;
+      filter: contrast(1.12) brightness(1.05);
+      user-select:none;
+    }
+    .bg-film{
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(900px 520px at 20% 0%, rgba(255,255,255,0.06), transparent 60%),
+        radial-gradient(900px 520px at 80% 10%, rgba(255,255,255,0.05), transparent 60%),
+        linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.52));
+    }
+
+    .scroll-shell{
+      height:100vh;
+      height:100dvh;
+      overflow-y:auto;
+      overflow-x:hidden;
+      -webkit-overflow-scrolling:touch;
+      padding-top: calc(12px + var(--safe-top));
+      padding-bottom: calc(18px + var(--safe-bottom));
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ✅ PREMIUM CARD GLOW */
+    .glass{
+      background: var(--card);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid var(--line2);
+      box-shadow:
+        0 18px 70px rgba(0,0,0,.55),
+        0 0 0 1px rgba(255,255,255,.04),
+        0 0 46px rgba(56,189,248,.06);
+      position: relative;
+      overflow: hidden;
+      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    }
+    .glass::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      border-radius: inherit;
+      background:
+        radial-gradient(700px 260px at 15% 0%, rgba(56,189,248,.14), transparent 58%),
+        radial-gradient(720px 260px at 85% 12%, rgba(168,85,247,.10), transparent 60%);
+      opacity: .65;
+      pointer-events:none;
+      mix-blend-mode: screen;
+    }
+
+    .glass-soft{
+      background: var(--card2);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--line2);
+      box-shadow:
+        0 14px 44px rgba(0,0,0,.35),
+        0 0 34px rgba(56,189,248,.05);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .pill{
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--line);
+    }
+
+    .t-dim{ color: var(--text-dim); }
+    .txt-h1{ font-size: clamp(18px, 4.8vw, 22px); font-weight: 900; }
+    .txt-h2{ font-size: clamp(16px, 4.2vw, 18px); font-weight: 900; }
+    .txt-sm{ font-size: 13px; }
+
+    .skeleton{
+      background: rgba(255,255,255,.08);
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes pulse{ 0%,100%{opacity:.55} 50%{opacity:.85} }
+
+    .avatar{
+      width: 42px; height: 42px;
+      border-radius: 999px;
+      display:grid;
+      place-items:center;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.18);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
+      font-weight: 900;
+      font-size: 15px;
+      cursor: pointer;
+      user-select:none;
+    }
+
+    .field{
+      width:100%;
+      border-radius: 18px;
+      padding: 12px 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+      color: #fff;
+      outline: none;
+      transition: .18s ease;
+    }
+    .field:focus{
+      border-color: rgba(56,189,248,.35);
+      box-shadow: 0 0 0 4px rgba(56,189,248,.12);
+    }
+    .field::placeholder{ color: rgba(255,255,255,.45); }
+
+    .btn{
+      border-radius: 18px;
+      padding: 12px 14px;
+      font-weight: 900;
+      font-size: 13px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      transition: .18s ease;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      user-select:none;
+      cursor:pointer;
+      white-space: nowrap;
+    }
+    .btn.primary{
+      border-color: rgba(56,189,248,.26);
+      background: rgba(56,189,248,.14);
+    }
+    .btn.danger{
+      border-color: rgba(248,113,113,.25);
+      background: rgba(248,113,113,.10);
+    }
+    .btn:disabled{ opacity:.6; pointer-events:none; }
+
+    .status-pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+      white-space: nowrap;
+    }
+    .st-active{ color: rgb(110 231 183); border-color: rgba(110,231,183,.25); background: rgba(110,231,183,.08); }
+    .st-lock{ color: rgb(252 211 77); border-color: rgba(252,211,77,.25); background: rgba(252,211,77,.08); }
+
+    /* ✅ Trader cards */
+    .trader-img{
+      width: 56px;
+      height: 56px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      overflow: hidden;
+      flex: 0 0 auto;
+      display:grid;
+      place-items:center;
+      font-weight: 900;
+    }
+    .trader-img img{ width:100%; height:100%; object-fit: cover; display:block; }
+    .metric{
+      border-radius: 18px;
+      padding: 10px 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+    }
+
+    /* ✅ Preloader */
+    .preloader{
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(1200px 600px at 20% 0%, rgba(56,189,248,.10), transparent 55%),
+        radial-gradient(1100px 650px at 80% 15%, rgba(168,85,247,.08), transparent 60%),
+        rgba(0,0,0,.55);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      transition: opacity .35s ease, transform .35s ease;
+    }
+    .preloader.hidden{
+      opacity: 0;
+      transform: scale(1.01);
+      pointer-events: none;
+    }
+    .loader-card{
+      width: min(420px, calc(100vw - 32px));
+      border-radius: 26px;
+      padding: 22px 18px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(18,18,22,.62);
+      box-shadow: 0 20px 80px rgba(0,0,0,.65);
+      text-align:center;
+    }
+    .loader-logo{
+      width: 62px;
+      height: 62px;
+      border-radius: 999px;
+      display:grid;
+      place-items:center;
+      margin: 0 auto 12px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 0 60px rgba(56,189,248,.14);
+    }
+    .loader-logo img{
+      width: 34px;
+      height: 34px;
+      opacity: .95;
+      animation: spinSoft 2.6s linear infinite;
+    }
+    @keyframes spinSoft{ 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
+
+    /* ✅ Bottom navbar */
+  </style>
+</head>
+
+<body>
+  <!-- ✅ PRELOADER -->
+  <div id="preloader" class="preloader">
+    <div class="loader-card">
+      <div class="loader-logo">
+        <img src="assets/icon/favicon.svg" alt="">
+      </div>
+      <div class="font-black text-[18px]">Copy Trader</div>
+      <div class="text-[13px] text-white/65 mt-2" id="preloaderText">Loading traders…</div>
+    </div>
+  </div>
+
+  <!-- ✅ BACKGROUND -->
+  <div class="bg-stack" aria-hidden="true">
+    <img src="assets/icon/mask_group.svg" alt="" class="bg-map" />
+    <div class="bg-film"></div>
+  </div>
+
+  <div class="scroll-shell">
+    <main class="mx-auto max-w-[560px] px-4">
+
+      <!-- ✅ HEADER -->
+      <header class="glass rounded-[26px] px-4 py-4 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="avatar" id="btnBack" title="Back">←</div>
+          <div class="min-w-0">
+            <div class="txt-h1 leading-[1.05] truncate">Copy Trader</div>
+            <div class="txt-sm t-dim truncate">Select one trader • Start/Stop copying</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 shrink-0">
+          <div id="hdrName" class="txt-h2 skeleton rounded-xl px-3 py-2">&nbsp;&nbsp;&nbsp;</div>
+          <div class="avatar" id="hdrInitial">U</div>
+        </div>
+      </header>
+
+      <div id="alert" class="hidden mt-4 glass-soft rounded-2xl px-4 py-3 text-sm"></div>
+
+      <!-- ✅ STATUS -->
+      <section class="mt-5 glass rounded-[26px] p-5">
+        <div class="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <div class="txt-h1">Copy Trading Status</div>
+            <div class="txt-sm t-dim">You can only copy one trader at a time</div>
+          </div>
+          <div class="flex gap-2">
+            <button id="btnStop" class="btn danger hidden" type="button">Stop Copy</button>
+            <button id="btnRefresh" class="btn" type="button">Refresh</button>
+          </div>
+        </div>
+
+        <div class="mt-4 glass-soft rounded-[22px] p-4">
+          <div class="flex items-center justify-between gap-3 flex-wrap">
+            <div class="flex items-center gap-3">
+              <div class="trader-img" id="statusImg">CT</div>
+              <div class="min-w-0">
+                <div class="txt-h2 truncate" id="statusTitle">
+                  <span class="inline-block skeleton rounded-xl w-40 h-5"></span>
+                </div>
+                <div class="txt-sm t-dim truncate" id="statusSub">
+                  <span class="inline-block skeleton rounded-xl w-52 h-4"></span>
+                </div>
+              </div>
+            </div>
+            <div id="statusPill" class="status-pill st-lock">LOCK</div>
+          </div>
+
+          <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="metric">
+              <div class="txt-sm t-dim">Win Rate</div>
+              <div class="mt-1 text-[18px] font-black" id="statusWin">—</div>
+            </div>
+            <div class="metric">
+              <div class="txt-sm t-dim">Profit</div>
+              <div class="mt-1 text-[18px] font-black" id="statusProfit">—</div>
+            </div>
+            <div class="metric">
+              <div class="txt-sm t-dim">Trader ID</div>
+              <div class="mt-1 text-[18px] font-black" id="statusId">—</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ✅ FILTERS -->
+      <section class="mt-5 glass rounded-[26px] p-5">
+        <div class="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <div class="txt-h1">Find Trader</div>
+            <div class="txt-sm t-dim">Search & sort before you copy</div>
+          </div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="txt-sm t-dim">Search</label>
+            <input id="q" class="field mt-2" placeholder="Search trader name..." />
+          </div>
+          <div>
+            <label class="txt-sm t-dim">Sort</label>
+            <select id="sort" class="field mt-2">
+              <option value="new">Newest</option>
+              <option value="win">Highest win rate</option>
+              <option value="profit">Highest profit</option>
+              <option value="az">A → Z</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <!-- ✅ TRADERS -->
+      <section class="mt-5">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <div class="txt-h1">Top Traders</div>
+            <div class="txt-sm t-dim">Choose a trader and activate copy trading</div>
+          </div>
+        </div>
+
+        <div id="list" class="mt-4 grid grid-cols-1 gap-4">
+          <div class="glass rounded-[26px] p-4"><div class="skeleton rounded-2xl h-16 w-full"></div></div>
+          <div class="glass rounded-[26px] p-4"><div class="skeleton rounded-2xl h-16 w-full"></div></div>
+        </div>
+      </section>
+
+      <footer class="mt-8 text-center text-xs t-dim pb-10">
+        © <span id="yr"></span> Upcoinmeta • Investment Services
+      </footer>
+
+    </main>
+  </div>
+
+  <!-- ✅ Bottom Navbar -->
+
+  <script>
+    const API_BASE = window.SwayApi.userBase;
+    const TOKEN_KEY = "upcoinmeta_token";
+    const USER_KEY  = "upcoinmeta_user";
+
+    document.getElementById("yr").textContent = new Date().getFullYear();
+
+    const preloader = document.getElementById("preloader");
+    const preloaderText = document.getElementById("preloaderText");
+    const alertBox = document.getElementById("alert");
+
+    function showPreloader(msg="Loading…"){
+      preloader.style.display = "grid";
+      preloader.classList.remove("hidden");
+      preloaderText.textContent = msg;
+    }
+    function hidePreloader(){
+      preloader.classList.add("hidden");
+      setTimeout(() => { preloader.style.display = "none"; }, 420);
+    }
+
+    function getToken() {
+      return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY) || "";
+    }
+    function authHeaders() {
+      const token = getToken();
+      return { Authorization: `Bearer ${token}` };
+    }
+
+    function showAlert(type, msg) {
+      alertBox.classList.remove("hidden");
+      alertBox.textContent = msg;
+
+      alertBox.classList.remove("bg-red-500/10","border-red-400/20","text-red-200");
+      alertBox.classList.remove("bg-emerald-500/10","border-emerald-400/20","text-emerald-200");
+      alertBox.classList.remove("bg-amber-500/10","border-amber-400/20","text-amber-200");
+
+      if (type === "success") alertBox.classList.add("bg-emerald-500/10","border","border-emerald-400/20","text-emerald-200");
+      else if (type === "warn") alertBox.classList.add("bg-amber-500/10","border","border-amber-400/20","text-amber-200");
+      else alertBox.classList.add("bg-red-500/10","border","border-red-400/20","text-red-200");
+    }
+
+    function safeStr(v, fallback="—") {
+      const s = String(v ?? "").trim();
+      return s ? s : fallback;
+    }
+
+    function pct(v){
+      const n = Number(v);
+      if (Number.isNaN(n)) return "—";
+      return `${n.toFixed(2)}%`;
+    }
+
+    async function fetchMe() {
+      const token = getToken();
+      if (!token) {
+        showAlert("warn", "Session expired. Please login again.");
+        setTimeout(() => window.location.href = "../auth/login.html", 900);
+        throw new Error("No token");
+      }
+      const res = await axios.get(`${API_BASE}/me`, { headers: authHeaders(), timeout: 20000 });
+      return res.data?.user;
+    }
+
+    async function fetchStatus(){
+      const res = await axios.get(`${API_BASE}/copy-traders/status`, { headers: authHeaders(), timeout: 20000 });
+      return res.data;
+    }
+
+    async function fetchTraders(){
+      const res = await axios.get(`${API_BASE}/copy-traders`, { headers: authHeaders(), timeout: 20000 });
+      return res.data?.traders || [];
+    }
+
+    async function copyTrader(id){
+      const res = await axios.post(`${API_BASE}/copy-traders/${id}/copy`, {}, { headers: authHeaders(), timeout: 30000 });
+      return res.data;
+    }
+
+    async function stopCopy(){
+      const res = await axios.post(`${API_BASE}/copy-traders/stop`, {}, { headers: authHeaders(), timeout: 30000 });
+      return res.data;
+    }
+
+    function renderUserHeader(user) {
+      const name = user?.username || user?.full_name || "Upcoinmeta";
+      const hdrName = document.getElementById("hdrName");
+      const hdrInitial = document.getElementById("hdrInitial");
+      hdrName.classList.remove("skeleton");
+      hdrName.textContent = name;
+      hdrInitial.textContent = (String(name).trim().slice(0,1).toUpperCase() || "U");
+    }
+
+    // UI refs
+    const btnBack = document.getElementById("btnBack");
+    const btnRefresh = document.getElementById("btnRefresh");
+    const btnStop = document.getElementById("btnStop");
+
+    const statusPill = document.getElementById("statusPill");
+    const statusImg = document.getElementById("statusImg");
+    const statusTitle = document.getElementById("statusTitle");
+    const statusSub = document.getElementById("statusSub");
+    const statusWin = document.getElementById("statusWin");
+    const statusProfit = document.getElementById("statusProfit");
+    const statusId = document.getElementById("statusId");
+
+    const qEl = document.getElementById("q");
+    const sortEl = document.getElementById("sort");
+    const listEl = document.getElementById("list");
+
+    let ALL = [];
+    let STATUS = null;
+
+    btnBack.addEventListener("click", () => {
+      if (history.length > 1) history.back();
+      else window.location.href = "../pages/trades.html";
+    });
+
+    document.getElementById("hdrInitial").addEventListener("click", () => {
+      window.location.href = "../pages/profile.html";
+    });
+
+    function setStatusUI(data){
+      STATUS = data;
+
+      const st = String(data?.copy_trading_status || "lock").toLowerCase();
+      const isActive = st === "active";
+      statusPill.className = "status-pill " + (isActive ? "st-active" : "st-lock");
+      statusPill.textContent = isActive ? "ACTIVE" : "LOCK";
+
+      btnStop.classList.toggle("hidden", !isActive);
+
+      if (isActive && data?.trader){
+        const t = data.trader;
+        statusTitle.textContent = t.trader_name || "Trader";
+        statusSub.textContent = "Copy trading is running on this trader";
+        statusWin.textContent = pct(t.win_rate_percent);
+        statusProfit.textContent = pct(t.profit_percent);
+        statusId.textContent = safeStr(t.id);
+
+        statusImg.innerHTML = "";
+        if (t.image_url){
+          const img = document.createElement("img");
+          img.src = t.image_url;
+          img.alt = t.trader_name || "Trader";
+          img.onerror = () => { statusImg.textContent = (String(t.trader_name||"CT").trim().slice(0,2).toUpperCase()); };
+          statusImg.appendChild(img);
+        } else {
+          statusImg.textContent = (String(t.trader_name||"CT").trim().slice(0,2).toUpperCase());
+        }
+      } else {
+        statusTitle.textContent = "Not copying any trader";
+        statusSub.textContent = "Pick a trader below to activate copy trading";
+        statusWin.textContent = "—";
+        statusProfit.textContent = "—";
+        statusId.textContent = "—";
+        statusImg.textContent = "CT";
+      }
+    }
+
+    function sortTraders(arr, mode){
+      const list = arr.slice();
+      const m = String(mode||"new");
+
+      if (m === "win") {
+        list.sort((a,b) => (Number(b.win_rate_percent)||0) - (Number(a.win_rate_percent)||0));
+      } else if (m === "profit") {
+        list.sort((a,b) => (Number(b.profit_percent)||0) - (Number(a.profit_percent)||0));
+      } else if (m === "az") {
+        list.sort((a,b) => String(a.trader_name||"").localeCompare(String(b.trader_name||"")));
+      } else {
+        // newest (already DESC from backend usually)
+      }
+      return list;
+    }
+
+    function filterTraders(){
+      const q = String(qEl.value||"").trim().toLowerCase();
+      const mode = String(sortEl.value||"new");
+
+      let list = ALL.slice();
+      if (q) {
+        list = list.filter(t => String(t.trader_name||"").toLowerCase().includes(q));
+      }
+      list = sortTraders(list, mode);
+      return list;
+    }
+
+    function renderTraders(items){
+      listEl.innerHTML = "";
+
+      if (!items.length){
+        listEl.innerHTML = `
+          <div class="glass rounded-[26px] p-5">
+            <div class="txt-h2">No traders found</div>
+            <div class="txt-sm t-dim mt-1">Try another search or refresh.</div>
+          </div>
+        `;
+        return;
+      }
+
+      const currentId = STATUS?.copied_trader_id ? Number(STATUS.copied_trader_id) : null;
+      const isActive = String(STATUS?.copy_trading_status||"lock").toLowerCase() === "active";
+
+      items.forEach(t => {
+        const card = document.createElement("div");
+        card.className = "glass rounded-[26px] p-5";
+
+        const isCurrent = isActive && currentId && Number(t.id) === currentId;
+
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="trader-img" data-img="${t.image_url || ""}">
+                <span>${String(t.trader_name||"CT").trim().slice(0,2).toUpperCase()}</span>
+              </div>
+              <div class="min-w-0">
+                <div class="txt-h2 truncate">${safeStr(t.trader_name)}</div>
+                <div class="txt-sm t-dim truncate">Trader ID: #${safeStr(t.id)}</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              ${isCurrent ? `<span class="status-pill st-active">CURRENT</span>` : ``}
+              <button class="btn ${isCurrent ? "" : "primary"}" data-copy="${t.id}">
+                ${isCurrent ? "Copying" : "Copy Trader"}
+              </button>
+            </div>
+          </div>
+
+          <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="metric">
+              <div class="txt-sm t-dim">Win Rate</div>
+              <div class="mt-1 text-[18px] font-black">${pct(t.win_rate_percent)}</div>
+            </div>
+            <div class="metric">
+              <div class="txt-sm t-dim">Profit</div>
+              <div class="mt-1 text-[18px] font-black">${pct(t.profit_percent)}</div>
+            </div>
+          </div>
+
+          <div class="mt-3 text-[12px] t-dim">
+            Note: Copy trading is managed by the system. You can stop anytime.
+          </div>
+        `;
+
+        // load image if exists
+        const imgBox = card.querySelector("[data-img]");
+        const url = imgBox.getAttribute("data-img");
+        if (url) {
+          imgBox.innerHTML = "";
+          const img = document.createElement("img");
+          img.src = url;
+          img.alt = t.trader_name || "Trader";
+          img.onerror = () => { imgBox.textContent = (String(t.trader_name||"CT").trim().slice(0,2).toUpperCase()); };
+          imgBox.appendChild(img);
+        }
+
+        // copy button
+        const btn = card.querySelector("[data-copy]");
+        btn.addEventListener("click", async () => {
+          try{
+            alertBox.classList.add("hidden");
+
+            // if already current, do nothing
+            if (isCurrent) return showAlert("warn", "You are already copying this trader.");
+
+            btn.disabled = true;
+            btn.textContent = "Activating…";
+
+            const res = await copyTrader(t.id);
+            showAlert("success", res?.message || "Copy trading activated.");
+
+            await loadAll();
+          } catch (err){
+            const msg = err?.response?.data?.message || err?.message || "Failed to activate copy trading.";
+            showAlert("error", msg);
+
+            const status = err?.response?.status;
+            if (status === 401 || status === 403) setTimeout(() => window.location.href = "../auth/login.html", 900);
+          } finally {
+            btn.disabled = false;
+            btn.textContent = "Copy Trader";
+          }
+        });
+
+        listEl.appendChild(card);
+      });
+    }
+
+    qEl.addEventListener("input", () => renderTraders(filterTraders()));
+    sortEl.addEventListener("change", () => renderTraders(filterTraders()));
+
+    btnRefresh.addEventListener("click", async () => {
+      try{
+        await loadAll();
+        showAlert("success", "Refreshed.");
+        setTimeout(() => alertBox.classList.add("hidden"), 900);
+      }catch(e){
+        showAlert("error", e?.message || "Refresh failed.");
+      }
+    });
+
+    btnStop.addEventListener("click", async () => {
+      try{
+        btnStop.disabled = true;
+        btnStop.textContent = "Stopping…";
+        const res = await stopCopy();
+        showAlert("success", res?.message || "Copy trading stopped.");
+        await loadAll();
+      }catch(err){
+        const msg = err?.response?.data?.message || err?.message || "Failed to stop copy trading.";
+        showAlert("error", msg);
+      } finally {
+        btnStop.disabled = false;
+        btnStop.textContent = "Stop Copy";
+      }
+    });
+
+    async function loadAll(){
+      showPreloader("Loading copy trading status…");
+      const [st, traders] = await Promise.all([fetchStatus(), fetchTraders()]);
+      setStatusUI(st);
+
+      showPreloader("Loading traders…");
+      ALL = traders || [];
+      renderTraders(filterTraders());
+
+      hidePreloader();
+    }
+
+    async function init(){
+      showPreloader("Checking session…");
+      try{
+        const me = await fetchMe();
+        renderUserHeader(me);
+
+        try{
+          const storage = localStorage.getItem(TOKEN_KEY) ? localStorage : sessionStorage;
+          storage.setItem(USER_KEY, JSON.stringify(me || {}));
+        }catch{}
+
+        await loadAll();
+      }catch(err){
+        hidePreloader();
+        const msg = err?.response?.data?.message || err?.message || "Failed to load copy trader page.";
+        showAlert("error", msg);
+
+        const status = err?.response?.status;
+        if (status === 401 || status === 403) setTimeout(() => window.location.href = "../auth/login.html", 900);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

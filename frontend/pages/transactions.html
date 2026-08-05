@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Upcoinmeta — Transactions</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="../assets/js/api.js"></script>
+
+  <style>
+    :root{
+      --safe-top: env(safe-area-inset-top);
+      --safe-bottom: env(safe-area-inset-bottom);
+      --nav-h: 82px;
+
+      --bg: #07080c83;
+      --card: rgba(18, 18, 22, .62);
+      --card2: rgba(18, 18, 22, .46);
+      --line: rgba(255,255,255,.10);
+      --line2: rgba(255,255,255,.07);
+      --text-dim: rgba(255,255,255,.60);
+
+      --active: rgba(56,189,248,.18);
+      --activeLine: rgba(56,189,248,.25);
+    }
+
+    html,body{
+      height:100%;
+      width:100%;
+      margin:0;
+      padding:0;
+      overflow:hidden;
+      background: var(--bg);
+      color:#fff;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{ -webkit-tap-highlight-color: transparent; }
+
+    /* ✅ BACKGROUND */
+    .bg-stack{
+      position: fixed;
+      inset: 0;
+      z-index: -10;
+      pointer-events: none;
+      overflow: hidden;
+      background: var(--bg);
+    }
+    .bg-map{
+      position:absolute;
+      inset:0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      opacity: 1;
+      filter: contrast(1.12) brightness(1.05);
+      user-select:none;
+    }
+    .bg-film{
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(900px 520px at 20% 0%, rgba(255,255,255,0.06), transparent 60%),
+        radial-gradient(900px 520px at 80% 10%, rgba(255,255,255,0.05), transparent 60%),
+        linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.52));
+    }
+
+    .scroll-shell{
+      height:100vh;
+      height:100dvh;
+      overflow-y:auto;
+      overflow-x:hidden;
+      -webkit-overflow-scrolling:touch;
+      padding-top: calc(12px + var(--safe-top));
+      padding-bottom: calc(18px + var(--safe-bottom));
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ✅ PREMIUM CARD GLOW */
+    .glass{
+      background: var(--card);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid var(--line2);
+      box-shadow:
+        0 18px 70px rgba(0,0,0,.55),
+        0 0 0 1px rgba(255,255,255,.04),
+        0 0 46px rgba(56,189,248,.06);
+      position: relative;
+      overflow: hidden;
+      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    }
+    .glass::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      border-radius: inherit;
+      background:
+        radial-gradient(700px 260px at 15% 0%, rgba(56,189,248,.14), transparent 58%),
+        radial-gradient(720px 260px at 85% 12%, rgba(168,85,247,.10), transparent 60%);
+      opacity: .65;
+      pointer-events:none;
+      mix-blend-mode: screen;
+    }
+
+    .glass-soft{
+      background: var(--card2);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--line2);
+      box-shadow:
+        0 14px 44px rgba(0,0,0,.35),
+        0 0 34px rgba(56,189,248,.05);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .pill{
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--line);
+    }
+
+    .t-dim{ color: var(--text-dim); }
+    .txt-h1{ font-size: clamp(18px, 4.8vw, 22px); font-weight: 900; }
+    .txt-h2{ font-size: clamp(16px, 4.2vw, 18px); font-weight: 900; }
+    .txt-sm{ font-size: 13px; }
+
+    .skeleton{
+      background: rgba(255,255,255,.08);
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes pulse{ 0%,100%{opacity:.55} 50%{opacity:.85} }
+
+    .avatar{
+      width: 42px; height: 42px;
+      border-radius: 999px;
+      display:grid;
+      place-items:center;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.18);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
+      font-weight: 900;
+      font-size: 15px;
+      cursor: pointer;
+      user-select:none;
+    }
+
+    .btn{
+      border-radius: 18px;
+      padding: 12px 14px;
+      font-weight: 900;
+      font-size: 13px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      transition: .18s ease;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      user-select:none;
+      cursor:pointer;
+    }
+    .btn.primary{
+      border-color: rgba(56,189,248,.26);
+      background: rgba(56,189,248,.14);
+    }
+    .btn:disabled{ opacity:.6; pointer-events:none; }
+
+    /* ✅ Tabs */
+    .tabs{
+      display:flex;
+      gap:10px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.10);
+      padding: 8px;
+      border-radius: 22px;
+      overflow-x:auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .tab{
+      flex: 0 0 auto;
+      border-radius: 16px;
+      padding: 10px 12px;
+      font-weight: 900;
+      font-size: 12px;
+      border: 1px solid transparent;
+      color: rgba(255,255,255,.70);
+      background: transparent;
+      cursor:pointer;
+      transition:.18s ease;
+      user-select:none;
+      white-space: nowrap;
+    }
+    .tab.active{
+      color:#fff;
+      background: rgba(56,189,248,.14);
+      border-color: rgba(56,189,248,.25);
+      box-shadow: 0 0 0 1px rgba(56,189,248,.06), 0 16px 60px rgba(56,189,248,.06);
+    }
+
+    /* ✅ Status pills */
+    .status-pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+      white-space: nowrap;
+    }
+    .st-pending{ color: rgb(252 211 77); border-color: rgba(252,211,77,.25); background: rgba(252,211,77,.08); }
+    .st-approved{ color: rgb(110 231 183); border-color: rgba(110,231,183,.25); background: rgba(110,231,183,.08); }
+    .st-declined{ color: rgb(252 165 165); border-color: rgba(252,165,165,.25); background: rgba(252,165,165,.08); }
+
+    .row{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 12px;
+      padding: 14px 14px;
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
+      cursor: pointer;
+      user-select:none;
+      transition: .18s ease;
+    }
+    .row:active{ transform: scale(.992); }
+
+    .mono{ font-variant-numeric: tabular-nums; }
+
+    /* ✅ Preloader */
+    .preloader{
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(1200px 600px at 20% 0%, rgba(56,189,248,.10), transparent 55%),
+        radial-gradient(1100px 650px at 80% 15%, rgba(168,85,247,.08), transparent 60%),
+        rgba(0,0,0,.55);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      transition: opacity .35s ease, transform .35s ease;
+    }
+    .preloader.hidden{ opacity: 0; transform: scale(1.01); pointer-events: none; }
+    .loader-card{
+      width: min(420px, calc(100vw - 32px));
+      border-radius: 26px;
+      padding: 22px 18px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(18,18,22,.62);
+      box-shadow: 0 20px 80px rgba(0,0,0,.65);
+      text-align:center;
+    }
+    .loader-logo{
+      width: 62px; height: 62px;
+      border-radius: 999px;
+      display:grid;
+      place-items:center;
+      margin: 0 auto 12px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 0 60px rgba(56,189,248,.14);
+    }
+    .loader-logo img{
+      width: 34px; height: 34px;
+      opacity: .95;
+      animation: spinSoft 2.6s linear infinite;
+    }
+    @keyframes spinSoft{ 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
+
+    /* ✅ Modal */
+    .modal{
+      position: fixed;
+      inset: 0;
+      z-index: 9998;
+      display:none;
+      place-items:center;
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 16px;
+    }
+    .modal.show{ display:grid; }
+    .modal-card{
+      width: min(560px, calc(100vw - 24px));
+      border-radius: 26px;
+      padding: 16px;
+    }
+    .kv{
+      display:flex;
+      justify-content:space-between;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      font-size: 13px;
+    }
+    .kv:last-child{ border-bottom: 0; }
+    .kv .k{ color: rgba(255,255,255,.60); }
+    .kv .v{ font-weight: 900; text-align:right; max-width: 62%; overflow-wrap:anywhere; }
+
+    /* ✅ Bottom navbar */
+  </style>
+</head>
+
+<body>
+  <!-- ✅ PRELOADER -->
+  <div id="preloader" class="preloader">
+    <div class="loader-card">
+      <div class="loader-logo"><img src="assets/icon/favicon.svg" alt=""></div>
+      <div class="font-black text-[18px]">Transactions</div>
+      <div class="text-[13px] text-white/65 mt-2" id="preloaderText">Loading history…</div>
+    </div>
+  </div>
+
+  <!-- ✅ BACKGROUND -->
+  <div class="bg-stack" aria-hidden="true">
+    <img src="assets/icon/mask_group.svg" alt="" class="bg-map" />
+    <div class="bg-film"></div>
+  </div>
+
+  <!-- ✅ MODAL -->
+  <div id="modal" class="modal" role="dialog" aria-modal="true" aria-label="Transaction details">
+    <div class="glass modal-card">
+      <div class="flex items-center justify-between gap-3 px-2 py-2">
+        <div>
+          <div id="mTitle" class="txt-h1">Details</div>
+          <div id="mSub" class="txt-sm t-dim">—</div>
+        </div>
+        <button id="mClose" class="btn" type="button">Close</button>
+      </div>
+
+      <div class="mt-3 glass-soft rounded-[22px] p-4">
+        <div id="mStatus" class="status-pill st-pending">PENDING</div>
+        <div id="mKVs" class="mt-3"></div>
+
+        <div id="mProofWrap" class="mt-4 hidden">
+          <div class="txt-sm t-dim mb-2">Proof</div>
+          <div class="flex gap-2 flex-wrap">
+            <a id="mProofLink" class="btn primary" target="_blank" rel="noopener">View Proof</a>
+            <button id="mCopyProof" class="btn" type="button">Copy Proof URL</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scroll-shell">
+    <main class="mx-auto max-w-[560px] px-4">
+
+      <!-- ✅ HEADER -->
+      <header class="glass rounded-[26px] px-4 py-4 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="avatar" id="btnBack" title="Back">←</div>
+          <div class="min-w-0">
+            <div class="txt-h1 leading-[1.05] truncate">Transactions</div>
+            <div class="txt-sm t-dim truncate">Deposits • Withdrawals • Upgrades</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 shrink-0">
+          <div id="hdrName" class="txt-h2 skeleton rounded-xl px-3 py-2">&nbsp;&nbsp;&nbsp;</div>
+          <div class="avatar" id="hdrInitial">U</div>
+        </div>
+      </header>
+
+      <div id="alert" class="hidden mt-4 glass-soft rounded-2xl px-4 py-3 text-sm"></div>
+
+      <!-- ✅ TABS -->
+      <section class="mt-5 glass rounded-[26px] p-5">
+        <div class="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <div class="txt-h1">History</div>
+            <div class="txt-sm t-dim">Tap any record to view full details</div>
+          </div>
+          <button id="btnRefresh" class="btn" type="button">Refresh</button>
+        </div>
+
+        <div class="mt-4 tabs">
+          <button id="tabDeposits" class="tab active" type="button">Deposits</button>
+          <button id="tabWithdrawals" class="tab" type="button">Withdrawals</button>
+          <button id="tabUpgrades" class="tab" type="button">Upgrades</button>
+        </div>
+
+        <div class="mt-4 grid grid-cols-3 gap-3">
+          <div class="glass-soft rounded-[22px] p-4">
+            <div class="txt-sm t-dim">Deposits</div>
+            <div class="mt-1 text-[20px] font-black mono" id="countDeposits">—</div>
+          </div>
+          <div class="glass-soft rounded-[22px] p-4">
+            <div class="txt-sm t-dim">Withdrawals</div>
+            <div class="mt-1 text-[20px] font-black mono" id="countWithdrawals">—</div>
+          </div>
+          <div class="glass-soft rounded-[22px] p-4">
+            <div class="txt-sm t-dim">Upgrades</div>
+            <div class="mt-1 text-[20px] font-black mono" id="countUpgrades">—</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ✅ LIST -->
+      <section class="mt-5">
+        <div id="listWrap" class="grid grid-cols-1 gap-4">
+          <div class="glass rounded-[26px] p-4"><div class="skeleton rounded-2xl h-16 w-full"></div></div>
+          <div class="glass rounded-[26px] p-4"><div class="skeleton rounded-2xl h-16 w-full"></div></div>
+        </div>
+      </section>
+
+      <footer class="mt-8 text-center text-xs t-dim pb-10">
+        © <span id="yr"></span> Upcoinmeta • Investment Services
+      </footer>
+
+    </main>
+  </div>
+
+  <!-- ✅ Bottom Navbar -->
+
+  <script>
+    const API_BASE = window.SwayApi.userBase;
+    const TOKEN_KEY = "upcoinmeta_token";
+    const USER_KEY  = "upcoinmeta_user";
+
+    document.getElementById("yr").textContent = new Date().getFullYear();
+
+    // elements
+    const preloader = document.getElementById("preloader");
+    const preloaderText = document.getElementById("preloaderText");
+    const alertBox = document.getElementById("alert");
+    const listWrap = document.getElementById("listWrap");
+
+    const countDeposits = document.getElementById("countDeposits");
+    const countWithdrawals = document.getElementById("countWithdrawals");
+    const countUpgrades = document.getElementById("countUpgrades");
+
+    const tabDeposits = document.getElementById("tabDeposits");
+    const tabWithdrawals = document.getElementById("tabWithdrawals");
+    const tabUpgrades = document.getElementById("tabUpgrades");
+
+    const btnRefresh = document.getElementById("btnRefresh");
+    const btnBack = document.getElementById("btnBack");
+
+    // modal
+    const modal = document.getElementById("modal");
+    const mClose = document.getElementById("mClose");
+    const mTitle = document.getElementById("mTitle");
+    const mSub = document.getElementById("mSub");
+    const mStatus = document.getElementById("mStatus");
+    const mKVs = document.getElementById("mKVs");
+    const mProofWrap = document.getElementById("mProofWrap");
+    const mProofLink = document.getElementById("mProofLink");
+    const mCopyProof = document.getElementById("mCopyProof");
+
+    // state
+    let activeTab = "deposits";
+    let deposits = [];
+    let withdrawals = [];
+    let upgrades = [];
+
+    function showPreloader(msg="Loading…"){
+      preloader.style.display = "grid";
+      preloader.classList.remove("hidden");
+      preloaderText.textContent = msg;
+    }
+    function hidePreloader(){
+      preloader.classList.add("hidden");
+      setTimeout(() => { preloader.style.display = "none"; }, 420);
+    }
+
+    function getToken() {
+      return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY) || "";
+    }
+    function authHeaders() {
+      const token = getToken();
+      return { Authorization: `Bearer ${token}` };
+    }
+
+    function showAlert(type, msg) {
+      alertBox.classList.remove("hidden");
+      alertBox.textContent = msg;
+
+      alertBox.classList.remove("bg-red-500/10","border-red-400/20","text-red-200");
+      alertBox.classList.remove("bg-emerald-500/10","border-emerald-400/20","text-emerald-200");
+      alertBox.classList.remove("bg-amber-500/10","border-amber-400/20","text-amber-200");
+
+      if (type === "success") alertBox.classList.add("bg-emerald-500/10","border","border-emerald-400/20","text-emerald-200");
+      else if (type === "warn") alertBox.classList.add("bg-amber-500/10","border","border-amber-400/20","text-amber-200");
+      else alertBox.classList.add("bg-red-500/10","border","border-red-400/20","text-red-200");
+    }
+
+    function safeStr(v, fallback="—") {
+      const s = String(v ?? "").trim();
+      return s ? s : fallback;
+    }
+
+    function fmtMoney(n) {
+      const num = Number(n || 0);
+      return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    function fmtDate(v){
+      try{
+        const d = new Date(v);
+        if (Number.isNaN(d.getTime())) return safeStr(v);
+        return d.toLocaleString();
+      }catch{ return safeStr(v); }
+    }
+
+    function statusClass(s){
+      const v = String(s||"").toLowerCase();
+      if (v === "approved") return "st-approved";
+      if (v === "declined" || v === "rejected") return "st-declined";
+      return "st-pending";
+    }
+    function statusText(s){
+      const v = String(s||"pending").toUpperCase();
+      return v;
+    }
+
+    async function fetchMe() {
+      const token = getToken();
+      if (!token) {
+        showAlert("warn", "Session expired. Please login again.");
+        setTimeout(() => window.location.href = "../auth/login.html", 900);
+        throw new Error("No token");
+      }
+      const res = await axios.get(`${API_BASE}/me`, { headers: authHeaders(), timeout: 20000 });
+      return res.data?.user;
+    }
+
+    async function fetchDeposits(){
+      const res = await axios.get(`${API_BASE}/deposits`, { headers: authHeaders(), timeout: 25000 });
+      return res.data?.deposits || [];
+    }
+    async function fetchWithdrawals(){
+      const res = await axios.get(`${API_BASE}/withdrawals`, { headers: authHeaders(), timeout: 25000 });
+      return res.data?.withdrawals || [];
+    }
+    async function fetchUpgrades(){
+      const res = await axios.get(`${API_BASE}/account-upgrades`, { headers: authHeaders(), timeout: 25000 });
+      return res.data?.upgrades || [];
+    }
+
+    function renderUserHeader(user) {
+      const name = user?.username || user?.full_name || "Upcoinmeta";
+      const hdrName = document.getElementById("hdrName");
+      const hdrInitial = document.getElementById("hdrInitial");
+      hdrName.classList.remove("skeleton");
+      hdrName.textContent = name;
+      hdrInitial.textContent = (String(name).trim().slice(0,1).toUpperCase() || "U");
+
+      // save
+      try{
+        const storage = localStorage.getItem(TOKEN_KEY) ? localStorage : sessionStorage;
+        storage.setItem(USER_KEY, JSON.stringify(user || {}));
+      }catch{}
+    }
+
+    function setTab(tab){
+      activeTab = tab;
+      tabDeposits.classList.toggle("active", tab === "deposits");
+      tabWithdrawals.classList.toggle("active", tab === "withdrawals");
+      tabUpgrades.classList.toggle("active", tab === "upgrades");
+      renderList();
+    }
+
+    tabDeposits.addEventListener("click", () => setTab("deposits"));
+    tabWithdrawals.addEventListener("click", () => setTab("withdrawals"));
+    tabUpgrades.addEventListener("click", () => setTab("upgrades"));
+
+    btnBack.addEventListener("click", () => {
+      if (history.length > 1) history.back();
+      else window.location.href = "../pages/dashboard.html";
+    });
+
+    document.getElementById("hdrInitial").addEventListener("click", () => {
+      window.location.href = "../pages/profile.html";
+    });
+
+    btnRefresh.addEventListener("click", async () => {
+      try{
+        await loadAll(true);
+        showAlert("success","Refreshed.");
+        setTimeout(() => alertBox.classList.add("hidden"), 900);
+      }catch(e){
+        showAlert("error", e?.message || "Refresh failed.");
+      }
+    });
+
+    function skeletonList(){
+      listWrap.innerHTML = `
+        <div class="glass rounded-[26px] p-4"><div class="skeleton rounded-2xl h-16 w-full"></div></div>
+        <div class="glass rounded-[26px] p-4"><div class="skeleton rounded-2xl h-16 w-full"></div></div>
+        <div class="glass rounded-[26px] p-4"><div class="skeleton rounded-2xl h-16 w-full"></div></div>
+      `;
+    }
+
+    function openModal({ title, sub, status, kvs, proof_url }){
+      mTitle.textContent = title || "Details";
+      mSub.textContent = sub || "—";
+
+      mStatus.className = `status-pill ${statusClass(status)}`;
+      mStatus.textContent = statusText(status);
+
+      mKVs.innerHTML = "";
+      (kvs || []).forEach(({k,v}) => {
+        const div = document.createElement("div");
+        div.className = "kv";
+        div.innerHTML = `<div class="k">${k}</div><div class="v">${safeStr(v)}</div>`;
+        mKVs.appendChild(div);
+      });
+
+      if (proof_url){
+        mProofWrap.classList.remove("hidden");
+        mProofLink.href = proof_url;
+        mCopyProof.onclick = async () => {
+          try{
+            await navigator.clipboard.writeText(proof_url);
+            showAlert("success","Proof URL copied.");
+          }catch{
+            showAlert("warn","Copy failed. Long-press to copy.");
+          }
+        };
+      } else {
+        mProofWrap.classList.add("hidden");
+        mProofLink.href = "#";
+        mCopyProof.onclick = null;
+      }
+
+      modal.classList.add("show");
+    }
+
+    function closeModal(){
+      modal.classList.remove("show");
+    }
+    mClose.addEventListener("click", closeModal);
+    modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
+
+    function renderList(){
+      let data = [];
+      if (activeTab === "deposits") data = deposits;
+      if (activeTab === "withdrawals") data = withdrawals;
+      if (activeTab === "upgrades") data = upgrades;
+
+      if (!data.length){
+        listWrap.innerHTML = `
+          <div class="glass rounded-[26px] p-5">
+            <div class="txt-h2">No records</div>
+            <div class="txt-sm t-dim mt-1">Nothing found for this category yet.</div>
+          </div>
+        `;
+        return;
+      }
+
+      listWrap.innerHTML = "";
+      data.forEach((item) => {
+        const row = document.createElement("div");
+        row.className = "row";
+
+        // common
+        const id = item.id;
+        const created = item.created_at ? fmtDate(item.created_at) : "—";
+        const status = item.status || "pending";
+
+        // tab-specific
+        let leftTitle = "";
+        let leftSub = "";
+        let rightTop = "";
+        let rightBottom = "";
+
+        if (activeTab === "deposits"){
+          leftTitle = `${safeStr(item.asset)} Deposit`;
+          leftSub = `#${id} • ${created}`;
+          rightTop = `$${fmtMoney(item.amount)}`;
+          rightBottom = statusText(status);
+        }
+
+        if (activeTab === "withdrawals"){
+          const method = safeStr(item.method).toUpperCase();
+          const asset = item.method === "crypto" ? ` • ${safeStr(item.asset)}` : "";
+          leftTitle = `${method} Withdrawal${asset}`;
+          leftSub = `#${id} • ${created}`;
+          rightTop = `$${fmtMoney(item.amount)}`;
+          rightBottom = statusText(status);
+        }
+
+        if (activeTab === "upgrades"){
+          leftTitle = `Account Upgrade`;
+          leftSub = `#${id} • ${created}`;
+          rightTop = `${safeStr(item.current_account_type).toUpperCase()} → ${safeStr(item.requested_account_type).toUpperCase()}`;
+          rightBottom = statusText(status);
+        }
+
+        row.innerHTML = `
+          <div class="min-w-0">
+            <div class="font-black text-[16px] truncate">${leftTitle}</div>
+            <div class="txt-sm t-dim truncate">${leftSub}</div>
+          </div>
+          <div class="text-right shrink-0">
+            <div class="font-black text-[14px] mono">${rightTop}</div>
+            <div class="mt-2 inline-flex ${statusClass(status)} status-pill" style="padding:6px 10px;">${rightBottom}</div>
+          </div>
+        `;
+
+        row.addEventListener("click", () => {
+          if (activeTab === "deposits"){
+            openModal({
+              title: `${safeStr(item.asset)} Deposit`,
+              sub: `#${item.id} • Created ${fmtDate(item.created_at)}`,
+              status: item.status,
+              proof_url: item.proof_url,
+              kvs: [
+                { k: "Amount", v: `$${fmtMoney(item.amount)}` },
+                { k: "Status", v: statusText(item.status) },
+                { k: "Admin note", v: safeStr(item.admin_note, "None") },
+                { k: "Approved at", v: item.approved_at ? fmtDate(item.approved_at) : "—" },
+                { k: "Declined at", v: item.declined_at ? fmtDate(item.declined_at) : "—" },
+                { k: "Updated at", v: item.updated_at ? fmtDate(item.updated_at) : "—" },
+              ]
+            });
+          }
+
+          if (activeTab === "withdrawals"){
+            const method = String(item.method||"").toLowerCase();
+            const title = method === "crypto"
+              ? `CRYPTO Withdrawal • ${safeStr(item.asset)}`
+              : `BANK Withdrawal`;
+
+            const kvs = [
+              { k: "Amount", v: `$${fmtMoney(item.amount)}` },
+              { k: "Status", v: statusText(item.status) },
+              { k: "Admin note", v: safeStr(item.admin_note, "None") },
+              { k: "Approved at", v: item.approved_at ? fmtDate(item.approved_at) : "—" },
+              { k: "Declined at", v: item.declined_at ? fmtDate(item.declined_at) : "—" },
+              { k: "Created at", v: item.created_at ? fmtDate(item.created_at) : "—" },
+            ];
+
+            if (method === "crypto"){
+              kvs.push({ k: "Asset", v: safeStr(item.asset) });
+              kvs.push({ k: "Network", v: safeStr(item.crypto_network) });
+              kvs.push({ k: "Address", v: safeStr(item.crypto_address) });
+            } else {
+              kvs.push({ k: "Bank", v: safeStr(item.bank_name) });
+              kvs.push({ k: "Account name", v: safeStr(item.bank_account_name) });
+              kvs.push({ k: "Account number", v: safeStr(item.bank_account_number) });
+              kvs.push({ k: "Country", v: safeStr(item.bank_country) });
+            }
+
+            openModal({
+              title,
+              sub: `#${item.id} • Created ${fmtDate(item.created_at)}`,
+              status: item.status,
+              proof_url: null,
+              kvs
+            });
+          }
+
+          if (activeTab === "upgrades"){
+            openModal({
+              title: `Account Upgrade`,
+              sub: `#${item.id} • Created ${fmtDate(item.created_at)}`,
+              status: item.status,
+              proof_url: item.proof_url,
+              kvs: [
+                { k: "Current type", v: safeStr(item.current_account_type).toUpperCase() },
+                { k: "Requested type", v: safeStr(item.requested_account_type).toUpperCase() },
+                { k: "Note", v: safeStr(item.note, "—") },
+                { k: "Admin note", v: safeStr(item.admin_note, "None") },
+                { k: "Approved at", v: item.approved_at ? fmtDate(item.approved_at) : "—" },
+                { k: "Declined at", v: item.declined_at ? fmtDate(item.declined_at) : "—" },
+                { k: "Updated at", v: item.updated_at ? fmtDate(item.updated_at) : "—" },
+              ]
+            });
+          }
+        });
+
+        listWrap.appendChild(row);
+      });
+    }
+
+    function updateCounts(){
+      countDeposits.textContent = String(deposits.length);
+      countWithdrawals.textContent = String(withdrawals.length);
+      countUpgrades.textContent = String(upgrades.length);
+    }
+
+    async function loadAll(isRefresh=false){
+      alertBox.classList.add("hidden");
+      skeletonList();
+
+      if (!isRefresh) showPreloader("Loading history…");
+
+      const [me, d, w, u] = await Promise.all([
+        fetchMe(),
+        fetchDeposits(),
+        fetchWithdrawals(),
+        fetchUpgrades(),
+      ]);
+
+      renderUserHeader(me);
+      deposits = Array.isArray(d) ? d : [];
+      withdrawals = Array.isArray(w) ? w : [];
+      upgrades = Array.isArray(u) ? u : [];
+
+      updateCounts();
+      renderList();
+
+      hidePreloader();
+    }
+
+    async function init(){
+      try{
+        await loadAll(false);
+      }catch(err){
+        hidePreloader();
+        const msg = err?.response?.data?.message || err?.message || "Failed to load transactions.";
+        showAlert("error", msg);
+
+        const status = err?.response?.status;
+        if (status === 401 || status === 403) setTimeout(() => window.location.href = "../auth/login.html", 900);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

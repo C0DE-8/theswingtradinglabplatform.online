@@ -1917,6 +1917,25 @@ label {
     right: 0;
     bottom: 0;
 }
+.certificate-area {
+    padding-top: 0;
+}
+.certificate-content {
+    padding-bottom: 75px;
+}
+.certificate-img {
+    position: relative;
+    z-index: 1;
+    text-align: right;
+    padding-bottom: 75px;
+}
+.certificate-img img {
+    width: 100%;
+    max-width: 560px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
+}
 
 /*=============================
 	15. Document

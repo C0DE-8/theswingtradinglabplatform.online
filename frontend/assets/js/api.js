@@ -1,7 +1,7 @@
 (function (window) {
   "use strict";
 
-  const API_ROOT = "https://my-sway-market-bd.vercel.app/api";
+  const API_ROOT = "https://api.theswingtradinglabplatform.online/api";
   const USER_BASE = `${API_ROOT}/users`;
   const ADMIN_BASE = `${API_ROOT}/admin`;
 

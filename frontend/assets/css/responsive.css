@@ -339,6 +339,9 @@
 .download-img {
     text-align: center;
 }
+.certificate-img {
+    text-align: center;
+}
 .download-img img:nth-child(2) {
     right: 18%;
 }
@@ -502,6 +505,10 @@
 }
 .download-content {
     padding: 0 0 100px;
+}
+.certificate-content,
+.certificate-img {
+    padding-bottom: 50px;
 }
 .footer-top {
     padding: 100px 0 30px;

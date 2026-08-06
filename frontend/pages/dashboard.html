@@ -1105,8 +1105,16 @@
 
       if (preloaderText) preloaderText.textContent = "Fetching your account…";
 
-      const [user, balances, alloc] = await Promise.all([
-        fetchMe(),
+      const user = await fetchMe();
+
+      if (Number(user?.is_verified) !== 1) {
+        const storage = localStorage.getItem(TOKEN_KEY) ? localStorage : sessionStorage;
+        storage.setItem(USER_KEY, JSON.stringify(user || {}));
+        window.location.href = "../pages/setting-up.html";
+        return;
+      }
+
+      const [balances, alloc] = await Promise.all([
         fetchBalances(),
         fetchCryptoAllocation(),
       ]);

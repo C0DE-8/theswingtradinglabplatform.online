@@ -133,13 +133,13 @@
           </div>
 
           <span class="badge-sec rounded-xl px-3 py-1 text-xs font-extrabold whitespace-nowrap">
-            EMAIL OTP
+            ADMIN REVIEW
           </span>
         </div>
 
         <!-- Intro -->
         <div class="mt-4 text-sm text-white/70 leading-relaxed">
-          Register to access your dashboard. We’ll send a <b>5-minute OTP</b> to your email for verification.
+          Register to create your account. An admin will review and approve access before the dashboard is enabled.
         </div>
 
         <!-- Alert -->
@@ -235,13 +235,13 @@
           <label class="flex items-start gap-3 text-sm text-white/70 cursor-pointer select-none pt-1">
             <input id="agree" type="checkbox" class="accent-sky-400 w-4 h-4 mt-1" required />
             <span>
-              I confirm my details are correct and I agree to OTP verification to activate my account.
+              I confirm my details are correct and understand my account requires admin approval before full access.
             </span>
           </label>
 
           <button id="signupBtn" type="submit"
             class="w-full rounded-2xl btn-primary transition font-extrabold py-3">
-            Create Account & Send OTP
+            Create Account
           </button>
 
           <div class="flex items-center gap-3">
@@ -256,7 +256,7 @@
           </a>
 
           <p class="text-[12px] text-white/55 leading-relaxed">
-            After registration, you’ll be redirected to OTP verification. OTP expires in <b>5 minutes</b>.
+            After registration, your account will show a setup status page until an admin approves it.
           </p>
         </form>
 
@@ -273,6 +273,8 @@
 
     const PENDING_EMAIL_KEY = "swing_trading_lab_platform_pending_email";
     const PENDING_UID_KEY   = "swing_trading_lab_platform_pending_user_id";
+    const TOKEN_KEY = "swing_trading_lab_platform_token";
+    const USER_KEY  = "swing_trading_lab_platform_user";
 
     const alertBox  = document.getElementById("alert");
     const signupForm = document.getElementById("signupForm");
@@ -300,11 +302,11 @@
     function setLoading(isLoading) {
       if (isLoading) {
         signupBtn.disabled = true;
-        signupBtn.textContent = "Creating account… sending OTP…";
+        signupBtn.textContent = "Creating account...";
         signupBtn.classList.add("opacity-70");
       } else {
         signupBtn.disabled = false;
-        signupBtn.textContent = "Create Account & Send OTP";
+        signupBtn.textContent = "Create Account";
         signupBtn.classList.remove("opacity-70");
       }
     }
@@ -380,11 +382,13 @@
 
         sessionStorage.setItem(PENDING_EMAIL_KEY, email);
         if (userId) sessionStorage.setItem(PENDING_UID_KEY, String(userId));
+        if (data.token) sessionStorage.setItem(TOKEN_KEY, data.token);
+        if (data.user) sessionStorage.setItem(USER_KEY, JSON.stringify(data.user));
 
-        showAlert("success", "Registration successful. OTP sent to email. Redirecting to verification…");
+        showAlert("success", "Registration successful. Your account is pending admin approval.");
 
         setTimeout(() => {
-          window.location.href = `../auth/verify.html?email=${encodeURIComponent(email)}`;
+          window.location.href = data.token ? "../pages/setting-up.html" : "../auth/login.html";
         }, 900);
       } catch (err) {
         const status = err?.response?.status;

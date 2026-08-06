@@ -229,8 +229,8 @@
             <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <select id="filterVerified" class="w-full rounded-2xl input px-4 py-3">
                 <option value="all">All verification</option>
-                <option value="verified">Verified only</option>
-                <option value="unverified">Unverified only</option>
+                <option value="verified">Approved only</option>
+                <option value="unverified">Pending approval only</option>
               </select>
               <select id="filterStatus" class="w-full rounded-2xl input px-4 py-3">
                 <option value="all">All status</option>
@@ -370,10 +370,10 @@
               </div>
 
               <div>
-                <label class="text-sm font-semibold text-muted">Verified</label>
+                <label class="text-sm font-semibold text-muted">Admin Approval</label>
                 <select id="m_is_verified" class="mt-2 w-full rounded-2xl input px-4 py-3">
-                  <option value="0">0 (No)</option>
-                  <option value="1">1 (Yes)</option>
+                  <option value="0">Pending approval</option>
+                  <option value="1">Approved</option>
                 </select>
               </div>
 
@@ -598,7 +598,7 @@
 
     function pillVerified(v){
       const yes = Number(v) === 1;
-      return `<span class="pill ${yes ? "ok" : "warn"}">${yes ? "Verified" : "Unverified"}</span>`;
+      return `<span class="pill ${yes ? "ok" : "warn"}">${yes ? "Approved" : "Pending approval"}</span>`;
     }
     function pillStatus(v){
       const s = String(v || "").toLowerCase();

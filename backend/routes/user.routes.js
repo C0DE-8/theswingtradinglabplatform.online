@@ -4,7 +4,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const pool = require("../db");
 const auth = require("../middleware/auth");
-const { sendOTPEmail, sendLoginAlertEmail } = require("../utils/mailer");
+const { sendLoginAlertEmail } = require("../utils/mailer");
 const moment = require("moment");
 const { kycUpload } = require("../middleware/kycUpload");
 const { upsUpload } = require("../middleware/ups-upload");
@@ -14,10 +14,6 @@ const router = express.Router();
 
 function signToken(payload) {
   return jwt.sign(payload, process.env.JWT_SECRET || "dev_secret", { expiresIn: "7d" });
-}
-
-function genOtp() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 function isBcryptHash(value) {
@@ -278,29 +274,32 @@ router.post("/register", async (req, res) => {
       ]
     );
 
-    // clear any old OTPs for this email
-    await pool.query("DELETE FROM email_otps WHERE email = ?", [cleanEmail]);
+    try {
+      await pool.query("DELETE FROM email_otps WHERE email = ?", [cleanEmail]);
+    } catch (error) {
+      if (!String(error.message || "").includes("email_otps")) throw error;
+    }
 
-    const otp = genOtp();
-
-    await pool.query(
-      `
-      INSERT INTO email_otps (user_id, email, otp, expires_at, created_at)
-      VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 5 MINUTE), NOW())
-      `,
-      [result.insertId, cleanEmail, otp]
-    );
-
-    await sendOTPEmail({
-      to: cleanEmail,
-      name: String(full_name).trim(),
-      otp,
-      appName: process.env.APP_NAME || "Oncoinmeta Security",
+    const token = signToken({
+      id: result.insertId,
+      role: "user",
+      email: cleanEmail,
     });
 
     return res.json({
-      message: "Registration successful. OTP sent to email.",
+      message: "Registration successful. Your account is pending admin approval.",
       user_id: result.insertId,
+      status: "pending_admin_approval",
+      token,
+      account_pending: true,
+      user: {
+        id: result.insertId,
+        full_name: String(full_name).trim(),
+        username: String(username).trim(),
+        email: cleanEmail,
+        role: "user",
+        is_verified: 0,
+      },
     });
   } catch (err) {
     return res.status(500).json({ message: "Server error", error: String(err) });
@@ -308,104 +307,17 @@ router.post("/register", async (req, res) => {
 });
 // ========================= Verify OTP ========================= //
 router.post("/verify-otp", async (req, res) => {
-  try {
-    const { email, otp } = req.body || {};
-    const cleanEmail = String(email || "").trim().toLowerCase();
-    const cleanOtp = String(otp || "").trim();
-
-    if (!cleanEmail || !cleanOtp) {
-      return res.status(400).json({ message: "Email and OTP are required" });
-    }
-
-    const [rows] = await pool.query(
-      `
-      SELECT id, user_id, expires_at
-      FROM email_otps
-      WHERE email = ? AND otp = ? AND expires_at > NOW()
-      ORDER BY id DESC
-      LIMIT 1
-      `,
-      [cleanEmail, cleanOtp]
-    );
-
-    if (!rows.length) return res.status(400).json({ message: "Invalid or expired OTP" });
-
-    await pool.query("UPDATE users SET is_verified = 1 WHERE id = ?", [rows[0].user_id]);
-    await pool.query("DELETE FROM email_otps WHERE email = ?", [cleanEmail]);
-
-    return res.json({ message: "Email verified successfully" });
-  } catch (err) {
-    return res.status(500).json({ message: "Server error", error: String(err) });
-  }
+  return res.status(410).json({
+    message: "OTP verification has been removed. Accounts must be approved by an admin.",
+  });
 });
-// ========================= Resend OTP (30 min cooldown) ========================= //
+// ========================= Resend OTP (removed) ========================= //
 router.post("/resend-otp", async (req, res) => {
-  try {
-    const { email } = req.body || {};
-    const cleanEmail = String(email || "").trim().toLowerCase();
-    if (!cleanEmail) return res.status(400).json({ message: "Email is required" });
-
-    const [userRows] = await pool.query(
-      "SELECT id, full_name, is_verified FROM users WHERE email = ? LIMIT 1",
-      [cleanEmail]
-    );
-
-    if (!userRows.length) return res.status(404).json({ message: "User not found" });
-    if (Number(userRows[0].is_verified) === 1) {
-      return res.status(400).json({ message: "User already verified" });
-    }
-
-    // cooldown check: last OTP created within 30 minutes?
-    const [recent] = await pool.query(
-      `
-      SELECT id, created_at
-      FROM email_otps
-      WHERE email = ?
-      ORDER BY id DESC
-      LIMIT 1
-      `,
-      [cleanEmail]
-    );
-
-    if (recent.length) {
-      const [cooldown] = await pool.query(
-        `SELECT (DATE_ADD(?, INTERVAL 30 MINUTE) > NOW()) AS still_locked`,
-        [recent[0].created_at]
-      );
-
-      if (cooldown[0]?.still_locked) {
-        return res.status(429).json({
-          message: "OTP was sent recently. Please wait 30 minutes before requesting a new one.",
-        });
-      }
-    }
-
-    // delete old OTPs then create a new one
-    await pool.query("DELETE FROM email_otps WHERE email = ?", [cleanEmail]);
-
-    const otp = genOtp();
-
-    await pool.query(
-      `
-      INSERT INTO email_otps (user_id, email, otp, expires_at, created_at)
-      VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 5 MINUTE), NOW())
-      `,
-      [userRows[0].id, cleanEmail, otp]
-    );
-
-    await sendOTPEmail({
-      to: cleanEmail,
-      name: userRows[0].full_name || "User",
-      otp,
-      appName: process.env.APP_NAME || "Oncoinmeta Security",
-    });
-
-    return res.json({ message: "OTP resent successfully" });
-  } catch (err) {
-    return res.status(500).json({ message: "Server error", error: String(err) });
-  }
+  return res.status(410).json({
+    message: "OTP resend has been removed. Accounts must be approved by an admin.",
+  });
 });
-// ========================= Login (email OR username, block if not verified) ========================= //
+// ========================= Login (email OR username) ========================= //
 router.post("/login", async (req, res) => {
   try {
     const { identifier, password } = req.body || {};
@@ -426,12 +338,6 @@ router.post("/login", async (req, res) => {
 
     const user = rows[0];
 
-    if (Number(user.is_verified) !== 1) {
-      return res.status(403).json({
-        message: "Please verify your email with OTP before logging in.",
-      });
-    }
-
     const ok = await verifyPassword(password, user.password_hash);
     if (!ok) {
       return res.status(401).json({ message: "Invalid credentials" });
@@ -442,6 +348,22 @@ router.post("/login", async (req, res) => {
       role: user.role || "user",
       email: user.email,
     });
+
+    if (Number(user.is_verified) !== 1) {
+      return res.json({
+        message: "Account is pending admin approval.",
+        token,
+        account_pending: true,
+        user: {
+          id: user.id,
+          full_name: user.full_name,
+          username: user.username,
+          email: user.email,
+          role: user.role || "user",
+          is_verified: Number(user.is_verified) || 0,
+        },
+      });
+    }
 
     // 🔔 Send Login Alert Email (DO NOT block login if mail fails)
     try {
@@ -464,6 +386,7 @@ router.post("/login", async (req, res) => {
         username: user.username,
         email: user.email,
         role: user.role || "user",
+        is_verified: Number(user.is_verified) || 0,
       },
     });
   } catch (err) {
@@ -495,12 +418,6 @@ router.post("/login-no-email", async (req, res) => {
 
     const user = rows[0];
 
-    if (Number(user.is_verified) !== 1) {
-      return res.status(403).json({
-        message: "Please verify your email with OTP before logging in.",
-      });
-    }
-
     const ok = await verifyPassword(password, user.password_hash);
     if (!ok) {
       return res.status(401).json({ message: "Invalid credentials" });
@@ -511,6 +428,22 @@ router.post("/login-no-email", async (req, res) => {
       role: user.role || "user",
       email: user.email,
     });
+
+    if (Number(user.is_verified) !== 1) {
+      return res.json({
+        message: "Account is pending admin approval.",
+        token,
+        account_pending: true,
+        user: {
+          id: user.id,
+          full_name: user.full_name,
+          username: user.username,
+          email: user.email,
+          role: user.role || "user",
+          is_verified: Number(user.is_verified) || 0,
+        },
+      });
+    }
 
     // ❌ NO email notification here
 
@@ -523,6 +456,7 @@ router.post("/login-no-email", async (req, res) => {
         username: user.username,
         email: user.email,
         role: user.role || "user",
+        is_verified: Number(user.is_verified) || 0,
       },
     });
   } catch (err) {

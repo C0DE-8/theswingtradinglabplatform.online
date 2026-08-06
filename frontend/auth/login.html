@@ -182,7 +182,7 @@
         </a>
 
         <p class="text-[12px] text-white/55 leading-relaxed">
-          Access is restricted to verified accounts. If your email isn’t verified, you’ll be redirected to OTP verification.
+          New accounts open a setup status page until an admin approves dashboard access.
         </p>
       </form>
 
@@ -279,6 +279,14 @@
         storage.setItem(TOKEN_KEY, data.token);
         storage.setItem(USER_KEY, JSON.stringify(data.user || {}));
 
+        if (data.account_pending || Number(data.user?.is_verified) !== 1) {
+          showAlert("warn", "Account is pending admin approval. Redirecting to setup status...");
+          setTimeout(() => {
+            window.location.href = "../pages/setting-up.html";
+          }, 900);
+          return;
+        }
+
         showAlert("success", "Login successful! Redirecting to dashboard...");
 
         // ✅ your existing redirect
@@ -290,11 +298,10 @@
         const msg = err?.response?.data?.message || "Login failed. Please try again.";
         const detail = err?.response?.data?.error;
 
-        // 403 -> not verified
         if (status === 403) {
-          showAlert("warn", msg + " Redirecting to OTP verification...");
+          showAlert("warn", msg);
           setTimeout(() => {
-            window.location.href = "../auth/verify.html";
+            window.location.href = "../pages/setting-up.html";
           }, 1200);
         } else if (status === 401) {
           showAlert("error", "Invalid email/username or password.");

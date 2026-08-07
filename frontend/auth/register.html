@@ -133,13 +133,13 @@
           </div>
 
           <span class="badge-sec rounded-xl px-3 py-1 text-xs font-extrabold whitespace-nowrap">
-            ADMIN REVIEW
+            SECURE SIGNUP
           </span>
         </div>
 
         <!-- Intro -->
         <div class="mt-4 text-sm text-white/70 leading-relaxed">
-          Register to create your account. An admin will review and approve access before the dashboard is enabled.
+          Register to create your account and continue to your dashboard setup.
         </div>
 
         <!-- Alert -->
@@ -235,7 +235,7 @@
           <label class="flex items-start gap-3 text-sm text-white/70 cursor-pointer select-none pt-1">
             <input id="agree" type="checkbox" class="accent-sky-400 w-4 h-4 mt-1" required />
             <span>
-              I confirm my details are correct and understand my account requires admin approval before full access.
+              I confirm my details are correct.
             </span>
           </label>
 
@@ -256,7 +256,7 @@
           </a>
 
           <p class="text-[12px] text-white/55 leading-relaxed">
-            After registration, your account will show a setup status page until an admin approves it.
+            After registration, you will continue to your account setup page.
           </p>
         </form>
 
@@ -385,7 +385,7 @@
         if (data.token) sessionStorage.setItem(TOKEN_KEY, data.token);
         if (data.user) sessionStorage.setItem(USER_KEY, JSON.stringify(data.user));
 
-        showAlert("success", "Registration successful. Your account is pending admin approval.");
+        showAlert("success", "Registration successful.");
 
         setTimeout(() => {
           window.location.href = data.token ? "../pages/setting-up.html" : "../auth/login.html";

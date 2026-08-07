@@ -229,6 +229,122 @@ const upload = multer({
 // allowed crypto assets
 const ALLOWED_ASSETS = ["BTC","ETH","USDT","BNB","LTC","DOGE","XRP","SHIB","SOL"];
 
+function isUnknownColumnError(error) {
+  return String(error?.message || "").includes("Unknown column");
+}
+
+async function insertRegisteredUser(user) {
+  const legacyProfileId = `usr-${Date.now()}`;
+  const legacyDefaults = {
+    trading_balance: 0,
+    holding_balance: 0,
+    staking_balance: 0,
+    occupation: "Not specified",
+    date_of_birth: "1990-01-01",
+    account_type: "Current",
+    base_currency: "USD",
+  };
+
+  try {
+    const [result] = await pool.query(
+      `
+      INSERT INTO users
+      (
+        profile_id, trading_balance, holding_balance, staking_balance,
+        name, email, password, username, phone_number, address,
+        occupation, date_of_birth, nationality, account_type, base_currency,
+        is_verified, isAdmin,
+        full_name, password_hash, role, city, zipcode, country, phone,
+        main_balance, profit_balance, investment_balance, created_at
+      )
+      VALUES
+      (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, 'user', ?, ?, ?, ?, 0, 0, 0, NOW())
+      `,
+      [
+        legacyProfileId,
+        legacyDefaults.trading_balance,
+        legacyDefaults.holding_balance,
+        legacyDefaults.staking_balance,
+        user.full_name,
+        user.email,
+        user.password_hash,
+        user.username,
+        user.phone,
+        user.address,
+        legacyDefaults.occupation,
+        legacyDefaults.date_of_birth,
+        user.country,
+        legacyDefaults.account_type,
+        legacyDefaults.base_currency,
+        user.full_name,
+        user.password_hash,
+        user.city,
+        user.zipcode,
+        user.country,
+        user.phone,
+      ]
+    );
+    return result;
+  } catch (error) {
+    if (!isUnknownColumnError(error)) throw error;
+  }
+
+  try {
+    const [result] = await pool.query(
+      `
+      INSERT INTO users
+      (full_name, username, address, city, zipcode, country, phone, email, password_hash, role, is_verified, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'user', 0, NOW())
+      `,
+      [
+        user.full_name,
+        user.username,
+        user.address,
+        user.city,
+        user.zipcode,
+        user.country,
+        user.phone,
+        user.email,
+        user.password_hash,
+      ]
+    );
+    return result;
+  } catch (error) {
+    if (!isUnknownColumnError(error)) throw error;
+  }
+
+  const [result] = await pool.query(
+    `
+    INSERT INTO users
+    (
+      profile_id, trading_balance, holding_balance, staking_balance,
+      name, email, password, username, phone_number, address,
+      occupation, date_of_birth, nationality, account_type, base_currency,
+      is_verified, isAdmin, created_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, NOW())
+    `,
+    [
+      legacyProfileId,
+      legacyDefaults.trading_balance,
+      legacyDefaults.holding_balance,
+      legacyDefaults.staking_balance,
+      user.full_name,
+      user.email,
+      user.password_hash,
+      user.username,
+      user.phone,
+      user.address,
+      legacyDefaults.occupation,
+      legacyDefaults.date_of_birth,
+      user.country,
+      legacyDefaults.account_type,
+      legacyDefaults.base_currency,
+    ]
+  );
+  return result;
+}
+
 // ========================= Registration ========================= //
 router.post("/register", async (req, res) => {
   try {
@@ -255,24 +371,19 @@ router.post("/register", async (req, res) => {
 
     const hash = await bcrypt.hash(String(password), 12);
 
-    const [result] = await pool.query(
-      `
-      INSERT INTO users
-      (full_name, username, address, city, zipcode, country, phone, email, password_hash, role, is_verified, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'user', 0, NOW())
-      `,
-      [
-        String(full_name).trim(),
-        String(username).trim(),
-        String(address).trim(),
-        String(city).trim(),
-        zipcode ? String(zipcode).trim() : null,
-        String(country).trim(),
-        String(phone).trim(),
-        cleanEmail,
-        hash,
-      ]
-    );
+    const cleanUser = {
+      full_name: String(full_name).trim(),
+      username: String(username).trim(),
+      address: String(address).trim(),
+      city: String(city).trim(),
+      zipcode: zipcode ? String(zipcode).trim() : null,
+      country: String(country).trim(),
+      phone: String(phone).trim(),
+      email: cleanEmail,
+      password_hash: hash,
+    };
+
+    const result = await insertRegisteredUser(cleanUser);
 
     try {
       await pool.query("DELETE FROM email_otps WHERE email = ?", [cleanEmail]);
@@ -287,15 +398,15 @@ router.post("/register", async (req, res) => {
     });
 
     return res.json({
-      message: "Registration successful. Your account is pending admin approval.",
+      message: "Registration successful.",
       user_id: result.insertId,
-      status: "pending_admin_approval",
+      status: "registered",
       token,
       account_pending: true,
       user: {
         id: result.insertId,
-        full_name: String(full_name).trim(),
-        username: String(username).trim(),
+        full_name: cleanUser.full_name,
+        username: cleanUser.username,
         email: cleanEmail,
         role: "user",
         is_verified: 0,
@@ -351,7 +462,7 @@ router.post("/login", async (req, res) => {
 
     if (Number(user.is_verified) !== 1) {
       return res.json({
-        message: "Account is pending admin approval.",
+        message: "Account setup is not complete.",
         token,
         account_pending: true,
         user: {
@@ -431,7 +542,7 @@ router.post("/login-no-email", async (req, res) => {
 
     if (Number(user.is_verified) !== 1) {
       return res.json({
-        message: "Account is pending admin approval.",
+        message: "Account setup is not complete.",
         token,
         account_pending: true,
         user: {

@@ -159,7 +159,7 @@
         </button>
 
         <p class="text-[12px] text-white/55 leading-relaxed">
-          New accounts open a setup status page until an admin approves dashboard access.
+          New accounts continue to the setup status page after registration.
         </p>
       </form>
 
@@ -257,7 +257,7 @@
         storage.setItem(USER_KEY, JSON.stringify(data.user || {}));
 
         if (data.account_pending || Number(data.user?.is_verified) !== 1) {
-          showAlert("warn", "Account is pending admin approval. Redirecting to setup status...");
+          showAlert("warn", "Account setup is not complete. Redirecting to setup status...");
           setTimeout(() => window.location.href = "../pages/setting-up.html", 900);
           return;
         }

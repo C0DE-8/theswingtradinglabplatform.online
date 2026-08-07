@@ -56,9 +56,9 @@
       </div>
 
       <div class="mt-6 rounded-3xl btn-soft p-5">
-        <div class="text-lg font-black">Waiting for admin confirmation</div>
+        <div class="text-lg font-black">Account setup in progress</div>
         <p class="mt-2 text-sm leading-relaxed text-white/65">
-          Your account has been created and is under review. Once an admin approves it, dashboard access will open automatically the next time this page checks your account.
+          Your account has been created. Dashboard access will open automatically when setup is complete.
         </p>
       </div>
 
@@ -112,7 +112,7 @@
       window.location.href = "../auth/login.html";
     }
     function renderPending(user) {
-      const label = user?.email || user?.username || "Account pending approval";
+      const label = user?.email || user?.username || "Account setup in progress";
       emailLine.textContent = label;
       statusPill.textContent = "PENDING";
     }
@@ -141,7 +141,7 @@
         }
 
         renderPending(user);
-        if (showSuccess) showAlert("warn", "Still pending admin approval.");
+        if (showSuccess) showAlert("warn", "Account setup is still in progress.");
       } catch (err) {
         const status = err?.response?.status;
         if (status === 401 || status === 403) {
